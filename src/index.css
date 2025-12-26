@@ -31,3 +31,53 @@
     background: #c1c1c1;
     border-radius: 4px;
 }
+
+/* ========================================
+   FOOTER SPACING FIX - PREVENT CONTENT CUT
+   ======================================== */
+
+/* Add bottom padding on mobile to prevent footer from cutting content */
+@media (max-width: 640px) {
+    main {
+        padding-bottom: 100px !important;
+    }
+    
+    /* Form elements - prevent iOS zoom */
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Tablet spacing */
+@media (min-width: 641px) and (max-width: 768px) {
+    main {
+        padding-bottom: 60px !important;
+    }
+}
+
+/* ========================================
+   RESPONSIVE BUTTON & ELEMENT FIXES
+   ======================================== */
+
+/* Make sure horizontal scrolling buttons are visible */
+.overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+}
+
+/* Ensure tabs/buttons don't get cut off */
+@media (max-width: 640px) {
+    .flex.gap-2, .flex.gap-4 {
+        flex-wrap: wrap;
+    }
+    
+    /* Smaller buttons on mobile */
+    button {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+    }
+}

@@ -417,98 +417,113 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
 
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center justify-between border-b border-blue-200 bg-white px-4 md:px-6">
-          <div className="flex md:hidden w-8"></div>
-          <h1 className="text-lg font-semibold text-blue-700">
+        <header className="flex h-12 md:h-14 items-center justify-between border-b border-blue-200 bg-white px-3 md:px-6">
+          <div className="flex md:hidden w-6"></div>
+          <h1 className="text-sm md:text-lg font-semibold text-blue-700">
             Checklist & Delegation
           </h1>
           <div className="flex items-center">
             <img
               src="/shrishyam.png"
               alt="Company Logo"
-              className="h-8 w-auto md:h-10 lg:h-12 transition-all duration-300"
+              className="h-7 w-auto md:h-10 lg:h-12 transition-all duration-300"
             />
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-gradient-to-br from-blue-50 to-purple-50">
           {children}
 
-          <div className="fixed md:left-64 left-0 right-0 bottom-0 py-1 px-4 gradient-bg text-white text-center text-sm shadow-lg z-10 backdrop-blur-sm">
-            <div className="sm:hidden flex justify-between items-center mb-[-10px]">
-              <div className="p-2 rounded-full hover:bg-white/20 transition-all duration-300 cursor-pointer transform hover:scale-110">
+          {/* Clean Minimal Footer Navigation */}
+          <div className="fixed md:left-64 left-0 right-0 bottom-0 z-10">
+            {/* Mobile Bottom Navigation */}
+            <div className="sm:hidden">
+              {/* Navigation Bar */}
+              <div className="flex justify-around items-center px-4 py-2 bg-white border-t border-gray-200 shadow-lg">
+                {/* Home */}
                 <Link
-                  to={"/dashboard/admin"}
-                  className={` ${location.pathname === `/dashboard/admin`
-                    ? "bg-white/20"
-                    : ""
-                    }`}
-                // onClick={() => setIsMobileMenuOpen(false)}
+                  to="/dashboard/admin"
+                  className={`flex flex-col items-center p-1.5 rounded-lg transition-all ${
+                    location.pathname === '/dashboard/admin'
+                      ? 'text-purple-600'
+                      : 'text-gray-500 hover:text-purple-500'
+                  }`}
                 >
-                  <Home size={29} className="drop-shadow-md" />
+                  <Home size={20} strokeWidth={location.pathname === '/dashboard/admin' ? 2.5 : 2} />
+                  <span className="text-[9px] mt-0.5 font-medium">Home</span>
                 </Link>
-              </div>
-              <div className="p-2 rounded-full hover:bg-white/20 transition-all duration-300 cursor-pointer transform hover:scale-110">
-                <Link
-                  to={"/dashboard/data/sales"}
-                  className={` ${location.pathname === `/dashboard/data/sales`
-                    ? "bg-white/20"
-                    : ""
-                    }`}
-                >
-                  <CalendarCheck size={29} className="drop-shadow-md" />
-                </Link>
-              </div>
-              <div className="p-3 rounded-full bg-white text-purple-600 hover:bg-purple-100 transition-all duration-300 cursor-pointer transform hover:scale-110 shadow-lg -mt-6">
-                <Link
-                  to={"/dashboard/assign-task"}
-                  className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${location.pathname === `/dashboard/assign-task`
-                    ? "bg-white/20"
-                    : ""
-                    }`}
-                >
-                  <CirclePlus size={29} className="drop-shadow-md" />
-                </Link>
-              </div>
-              <div className="p-2 rounded-full hover:bg-white/20 transition-all duration-300 cursor-pointer transform hover:scale-110">
-                <Link
-                  to={"/dashboard/delegation"}
-                  className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${location.pathname === `/dashboard/delegation`
-                    ? "bg-white/20"
-                    : ""
-                    }`}
-                >
-                  <BookmarkCheck size={29} className="drop-shadow-md" />
-                </Link>
-              </div>
-              <div
-                className="p-2 rounded-full hover:bg-white/20 transition-all duration-300 cursor-pointer transform hover:scale-110"
-                onClick={() => setIsUserPopupOpen(true)}
-              >
-                <UserRound size={29} className="drop-shadow-md" />
-              </div>
-            </div>
-            <a
-              // href="https://www.botivate.in/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="sm:hidden sm:hover:underline flex items-center justify-center gap-1 text-gray-900 transition-colors duration-300 mb-[-5px]"
-            >
-              Powered by-
-              <span className="font-bold drop-shadow-md text-gray-900">
-                Botivate
-              </span>
-            </a>
 
+                {/* Checklist */}
+                <Link
+                  to="/dashboard/data/sales"
+                  className={`flex flex-col items-center p-1.5 rounded-lg transition-all ${
+                    location.pathname === '/dashboard/data/sales'
+                      ? 'text-purple-600'
+                      : 'text-gray-500 hover:text-purple-500'
+                  }`}
+                >
+                  <CalendarCheck size={20} strokeWidth={location.pathname === '/dashboard/data/sales' ? 2.5 : 2} />
+                  <span className="text-[9px] mt-0.5 font-medium">Checklist</span>
+                </Link>
+
+                {/* Add Task - Floating Button */}
+                <Link
+                  to="/dashboard/assign-task"
+                  className="relative -mt-6"
+                >
+                  <div className={`p-3 rounded-full shadow-lg gradient-bg transition-transform hover:scale-105 ${
+                    location.pathname === '/dashboard/assign-task' ? 'scale-110 ring-2 ring-purple-300' : ''
+                  }`}>
+                    <CirclePlus size={22} className="text-white" strokeWidth={2} />
+                  </div>
+                </Link>
+
+                {/* Tasks */}
+                <Link
+                  to="/dashboard/delegation"
+                  className={`flex flex-col items-center p-1.5 rounded-lg transition-all ${
+                    location.pathname === '/dashboard/delegation'
+                      ? 'text-purple-600'
+                      : 'text-gray-500 hover:text-purple-500'
+                  }`}
+                >
+                  <BookmarkCheck size={20} strokeWidth={location.pathname === '/dashboard/delegation' ? 2.5 : 2} />
+                  <span className="text-[9px] mt-0.5 font-medium">Tasks</span>
+                </Link>
+
+                {/* Profile */}
+                <div
+                  onClick={() => setIsUserPopupOpen(true)}
+                  className="flex flex-col items-center p-1.5 rounded-lg cursor-pointer text-gray-500 hover:text-purple-500 transition-all"
+                >
+                  <UserRound size={20} strokeWidth={2} />
+                  <span className="text-[9px] mt-0.5 font-medium">Profile</span>
+                </div>
+              </div>
+
+              {/* Powered by Botivate - Compact */}
+              <a
+                href="https://www.botivate.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1 py-1 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                <span className="text-[8px] text-gray-500">Powered by</span>
+                <span className="text-[9px] font-bold text-purple-600">BOTIVATE</span>
+              </a>
+            </div>
+
+            {/* Desktop Footer */}
             <a
               href="https://www.botivate.in/"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden  hover:underline sm:flex items-center justify-center gap-1 text-white/90 hover:text-white transition-colors duration-300 mb-[-5px]"
+              className="hidden sm:flex items-center justify-center gap-2 py-1.5 gradient-bg hover:opacity-95 transition-opacity"
             >
-              Powered by-
-              <span className="font-bold text-white drop-shadow-md">
-                Botivate
-              </span>
+              <span className="text-xs text-white/80">Powered by</span>
+              <span className="font-bold text-white text-xs tracking-wide">BOTIVATE</span>
+              <svg className="w-3 h-3 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
             </a>
           </div>
         </main>

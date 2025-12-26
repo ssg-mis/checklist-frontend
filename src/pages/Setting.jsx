@@ -1082,20 +1082,20 @@ const resetUserForm = () => {
 {/* Departments Tab */}
 {activeTab === 'departments' && (
   <div className="bg-white shadow rounded-lg overflow-hidden border border-purple-200">
-    <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple px-6 py-4 border-gray-200">
-      <div className="flex justify-between items-center">
+    <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple px-4 sm:px-6 py-4 border-gray-200">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <h2 className="text-lg font-medium text-purple-700">Department Management</h2>
         
         {/* Sub-tabs for Departments and Given By */}
-        <div className="flex border border-purple-200 rounded-md overflow-hidden">
+        <div className="flex border border-purple-200 rounded-md overflow-hidden w-full sm:w-auto">
           <button
-            className={`px-4 py-2 text-sm font-medium ${activeDeptSubTab === 'departments' ? 'bg-purple-600 text-white' : 'bg-white text-purple-600 hover:bg-purple-50'}`}
+            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm font-medium ${activeDeptSubTab === 'departments' ? 'bg-purple-600 text-white' : 'bg-white text-purple-600 hover:bg-purple-50'}`}
             onClick={() => setActiveDeptSubTab('departments')}
           >
             Departments
           </button>
           <button
-            className={`px-4 py-2 text-sm font-medium ${activeDeptSubTab === 'givenBy' ? 'bg-purple-600 text-white' : 'bg-white text-purple-600 hover:bg-purple-50'}`}
+            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm font-medium ${activeDeptSubTab === 'givenBy' ? 'bg-purple-600 text-white' : 'bg-white text-purple-600 hover:bg-purple-50'}`}
             onClick={() => setActiveDeptSubTab('givenBy')}
           >
             Given By

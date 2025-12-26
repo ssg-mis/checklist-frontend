@@ -659,7 +659,7 @@ alert(`Successfully submitted ${generatedTasks.length} tasks!`);
                 {/* Date Picker */}
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-purple-700">
-                    Task Start Date
+                    Task End Date
                   </label>
                   <div className="relative">
                     <button

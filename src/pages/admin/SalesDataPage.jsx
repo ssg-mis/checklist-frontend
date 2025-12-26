@@ -54,8 +54,6 @@ function AccountDataPage() {
 
   const { doerName } = useSelector((state) => state.assignTask)
 
-  console.log(doerName)
-
   useEffect(() => {
     dispatch(checklistData(1))
     dispatch(checklistHistoryData(1))
