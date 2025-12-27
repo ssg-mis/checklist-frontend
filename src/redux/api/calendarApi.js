@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5050";
+const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Fetch tasks for calendar (filtered by user for non-admin)
 export const fetchCalendarTasks = async (month, year, username, role) => {
