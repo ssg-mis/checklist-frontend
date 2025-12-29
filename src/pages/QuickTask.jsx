@@ -725,15 +725,12 @@ const filteredChecklistTasks = quickTask.filter(task => {
                             )}
                           </td>
 
-                          {/* Task Start Date */}
+                          {/* Task Start Date - Non-editable */}
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 bg-yellow-50">
                             {editingTaskId === task.task_id ? (
-                              <input
-                                type="datetime-local"
-                                value={editFormData.task_start_date ? new Date(editFormData.task_start_date).toISOString().slice(0, 16) : ''}
-                                onChange={(e) => handleInputChange('task_start_date', e.target.value)}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                              />
+                              <span className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-sm cursor-not-allowed">
+                                {formatTimestampToDDMMYYYY(task.task_start_date)}
+                              </span>
                             ) : (
                               formatTimestampToDDMMYYYY(task.task_start_date)
                             )}
@@ -744,29 +741,15 @@ const filteredChecklistTasks = quickTask.filter(task => {
                             {formatTimestampToDDMMYYYY(task.submission_date)}
                           </td>
 
-                          {/* Frequency */}
+                          {/* Frequency - Non-editable */}
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {editingTaskId === task.task_id ? (
-                              <select
-                                value={editFormData.frequency}
-                                onChange={(e) => handleInputChange('frequency', e.target.value)}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                              >
-                                <option value="">Select Frequency</option>
-                                <option value="Daily">Daily</option>
-                                <option value="Weekly">Weekly</option>
-                                <option value="Monthly">Monthly</option>
-                                <option value="Yearly">Yearly</option>
-                              </select>
-                            ) : (
-                              <span className={`px-2 py-1 rounded-full text-xs ${task.frequency === 'Daily' ? 'bg-blue-100 text-blue-800' :
-                                task.frequency === 'Weekly' ? 'bg-green-100 text-green-800' :
-                                  task.frequency === 'Monthly' ? 'bg-purple-100 text-purple-800' :
-                                    'bg-gray-100 text-gray-800'
-                                }`}>
-                                {task.frequency}
-                              </span>
-                            )}
+                            <span className={`px-2 py-1 rounded-full text-xs ${task.frequency === 'Daily' ? 'bg-blue-100 text-blue-800' :
+                              task.frequency === 'Weekly' ? 'bg-green-100 text-green-800' :
+                                task.frequency === 'Monthly' ? 'bg-purple-100 text-purple-800' :
+                                  'bg-gray-100 text-gray-800'
+                              }${editingTaskId === task.task_id ? ' opacity-60 cursor-not-allowed' : ''}`}>
+                              {task.frequency}
+                            </span>
                           </td>
 
                           {/* Enable Reminders */}

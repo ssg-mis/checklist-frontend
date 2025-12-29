@@ -202,7 +202,7 @@ export default function AssignTask() {
   }, [dispatch])
 
 
-  const [date, setSelectedDate] = useState(null);
+  const [date, setSelectedDate] = useState(new Date());
   const [time, setTime] = useState("09:00");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedTasks, setGeneratedTasks] = useState([]);
@@ -599,11 +599,13 @@ alert(`Successfully submitted ${generatedTasks.length} tasks!`);
                   className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
                 >
                   <option value="">Select Given By</option>
-                  {givenBy.map((person, index) => (
-                    <option key={index} value={person}>
-                      {person}
-                    </option>
-                  ))}
+                  {givenBy
+                    .filter(person => person && person.trim() !== '')
+                    .map((person, index) => (
+                      <option key={index} value={person}>
+                        {person}
+                      </option>
+                    ))}
                 </select>
               </div>
 
