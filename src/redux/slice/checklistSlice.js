@@ -12,9 +12,9 @@ import {
 // ============================================================
 export const checklistData = createAsyncThunk(
   "fetch/checklist",
-  async (page = 1) => {
-    const { data, totalCount } = await fetchChechListDataSortByDate(page);
-    return { data, totalCount, page };
+  async ({ page = 1, search = '' } = {}) => {
+    const { data, totalCount } = await fetchChechListDataSortByDate(page, search);
+    return { data, totalCount, page, search };
   }
 );
 

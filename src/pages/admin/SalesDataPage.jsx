@@ -4,7 +4,7 @@ import { CheckCircle2, Upload, X, Search, History, ArrowLeft } from "lucide-reac
 import AdminLayout from "../../components/layout/AdminLayout"
 import { useDispatch, useSelector } from "react-redux"
 import { checklistData, checklistHistoryData, updateChecklist } from "../../redux/slice/checklistSlice"
-import { postChecklistAdminDoneAPI } from "../../redux/api/checkListApi"
+import { postChecklistAdminDoneAPI, sendChecklistWhatsAppAPI } from "../../redux/api/checkListApi"
 import { uniqueDoerNameData } from "../../redux/slice/assignTaskSlice";
 import { useNavigate } from "react-router-dom"
 
@@ -54,12 +54,30 @@ function AccountDataPage() {
 
   const { doerName } = useSelector((state) => state.assignTask)
 
+  // Track search for API calls
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+
+  // Initial data load
   useEffect(() => {
-    dispatch(checklistData(1))
+    dispatch(checklistData({ page: 1, search: '' }))
     dispatch(checklistHistoryData(1))
     dispatch(uniqueDoerNameData());
 
   }, [dispatch])
+
+  // Debounce search term and re-fetch data
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  // Re-fetch data when debounced search changes
+  useEffect(() => {
+    dispatch(checklistData({ page: 1, search: debouncedSearch }));
+  }, [debouncedSearch, dispatch]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -80,10 +98,10 @@ function AccountDataPage() {
 
     if (isNearBottom) {
       setIsFetchingMore(true)
-      dispatch(checklistData(currentPage + 1))
+      dispatch(checklistData({ page: currentPage + 1, search: debouncedSearch }))
         .finally(() => setIsFetchingMore(false))
     }
-  }, [loading, isFetchingMore, hasMore, currentPage, dispatch, checklist.length])
+  }, [loading, isFetchingMore, hasMore, currentPage, dispatch, checklist.length, debouncedSearch])
 
   // Handle scroll for history
   const handleScrollHistory = useCallback(() => {
@@ -128,6 +146,7 @@ function AccountDataPage() {
   // NEW: Admin history selection states
   const [selectedHistoryItems, setSelectedHistoryItems] = useState([])
   const [markingAsDone, setMarkingAsDone] = useState(false)
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false)
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     itemCount: 0,
@@ -262,6 +281,37 @@ function AccountDataPage() {
       isOpen: true,
       itemCount: selectedHistoryItems.length,
     })
+  }
+
+  // NEW: Send WhatsApp notification to selected pending items (Admin Only)
+  const handleSendWhatsApp = async () => {
+    if (selectedItems.size === 0) {
+      alert("Please select at least one item to send WhatsApp");
+      return;
+    }
+    if (sendingWhatsApp) return;
+
+    setSendingWhatsApp(true);
+    try {
+      // Get full task objects from filteredAccountData based on selected task_ids
+      const selectedTaskIds = Array.from(selectedItems);
+      const selectedTasks = filteredAccountData.filter(task => 
+        selectedTaskIds.includes(task.task_id)
+      );
+
+      const result = await sendChecklistWhatsAppAPI(selectedTasks);
+      
+      if (result.error) {
+        setSuccessMessage(`Failed to send WhatsApp: ${result.error.message || 'Unknown error'}`);
+      } else {
+        setSuccessMessage(result.message || 'WhatsApp messages sent successfully!');
+      }
+    } catch (error) {
+      console.error("Error sending WhatsApp:", error);
+      setSuccessMessage(`Failed to send WhatsApp: ${error.message}`);
+    } finally {
+      setSendingWhatsApp(false);
+    }
   }
 
   // NEW: Confirmation modal component
@@ -937,7 +987,8 @@ const submissionData = await Promise.all(
                   </div>
                 )}
               </button>
-              {!showHistory && (
+              {/* Submit Selected Button - Only for Users */}
+              {!showHistory && userRole === "user" && (
                 <button
                   onClick={handleSubmit}
                   disabled={selectedItemsCount === 0 || isSubmitting}
@@ -951,9 +1002,24 @@ const submissionData = await Promise.all(
                   )}
                 </button>
               )}
+              {/* WhatsApp Button - Only for Admin (inline with other buttons) */}
+              {!showHistory && userRole === "admin" && selectedItems.size > 0 && (
+                <button
+                  onClick={handleSendWhatsApp}
+                  disabled={sendingWhatsApp}
+                  className="flex-1 sm:flex-none rounded-md bg-green-500 py-2 px-3 sm:px-4 text-white hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                >
+                  {sendingWhatsApp ? "Sending..." : (
+                    <>
+                      <span className="hidden sm:inline">📱 WhatsApp ({selectedItems.size})</span>
+                      <span className="sm:hidden">📱 ({selectedItems.size})</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
-            {/* NEW: Admin Submit Button for History View */}
+            {/* Admin Submit Button for History View */}
             {showHistory && userRole === "admin" && selectedHistoryItems.length > 0 && (
               <div className="fixed bottom-4 right-4 sm:top-40 sm:bottom-auto sm:right-10 z-50">
                 <button
@@ -1340,7 +1406,7 @@ const submissionData = await Promise.all(
                       <div key={index} className={`bg-white border rounded-lg p-3 shadow-sm ${taskStatus === 'upcoming' ? "border-blue-300 bg-blue-50" : taskStatus === 'overdue' ? "border-red-300 bg-red-50" : "border-gray-200"}`}>
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex items-center gap-2">
-                            {userRole === "user" && (
+                            {(userRole === "user" || userRole === "admin") && (
                               <input
                                 type="checkbox"
                                 className={`h-4 w-4 rounded border-gray-300 text-purple-600 ${!checkboxEnabled ? 'opacity-50' : ''}`}
@@ -1410,7 +1476,7 @@ const submissionData = await Promise.all(
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Task Status
                     </th>
-                    {userRole === "user" && (
+                    {(userRole === "user" || userRole === "admin") && (
                       <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
                         <input
                           type="checkbox"
@@ -1493,7 +1559,7 @@ const submissionData = await Promise.all(
                               {taskStatus === 'today' ? 'Today' : taskStatus === 'upcoming' ? 'Upcoming' : taskStatus === 'overdue' ? 'Overdue' : '—'}
                             </span>
                           </td>
-                          {userRole === "user" && (
+                          {(userRole === "user" || userRole === "admin") && (
                             <td className="px-2 sm:px-3 py-2 sm:py-4 w-12">
                               <input
                                 type="checkbox"

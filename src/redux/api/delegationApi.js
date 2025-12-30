@@ -113,6 +113,26 @@ export const postDelegationAdminDoneAPI = async (items) => {
   }
 };
 
+// Send WhatsApp Notification for Delegation (Admin Only)
+export const sendDelegationWhatsAppAPI = async (selectedItems) => {
+  try {
+    const response = await axios.post(`${API}/delegation/send-whatsapp`, {
+      items: selectedItems.map(item => ({
+        task_id: item.task_id,
+        name: item.name,
+        task_description: item.task_description,
+        planned_date: item.planned_date,
+        task_start_date: item.task_start_date,
+        given_by: item.given_by
+      }))
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error sending delegation WhatsApp:", error);
+    return { error };
+  }
+};
+
 // SUBMIT
 // export const insertDelegationDoneAndUpdate = async ({
 //   selectedDataArray,

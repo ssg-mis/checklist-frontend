@@ -5,12 +5,12 @@ const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/checklist`;
 // =======================================================
 // 1️⃣ Fetch Pending Checklist (AWS Backend)
 // =======================================================
-export const fetchChechListDataSortByDate = async (page = 1) => {
+export const fetchChechListDataSortByDate = async (page = 1, search = '') => {
   const username = localStorage.getItem("user-name");
   const role = localStorage.getItem("role");
 
   const response = await fetch(
-    `${BASE_URL}/pending?page=${page}&username=${username}&role=${role}`
+    `${BASE_URL}/pending?page=${page}&username=${username}&role=${role}&search=${encodeURIComponent(search)}`
   );
 
   return await response.json();
@@ -70,6 +70,25 @@ export const postChecklistAdminDoneAPI = async (selectedItems) => {
     return json;
   } catch (error) {
     console.error("❌ Error Marking Admin Done:", error);
+    return { error };
+  }
+};
+
+// =======================================================
+// 5️⃣ Send WhatsApp Notification API (Admin Only)
+// =======================================================
+export const sendChecklistWhatsAppAPI = async (selectedItems) => {
+  try {
+    const response = await fetch(`${BASE_URL}/send-whatsapp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: selectedItems }),
+    });
+
+    const json = await response.json();
+    return json;
+  } catch (error) {
+    console.error("❌ Error Sending WhatsApp:", error);
     return { error };
   }
 };
