@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { loginUser } from "../redux/slice/loginSlice"
 import { LoginCredentialsApi } from "../redux/api/loginApi"
+import { Eye, EyeOff } from "lucide-react"
 
 const LoginPage = () => {
   const navigate = useNavigate()
@@ -13,6 +14,7 @@ const LoginPage = () => {
 
   const [isDataLoading, setIsDataLoading] = useState(false)
   const [isLoginLoading, setIsLoginLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [masterData, setMasterData] = useState({
     userCredentials: {},
     userRoles: {}
@@ -133,16 +135,29 @@ const LoginPage = () => {
               <i className="fas fa-key h-4 w-4 mr-2"></i>
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="Enter your password"
-              required
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-blue-500 focus:outline-none"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
           </div>
 
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 -mx-4 -mb-4 mt-4 rounded-b-lg">
