@@ -198,7 +198,7 @@ const LoginPage = () => {
 
       {/* Toast Notification */}
       {toast.show && (
-        <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 ${toast.type === "success"
+        <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 z-50 ${toast.type === "success"
           ? "bg-green-100 text-green-800 border-l-4 border-green-500"
           : "bg-red-100 text-red-800 border-l-4 border-red-500"
           }`}>
