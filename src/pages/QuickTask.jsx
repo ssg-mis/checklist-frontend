@@ -83,6 +83,8 @@ useEffect(() => {
   }
 }, [handleScroll]);
 
+  const userRole = localStorage.getItem("role");
+
   // Edit functionality
   const handleEditClick = (task) => {
     setEditingTaskId(task.task_id);
@@ -505,7 +507,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                 )}
               </div>
             </div>
-            {selectedTasks.length > 0 && activeTab === 'checklist' && (
+            {selectedTasks.length > 0 && activeTab === 'checklist' && userRole === "super_admin" && (
               <button
                 onClick={handleDeleteSelected}
                 disabled={isDeleting}
@@ -585,12 +587,14 @@ const filteredChecklistTasks = quickTask.filter(task => {
                               {task.frequency}
                             </span>
                           </div>
+                          {userRole === "super_admin" && (
                           <button
                             onClick={() => handleEditClick(task)}
                             className="text-blue-600 text-xs underline"
                           >
                             Edit
                           </button>
+                          )}
                         </div>
                         <p className="text-sm font-medium text-gray-900 mb-2">{task.task_description || "—"}</p>
                         <div className="grid grid-cols-2 gap-2 text-xs">
@@ -809,6 +813,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                               </div>
                             ) : (
                               // REMOVED THE submission_date CHECK - ALWAYS SHOW EDIT BUTTON
+                              userRole === "super_admin" && (
                               <button
                                 onClick={() => handleEditClick(task)}
                                 className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -816,6 +821,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                                 <Edit size={14} />
                                 Edit
                               </button>
+                              )
                             )}
                           </td>
                         </tr>

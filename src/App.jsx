@@ -67,7 +67,7 @@ function App() {
         <Route
           path="/dashboard/quick-task"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
               <QuickTask />
             </ProtectedRoute>
           }
@@ -85,7 +85,7 @@ function App() {
         <Route
           path="/dashboard/delegation-task"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
               <AdminDelegationTask />
             </ProtectedRoute>
           }
@@ -173,7 +173,7 @@ function App() {
         <Route
           path="/dashboard/data/admin"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
               <AdminDataPage />
             </ProtectedRoute>
           }

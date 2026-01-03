@@ -29,6 +29,8 @@ const Setting = () => {
   const [showDeptDropdown, setShowDeptDropdown] = useState(false);
   
   const { userData, department, departmentsOnly, givenBy, loading, error } = useSelector((state) => state.setting);
+  // Get current logged-in user to check for super_admin role
+  const { userData: currentUser } = useSelector((state) => state.login);
   const dispatch = useDispatch();
 
   const togglePasswordVisibility = (userId) => {
@@ -484,7 +486,7 @@ const handleEditUser = (userId) => {
   setUserForm({
     username: user.user_name,
     email: user.email_id,
-    password: '', // Leave empty initially, user can change if needed
+    password: user.password || '', // Pre-fill with existing password
     phone: user.number,
     departments: user.user_access ? user.user_access.split(',').map(d => d.trim()) : [], // Split comma-separated string into array
     role: user.role,
@@ -611,7 +613,7 @@ const resetUserForm = () => {
                 <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
               </button>
               
-              {activeTab !== 'leave' && (
+              {activeTab !== 'leave' && localStorage.getItem('role') === 'super_admin' && (
                 <button
                   onClick={handleAddButtonClick}
                   className="flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-purple-600 text-white hover:bg-purple-700"
@@ -723,12 +725,16 @@ const resetUserForm = () => {
                 </div>
 
                 {/* Submit Button */}
+                {/* Submit Button */}
+                {/* Submit Button */}
+                {localStorage.getItem('role') === 'super_admin' && (
                 <button
                   onClick={handleSubmitLeave}
                   className="rounded-md bg-green-600 py-2 px-4 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                 >
                   Submit Leave
                 </button>
+                )}
               </div>
             </div>
 
@@ -832,26 +838,28 @@ const resetUserForm = () => {
             <div className="text-sm text-gray-900">{user.remark || 'No remarks'}</div>
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <button
-              onClick={() => {
-                if(window.confirm(`Are you sure you want to clear leave for ${user.user_name}?`)) {
-                   dispatch(updateUser({
-                    id: user.id,
-                    updatedUser: {
-                      leave_date: null,
-                      leave_end_date: null,
-                      remark: null
-                    }
-                  })).then(() => {
-                    setTimeout(() => window.location.reload(), 500);
-                  });
-                }
-              }}
-              className="text-red-600 hover:text-red-900"
-              title="Clear Leave (Does NOT delete user)"
-            >
-              <Trash2 size={18} />
-            </button>
+            {localStorage.getItem('role') === 'super_admin' && (
+              <button
+                onClick={() => {
+                  if(window.confirm(`Are you sure you want to clear leave for ${user.user_name}?`)) {
+                     dispatch(updateUser({
+                      id: user.id,
+                      updatedUser: {
+                        leave_date: null,
+                        leave_end_date: null,
+                        remark: null
+                      }
+                    })).then(() => {
+                      setTimeout(() => window.location.reload(), 500);
+                    });
+                  }
+                }}
+                className="text-red-600 hover:text-red-900"
+                title="Clear Leave (Does NOT delete user)"
+              >
+                <Trash2 size={18} />
+              </button>
+            )}
           </td>
         </tr>
       ))}
@@ -951,12 +959,16 @@ const resetUserForm = () => {
                   </span>
                 </div>
                 <div className="flex space-x-2">
-                  <button onClick={() => handleEditUser(user?.id)} className="text-blue-600" title="Edit">
-                    <Edit size={16} />
-                  </button>
-                  <button onClick={() => handleDeleteUser(user?.id)} className="text-red-600" title="Delete">
-                    <Trash2 size={16} />
-                  </button>
+                  {localStorage.getItem('role') === 'super_admin' && (
+                    <>
+                      <button onClick={() => handleEditUser(user?.id)} className="text-blue-600" title="Edit">
+                        <Edit size={16} />
+                      </button>
+                      <button onClick={() => handleDeleteUser(user?.id)} className="text-red-600" title="Delete">
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               <p className="text-sm font-medium text-gray-900 mb-2">{user?.user_name}</p>
@@ -1068,22 +1080,24 @@ const resetUserForm = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleEditUser(user?.id)}
-                      className="text-blue-600 hover:text-blue-900"
-                      title="Edit User"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteUser(user?.id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Delete User"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
+                  {localStorage.getItem('role') === 'super_admin' && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditUser(user?.id)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Edit User"
+                      >
+                        <Edit size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user?.id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Delete User"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
@@ -1163,12 +1177,14 @@ const resetUserForm = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{dept.department}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex space-x-2">
+                        {localStorage.getItem('role') === 'super_admin' && (
                         <button
                           onClick={() => handleEditDepartment(dept.id)}
                           className="text-blue-600 hover:text-blue-900"
                         >
                           <Edit size={18} />
                         </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1213,12 +1229,14 @@ const resetUserForm = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{dept.given_by}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex space-x-2">
+                        {localStorage.getItem('role') === 'super_admin' && (
                         <button
                           onClick={() => handleEditDepartment(dept.id)}
                           className="text-blue-600 hover:text-blue-900"
                         >
                           <Edit size={18} />
                         </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1370,6 +1388,8 @@ const resetUserForm = () => {
                           >
                             <option value="user">User</option>
                             <option value="admin">Admin</option>
+                            {/* Only show/allow super_admin option if current user is super_admin (or you can decide policy) */}
+                            {localStorage.getItem('role') === 'super_admin' && <option value="super_admin">Super Admin</option>}
                           </select>
                         </div>
 

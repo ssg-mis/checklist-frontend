@@ -191,7 +191,7 @@ useEffect(() => {
     const processedTasks = data
       .map((task) => {
         // Skip if not assigned to current user (for non-admin)
-        if (userRole !== "admin" && task.name?.toLowerCase() !== username?.toLowerCase()) {
+        if ((userRole !== "admin" && userRole !== "super_admin") && task.name?.toLowerCase() !== username?.toLowerCase()) {
           return null;
         }
 
@@ -559,7 +559,7 @@ useEffect(() => {
       }
 
       // For non-admin users, always ensure current user appears in staff dropdown
-      if (userRole !== "admin" && username) {
+      if ((userRole !== "admin" && userRole !== "super_admin") && username) {
         if (!uniqueStaff.some(staff => staff.toLowerCase() === username.toLowerCase())) {
           uniqueStaff.push(username)
         }
@@ -578,7 +578,7 @@ useEffect(() => {
       const processedTasks = filteredData
         .map((task) => {
           // Skip if not assigned to current user (for non-admin)
-          if (userRole !== "admin" && task.name?.toLowerCase() !== username?.toLowerCase()) {
+          if ((userRole !== "admin" && userRole !== "super_admin") && task.name?.toLowerCase() !== username?.toLowerCase()) {
             return null;
           }
 
@@ -735,7 +735,7 @@ useEffect(() => {
 
         // Filter departments based on user access for admin users
         let filteredDepartments = departments;
-        if (userRole === "admin" && userDepartments.length > 0) {
+        if ((userRole === "admin" || userRole === "super_admin") && userDepartments.length > 0) {
           filteredDepartments = departments.filter(dept =>
             userDepartments.includes(dept.toLowerCase())
           );
@@ -1033,6 +1033,13 @@ useEffect(() => {
           getFrequencyColor={getFrequencyColor}
           isLoadingMore={isLoadingMore}
           hasMoreData={hasMoreData}
+          username={username}
+          userRole={userRole}
+          onTaskComplete={() => {
+            // Trigger refresh
+            setCurrentPage(1)
+            fetchDepartmentData(1, false)
+          }}
         />
 
         {activeTab === "overview" && (

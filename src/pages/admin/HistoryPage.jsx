@@ -33,6 +33,7 @@ function HistoryPage() {
     itemCount: 0,
     type: "checklist" // 'checklist' or 'delegation'
   })
+  const [adminRemarks, setAdminRemarks] = useState({}) // New state for admin remarks
 
   const { history } = useSelector((state) => state.checkList)
   const { delegation_done } = useSelector((state) => state.delegation)
@@ -188,11 +189,19 @@ function HistoryPage() {
     try {
       let data, error
       if (type === "checklist") {
-        const result = await postChecklistAdminDoneAPI(selectedHistoryItems)
+        const payload = selectedHistoryItems.map(item => ({
+          task_id: item.task_id,
+          remarks: adminRemarks[item.task_id] || ""
+        }))
+        const result = await postChecklistAdminDoneAPI(payload)
         data = result.data
         error = result.error
       } else {
-        const result = await postDelegationAdminDoneAPI(selectedDelegationItems)
+        const payload = selectedDelegationItems.map(item => ({
+          id: item.id,
+          remarks: adminRemarks[item.id] || ""
+        }))
+        const result = await postDelegationAdminDoneAPI(payload)
         data = result.data
         error = result.error
       }
@@ -578,11 +587,16 @@ function HistoryPage() {
                       </th>
                     )}
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Status</th>
+                    {isSuperAdmin && (
+                      <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th>
+                    )}
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Given By</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Task Description</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">Task Start Date</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frequency</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-green-50">Submission Date</th>
@@ -618,6 +632,27 @@ function HistoryPage() {
                             {historyItem.admin_done === 'Done' ? "Approved" : "Pending"}
                           </span>
                         </td>
+                        {isSuperAdmin && (
+                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50">
+                            {historyItem.admin_done !== 'Done' ? (
+                              <input
+                                type="text"
+                                placeholder="Remark..."
+                                value={adminRemarks[historyItem.task_id] || ""}
+                                onChange={(e) => setAdminRemarks(prev => ({
+                                  ...prev,
+                                  [historyItem.task_id]: e.target.value
+                                }))}
+                                disabled={!isItemSelected(historyItem.task_id)}
+                                className={`w-full text-xs p-1 border-2 border-purple-300 rounded font-bold focus:border-purple-500 focus:bg-white bg-purple-50 ${
+                                  !isItemSelected(historyItem.task_id) ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
+                              />
+                            ) : (
+                              <div className="text-xs text-gray-600 font-medium">{historyItem.admin_done_remarks || "—"}</div>
+                            )}
+                          </td>
+                        )}
                         <td className="px-2 sm:px-3 py-2 sm:py-4">
                           <div className="text-xs sm:text-sm font-medium text-gray-900">{historyItem.task_id || "—"}</div>
                         </td>
@@ -635,6 +670,7 @@ function HistoryPage() {
                             {historyItem.task_description || "—"}
                           </div>
                         </td>
+
                         <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
                           <div className="text-xs sm:text-sm text-gray-900">
                             {historyItem.task_start_date ? (() => {
@@ -732,10 +768,17 @@ function HistoryPage() {
                       </th>
                     )}
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Status</th>
+                    {isSuperAdmin && (
+                      <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th>
+                    )}
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Given By</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Task Description</th>
+                    {isSuperAdmin && (
+                      <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th>
+                    )}
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">Created At</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Status</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Extend Date</th>
@@ -773,6 +816,27 @@ function HistoryPage() {
                             {item.admin_done === 'Done' ? "Approved" : "Pending"}
                           </span>
                         </td>
+                        {isSuperAdmin && (
+                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50">
+                            {item.admin_done !== 'Done' ? (
+                              <input
+                                type="text"
+                                placeholder="Remark..."
+                                value={adminRemarks[item.id] || ""}
+                                onChange={(e) => setAdminRemarks(prev => ({
+                                  ...prev,
+                                  [item.id]: e.target.value
+                                }))}
+                                disabled={!isDelegationItemSelected(item.id)}
+                                className={`w-full text-xs p-1 border-2 border-purple-300 rounded font-bold focus:border-purple-500 focus:bg-white bg-purple-50 ${
+                                  !isDelegationItemSelected(item.id) ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
+                              />
+                            ) : (
+                              <div className="text-xs text-gray-600 font-medium">{item.admin_done_remarks || "—"}</div>
+                            )}
+                          </td>
+                        )}
                         <td className="px-2 sm:px-3 py-2 sm:py-4">
                           <div className="text-xs sm:text-sm font-medium text-gray-900">{item.task_id || "—"}</div>
                         </td>
@@ -787,6 +851,7 @@ function HistoryPage() {
                             {item.task_description || "—"}
                           </div>
                         </td>
+
                         <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
                           <div className="text-xs sm:text-sm text-gray-900">
                             {formatDateForDisplay(item.created_at)}

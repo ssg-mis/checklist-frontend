@@ -63,7 +63,7 @@ export default function DashboardHeader({
     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
       <div className="flex items-center gap-4">
         <h1 className="text-2xl font-bold tracking-tight text-purple-500">Dashboard</h1>
-        {userRole === "admin" && (
+        { (userRole === "admin" || userRole === "super_admin") && (
           <div className="flex items-center gap-2 ml-auto mr-5">
             <div className="text-sm text-gray-600">Total Users</div>
             <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
@@ -79,7 +79,7 @@ export default function DashboardHeader({
       <div className="md:hidden">
         <div className="grid grid-cols-2 gap-2">
           {/* Date Range Filter */}
-          {userRole === "admin" && (
+          {(userRole === "admin" || userRole === "super_admin") && (
             <div className="relative">
               <button
                 onClick={() => setShowDateRangePicker(!showDateRangePicker)}
@@ -143,7 +143,7 @@ export default function DashboardHeader({
           </select>
 
           {/* Department Filter - Only show for checklist */}
-          {dashboardType === "checklist" && userRole === "admin" && (
+          {dashboardType === "checklist" && (userRole === "admin" || userRole === "super_admin") && (
             <select
               value={departmentFilter}
               onChange={(e) => setDepartmentFilter(e.target.value)}
@@ -159,7 +159,7 @@ export default function DashboardHeader({
           )}
 
           {/* Dashboard Staff Filter */}
-          {userRole === "admin" ? (
+          {(userRole === "admin" || userRole === "super_admin") ? (
             <select
               value={dashboardStaffFilter}
               onChange={(e) => setDashboardStaffFilter(e.target.value)}
@@ -187,7 +187,7 @@ export default function DashboardHeader({
       {/* Desktop View - Original layout */}
       <div className="hidden md:flex items-center gap-2">
         {/* Date Range Filter */}
-        {userRole === "admin" && (
+        {(userRole === "admin" || userRole === "super_admin") && (
           <div className="relative">
             <button
               onClick={() => setShowDateRangePicker(!showDateRangePicker)}
@@ -256,7 +256,7 @@ export default function DashboardHeader({
         </select>
 
         {/* Department Filter - Only show for checklist */}
-        {dashboardType === "checklist" && userRole === "admin" && (
+        {dashboardType === "checklist" && (userRole === "admin" || userRole === "super_admin") && (
           <select
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
@@ -272,7 +272,7 @@ export default function DashboardHeader({
         )}
 
         {/* Dashboard Staff Filter */}
-        {userRole === "admin" ? (
+        {(userRole === "admin" || userRole === "super_admin") ? (
           <select
             value={dashboardStaffFilter}
             onChange={(e) => setDashboardStaffFilter(e.target.value)}

@@ -188,7 +188,7 @@ export default function AssignTask() {
   const username = localStorage.getItem('user-name');
 
   // Filter doer names based on role
-  const filteredDoerNames = userRole === 'admin'
+  const filteredDoerNames = (userRole === 'admin' || userRole === 'super_admin')
     ? doerName
     : doerName.filter(doer => doer?.toLowerCase() === username?.toLowerCase());
 
@@ -879,9 +879,9 @@ useEffect(() => {
                   <p className="text-sm text-purple-700">
                     <strong>Selected Date & Time:</strong> {getFormattedDateTime()}
                   </p>
-                  <p className="text-xs text-purple-600 mt-1">
+                  {/* <p className="text-xs text-purple-600 mt-1">
                     Will be stored as: {formatDateTimeForStorage(date, time)}
-                  </p>
+                  </p> */}
                 </div>
               )}
 

@@ -2,7 +2,11 @@
 
 import { Filter, ChevronDown, ChevronUp } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
+import { useDispatch } from "react-redux"
 import { fetchDashboardDataApi, getDashboardDataCount } from "../../../redux/api/dashboardApi"
+import { updateChecklistData } from "../../../redux/api/checkListApi"
+import { insertDelegationDoneAndUpdate } from "../../../redux/api/delegationApi"
+import { CheckCircle2, Circle } from "lucide-react"
 
 export default function TaskNavigationTabs({
   dashboardType,
@@ -15,8 +19,12 @@ export default function TaskNavigationTabs({
   departmentData,
   getFrequencyColor,
   dashboardStaffFilter,
-  departmentFilter // Add this prop
+  departmentFilter, // Add this prop
+  username,
+  userRole,
+  onTaskComplete
 }) {
+  const dispatch = useDispatch()
   const [currentPage, setCurrentPage] = useState(1)
   const [displayedTasks, setDisplayedTasks] = useState([])
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -97,6 +105,8 @@ export default function TaskNavigationTabs({
           frequency: task.frequency || "one-time",
           rating: task.color_code_for || 0,
           department: task.department || "N/A", // Add department field
+          // Pass raw items for completion logic
+          _raw: task
         }
       })
 
@@ -235,6 +245,52 @@ export default function TaskNavigationTabs({
     }
   }, [hasMoreData, isLoadingMore, currentPage])
 
+  const handleTaskCompletion = async (task) => {
+    try {
+      const isChecklist = dashboardType === "checklist";
+      
+      // Determine if allowed: Only if task assigned to current user
+      const isAssignedToMe = task.assignedTo?.toLowerCase() === username?.toLowerCase();
+      
+      if (!isAssignedToMe) return;
+
+      if (confirm(`Are you sure you want to mark "${task.title}" as done?`)) {
+         if (isChecklist) {
+            await updateChecklistData([{
+              taskId: task.id,
+              status: "yes",
+              remarks: "",
+              image: null 
+            }]);
+         } else {
+            // Delegation
+            const rawTask = task._raw;
+            await dispatch(insertDelegationDoneAndUpdate({
+              selectedDataArray: [{
+                task_id: rawTask.task_id,
+                given_by: rawTask.given_by,
+                name: rawTask.name,
+                task_description: rawTask.task_description,
+                task_start_date: rawTask.task_start_date,
+                planned_date: rawTask.planned_date,
+                status: "done",
+                next_extend_date: null,
+                reason: "",
+                image_base64: null,
+              }]
+            })).unwrap();
+         }
+
+          // Trigger refresh
+          if (onTaskComplete) onTaskComplete();
+          loadTasksFromServer(1, false);
+      }
+    } catch (error) {
+      console.error("Error completing task:", error);
+      alert("Failed to complete task");
+    }
+  };
+
   return (
     <div className="w-full overflow-hidden rounded-lg border border-gray-200 bg-white">
       <div className="grid grid-cols-3">
@@ -372,6 +428,9 @@ export default function TaskNavigationTabs({
                     Task ID
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Task Description
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -402,6 +461,26 @@ export default function TaskNavigationTabs({
                         {sequenceNumber}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{task.id}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {task.status === "completed" ? (
+                           <span className="flex items-center text-green-600 gap-1">
+                             <CheckCircle2 size={16} /> Done
+                           </span>
+                        ) : (
+                           (userRole === 'admin' || userRole === 'super_admin') && 
+                           task.assignedTo?.toLowerCase() === username?.toLowerCase() ? (
+                             <button 
+                               onClick={() => handleTaskCompletion(task)}
+                               className="flex items-center text-gray-400 hover:text-green-600 gap-1 transition-colors"
+                               title="Mark as Done"
+                             >
+                               <Circle size={16} /> Mark Done
+                             </button>
+                           ) : (
+                             <span className="text-gray-400 text-xs">Pending</span>
+                           )
+                        )}
+                      </td>
                       <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{task.title}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{task.assignedTo}</td>
                       {dashboardType === "checklist" && (

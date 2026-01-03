@@ -77,58 +77,57 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       label: "Dashboard",
       icon: Database,
       active: location.pathname === "/dashboard/admin",
-      showFor: ["admin", "user"],
+      showFor: ["admin", "user", "super_admin"],
     },
     {
       href: "/dashboard/quick-task",
       label: "Quick Task",
       icon: Zap,
       active: location.pathname === "/dashboard/quick-task",
-      active: location.pathname === "/dashboard/quick-task",
       // Show for all admins
-      showFor: ["admin"],
+      showFor: ["admin", "super_admin"],
     },
     {
       href: "/dashboard/assign-task",
       label: "Assign Task",
       icon: CheckSquare,
       active: location.pathname === "/dashboard/assign-task",
-      showFor: ["admin"],
+      showFor: ["admin", "super_admin"],
     },
     {
       href: "/dashboard/delegation",
       label: "Delegation",
       icon: ClipboardList,
       active: location.pathname === "/dashboard/delegation",
-      showFor: ["admin", "user"],
+      showFor: ["admin", "user", "super_admin"],
     },
     {
       href: "/dashboard/data/sales",
       label: "Checklist",
       icon: CalendarCheck,
       active: location.pathname === "/dashboard/data/sales",
-      showFor: ["admin", "user"],
+      showFor: ["admin", "user", "super_admin"],
     },
     {
       href: "/dashboard/history",
       label: "Admin Approval",
       icon: History,
       active: location.pathname === "/dashboard/history",
-      showFor: ["admin", "user"],
+      showFor: ["admin", "user", "super_admin"],
     },
     {
       href: "/dashboard/calendar",
       label: "Calendar",
       icon: Calendar,
       active: location.pathname === "/dashboard/calendar",
-      showFor: ["admin", "user"],
+      showFor: ["admin", "user", "super_admin"],
     },
     {
       href: "/dashboard/holidays",
       label: "Holiday List",
       icon: CalendarCheck,
       active: location.pathname === "/dashboard/holidays",
-      showFor: ["admin"],
+      showFor: ["admin", "super_admin"],
     },
     // {
     //   href: "/dashboard/mis-report",
@@ -143,16 +142,15 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       label: "Settings",
       icon: Settings,
       active: location.pathname.includes("/dashboard/setting"),
-      active: location.pathname.includes("/dashboard/setting"),
       // Show for all admins
-      showFor: ["admin"],
+      showFor: ["admin", "super_admin"],
     },
     {
       href: "/dashboard/training-video",
       label: "Training Video",
       icon: Video,
       active: location.pathname === "/dashboard/training-video",
-      showFor: ["admin", "user"],
+      showFor: ["admin", "user", "super_admin"],
     },
   ];
 
@@ -232,7 +230,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-blue-700 truncate">
                     {username || "User"}{" "}
-                    {userRole === "admin"
+                    {userRole === "super_admin"
+                      ? "(Super Admin)"
+                      : userRole === "admin"
                       ? "(Admin)"
                       : ""}
                   </p>
@@ -371,7 +371,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                   <div>
                     <p className="text-sm font-medium text-blue-700">
                       {username || "User"}{" "}
-                      {userRole === "admin"
+                      {userRole === "super_admin"
+                        ? "(Super Admin)"
+                        : userRole === "admin"
                         ? "(Admin)"
                         : ""}
                     </p>
@@ -566,7 +568,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                   <div>
                     <p className="text-sm font-medium text-blue-700">
                       {username || "User"}{" "}
-                      {userRole === "admin"
+                      {userRole === "super_admin"
+                        ? "(Super Admin)"
+                        : userRole === "admin"
                         ? "(Admin)"
                         : ""}
                     </p>

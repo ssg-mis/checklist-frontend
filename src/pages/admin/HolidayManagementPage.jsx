@@ -20,6 +20,7 @@ export default function HolidayManagementPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
+  const userRole = localStorage.getItem("role");
 
   // Form states
   const [holidayForm, setHolidayForm] = useState({ holiday_date: "", remarks: "" });
@@ -155,6 +156,7 @@ export default function HolidayManagementPage() {
             <h1 className="text-xl font-bold text-gray-800">Holiday & Working Day Management</h1>
             <p className="text-sm text-gray-500">Manage holidays and working days</p>
           </div>
+          {userRole === "super_admin" && (
           <button
             onClick={() => setShowAddForm(true)}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
@@ -162,6 +164,7 @@ export default function HolidayManagementPage() {
             <Plus className="h-4 w-4" />
             Add {activeTab === "holidays" ? "Holiday" : "Working Day"}
           </button>
+          )}
         </div>
 
         {/* Success/Error Messages */}
@@ -263,12 +266,14 @@ export default function HolidayManagementPage() {
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">{holiday.remarks || "-"}</td>
                           <td className="px-4 py-3 text-center">
+                            {userRole === "super_admin" && (
                             <button
                               onClick={() => handleDeleteHoliday(holiday.id)}
                               className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -305,12 +310,14 @@ export default function HolidayManagementPage() {
                           <td className="px-4 py-3 text-sm text-gray-600">{day.day}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">Week {day.week_num}</td>
                           <td className="px-4 py-3 text-center">
+                            {userRole === "super_admin" && (
                             <button
                               onClick={() => handleDeleteWorkingDay(day.id)}
                               className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
+                            )}
                           </td>
                         </tr>
                       ))

@@ -151,6 +151,7 @@ function AccountDataPage() {
     isOpen: false,
     itemCount: 0,
   })
+  const [adminRemarks, setAdminRemarks] = useState({}) // New state for admin remarks
 
   // UPDATED: Format date-time to DD/MM/YYYY HH:MM:SS
   const formatDateTimeToDDMMYYYY = (date) => {
@@ -385,9 +386,12 @@ function AccountDataPage() {
   const confirmMarkDone = async () => {
     setConfirmationModal({ isOpen: false, itemCount: 0 });
     setMarkingAsDone(true);
-    console.log(selectedHistoryItems);
     try {
-      const { data, error } = await postChecklistAdminDoneAPI(selectedHistoryItems);
+      const payload = selectedHistoryItems.map(item => ({
+        task_id: item.task_id,
+        remarks: adminRemarks[item.task_id] || ""
+      }))
+      const { data, error } = await postChecklistAdminDoneAPI(payload);
 
       if (error) {
         throw new Error(error.message || "Failed to mark items as done");
@@ -395,6 +399,7 @@ function AccountDataPage() {
 
       // Clear selected items
       setSelectedHistoryItems([]);
+      setAdminRemarks({}); // Clear remarks
 
       // Refresh data
       dispatch(checklistHistoryData());
@@ -988,7 +993,7 @@ const submissionData = await Promise.all(
                 )}
               </button>
               {/* Submit Selected Button - Only for Users */}
-              {!showHistory && userRole === "user" && (
+              {!showHistory && (userRole === "user" || userRole === "admin" || userRole === "super_admin") && (
                 <button
                   onClick={handleSubmit}
                   disabled={selectedItemsCount === 0 || isSubmitting}
@@ -1210,6 +1215,11 @@ const submissionData = await Promise.all(
                           <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
                             Task Description
                           </th>
+                          {userRole === "admin" && (
+                            <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 whitespace-nowrap">
+                              Admin Remarks
+                            </th>
+                          )}
                           <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50 whitespace-nowrap">
                             Task End Date
                           </th>
@@ -1260,6 +1270,24 @@ const submissionData = await Promise.all(
                                   {history.task_description || "—"}
                                 </div>
                               </td>
+                              {userRole === "admin" && (
+                                <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50">
+                                  {history.admin_done !== 'Done' ? (
+                                    <input
+                                      type="text"
+                                      placeholder="Add remark..."
+                                      value={adminRemarks[history.task_id] || ""}
+                                      onChange={(e) => setAdminRemarks(prev => ({
+                                        ...prev,
+                                        [history.task_id]: e.target.value
+                                      }))}
+                                      className="w-full text-xs p-1 border border-gray-300 rounded"
+                                    />
+                                  ) : (
+                                    <div className="text-xs text-gray-600 break-words">{history.admin_done_remarks || "—"}</div>
+                                  )}
+                                </td>
+                              )}
                               <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words">
                                   {history.task_start_date ? (() => {
