@@ -763,6 +763,26 @@ useEffect(() => {
     }
   }, [departmentFilter, dashboardType]);
 
+  // Update available staff when department filter changes
+  useEffect(() => {
+    const updateStaffList = async () => {
+      if (dashboardType === 'checklist' && departmentFilter !== 'all') {
+        try {
+          const staffNames = await getStaffNamesByDepartmentApi(departmentFilter);
+          setAvailableStaff(staffNames || []);
+        } catch (error) {
+          console.error('Error fetching staff by department:', error);
+          setAvailableStaff([]);
+        }
+      } else if (dashboardType === 'checklist' && departmentFilter === 'all') {
+        // When "all" is selected, reset to empty and let fetchDepartmentData populate it
+        // Don't clear it here as it will be populated by fetchDepartmentData
+      }
+    };
+
+    updateStaffList();
+  }, [departmentFilter, dashboardType]);
+
   // Add scroll event listener for infinite scroll
   useEffect(() => {
     const handleScroll = () => {

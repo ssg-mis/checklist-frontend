@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { BellRing, FileCheck, Calendar, Clock } from "lucide-react";
+import { BellRing, FileCheck, Calendar, Clock, Download } from "lucide-react";
 import AdminLayout from "../../components/layout/AdminLayout";
 import { fetchUniqueDepartmentDataApi, fetchUniqueDoerNameDataApi, fetchUniqueGivenByDataApi, pushAssignTaskApi } from "../../redux/api/assignTaskApi";
 import { useDispatch, useSelector } from "react-redux";
 import { assignTaskInTable, uniqueDepartmentData, uniqueDoerNameData, uniqueGivenByData } from "../../redux/slice/assignTaskSlice";
+import CSVImportModal from "../../components/CSVImportModal";
 // import supabase from "../../SupabaseClient";
 
 // Calendar Component (defined outside)
@@ -214,6 +215,7 @@ export default function AssignTask() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [accordionOpen, setAccordionOpen] = useState(false);
   const [workingDays, setWorkingDays] = useState([]);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const frequencies = [
     { value: "one-time", label: "One Time (No Recurrence)" },
@@ -693,9 +695,40 @@ useEffect(() => {
   return (
     <AdminLayout>
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold tracking-tight mb-6 text-purple-500">
-          Assign New Task
-        </h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold tracking-tight text-purple-500">
+            Assign New Task
+          </h1>
+          <button
+            onClick={() => setShowImportModal(true)}
+            type="button"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              background: 'linear-gradient(to right, #9333ea, #db2777)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '0.375rem',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+              transition: 'all 0.3s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(to right, #7e22ce, #be185d)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(to right, #9333ea, #db2777)';
+            }}
+          >
+            <Download className="h-4 w-4" style={{ flexShrink: 0 }} />
+            Import Tasks
+          </button>
+        </div>
         <div className="rounded-lg border border-purple-200 bg-white shadow-md overflow-hidden">
           <form onSubmit={handleSubmit}>
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 border-b border-purple-100">
@@ -1074,6 +1107,16 @@ useEffect(() => {
           </form>
         </div>
       </div>
+      
+      {/* CSV Import Modal */}
+      <CSVImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={() => {
+          // Optionally refresh data or show success message
+          console.log('Import successful!');
+        }}
+      />
     </AdminLayout>
   );
 }
