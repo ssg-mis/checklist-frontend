@@ -765,8 +765,8 @@ const handleSubmit = async () => {
                   )}
               </button>
 
-              {/* WhatsApp Button - Admin Only */}
-              {userRole === 'admin' && (
+              {/* WhatsApp Button - Admin and Super Admin */}
+              {(userRole === 'admin' || userRole === 'super_admin') && (
                 <button
                   onClick={handleSendWhatsApp}
                   disabled={selectedItemsCount === 0 || sendingWhatsApp}

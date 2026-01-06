@@ -1007,8 +1007,8 @@ const submissionData = await Promise.all(
                   )}
                 </button>
               )}
-              {/* WhatsApp Button - Only for Admin (inline with other buttons) */}
-              {!showHistory && userRole === "admin" && selectedItems.size > 0 && (
+              {/* WhatsApp Button - For Admin and Super Admin */}
+              {!showHistory && (userRole === "admin" || userRole === "super_admin") && selectedItems.size > 0 && (
                 <button
                   onClick={handleSendWhatsApp}
                   disabled={sendingWhatsApp}
@@ -1450,7 +1450,7 @@ const submissionData = await Promise.all(
                       <div key={index} className={`bg-white border rounded-lg p-3 shadow-sm ${taskStatus === 'upcoming' ? "border-blue-300 bg-blue-50" : taskStatus === 'overdue' ? "border-red-300 bg-red-50" : "border-gray-200"}`}>
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex items-center gap-2">
-                            {(userRole === "user" || userRole === "admin") && (
+                            {(userRole === "user" || userRole === "admin" || userRole === "super_admin") && (
                               <input
                                 type="checkbox"
                                 className={`h-4 w-4 rounded border-gray-300 text-purple-600 ${!checkboxEnabled ? 'opacity-50' : ''}`}
@@ -1530,7 +1530,7 @@ const submissionData = await Promise.all(
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Task Status
                     </th>
-                    {(userRole === "user" || userRole === "admin") && (
+                    {(userRole === "user" || userRole === "admin" || userRole === "super_admin") && (
                       <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
                         <input
                           type="checkbox"
@@ -1613,7 +1613,7 @@ const submissionData = await Promise.all(
                               {taskStatus === 'today' ? 'Today' : taskStatus === 'upcoming' ? 'Upcoming' : taskStatus === 'overdue' ? 'Overdue' : '—'}
                             </span>
                           </td>
-                          {(userRole === "user" || userRole === "admin") && (
+                          {(userRole === "user" || userRole === "admin" || userRole === "super_admin") && (
                             <td className="px-2 sm:px-3 py-2 sm:py-4 w-12">
                               <input
                                 type="checkbox"

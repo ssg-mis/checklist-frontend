@@ -205,11 +205,12 @@ export default function AssignTask() {
 
   const getCurrentTime = () => {
     const now = new Date();
-    return now.toTimeString().slice(0, 5);
+    const hours = now.getHours().toString().padStart(2, '0');
+    return `${hours}:00`;
   };
 
   const [date, setSelectedDate] = useState(new Date());
-  const [time, setTime] = useState("10:00");
+  const [time, setTime] = useState(getCurrentTime());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedTasks, setGeneratedTasks] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -651,7 +652,7 @@ useEffect(() => {
         requireAttachment: false,
       });
       setSelectedDate(null);
-      setTime("10:00");
+      setTime(getCurrentTime());
       setGeneratedTasks([]);
       setAccordionOpen(false);
     } catch (error) {
