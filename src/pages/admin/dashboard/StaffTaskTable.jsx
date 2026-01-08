@@ -285,7 +285,9 @@ const loadStaffData = useCallback(async (page = 1, append = false) => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{staff.name}</div>
-                      <div className="text-xs text-gray-500">{staff.email}</div>
+                      {staff.email && !staff.email.includes('example.com') && (
+                        <div className="text-xs text-gray-500">{staff.email}</div>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{staff.totalTasks}</td>

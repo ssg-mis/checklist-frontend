@@ -324,12 +324,52 @@ const filteredChecklistTasks = quickTask.filter(task => {
     return `${day}/${month}/${year}`;
   }
 
+  // Format timestamp with time (DD/MM/YYYY HH:MM:SS)
+  function formatTimestampWithTime(timestamp) {
+    if (!timestamp || timestamp === "" || timestamp === null) {
+      return "—";
+    }
+
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) {
+      return "—";
+    }
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+
+    return (
+      <div>
+        <div className="font-medium">{`${day}/${month}/${year}`}</div>
+        <div className="text-xs text-gray-500">{`${hours}:${minutes}:${seconds}`}</div>
+      </div>
+    );
+  }
+
+  // Calculate the last task date based on task_start_date and frequency
+  function calculateLastTaskDate(task) {
+    if (!task || !task.task_start_date) return "—";
+    
+    // If task has no frequency or is a one-time task, return start date
+    if (!task.frequency || task.frequency.toLowerCase() === 'once') {
+      return formatTimestampToDDMMYYYY(task.task_start_date);
+    }
+
+    // For now, return a dash - this would ideally query the max task_start_date
+    // from all tasks with same description, name, and department
+    return "—";
+  }
+
   return (
     <AdminLayout>
       <div className="sticky top-0 z-30 bg-white pb-4 border-b border-gray-200">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-purple-700">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-purple-700">
               {CONFIG.PAGE_CONFIG.title}
             </h1>
             <p className="text-purple-600 text-sm">
@@ -339,7 +379,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
             <div className="flex border border-purple-200 rounded-md overflow-hidden self-start">
              <button
   className={`px-4 py-2 text-sm font-medium ${activeTab === 'checklist' ? 'bg-purple-600 text-white' : 'bg-white text-purple-600 hover:bg-purple-50'}`}
@@ -370,7 +410,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                 placeholder="Search tasks..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full pl-10 pr-4 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
                 disabled={loading || delegationLoading}
               />
             </div>
@@ -546,10 +586,10 @@ const filteredChecklistTasks = quickTask.filter(task => {
         <>
           {activeTab === 'checklist' ? (
             <div className="mt-4 rounded-lg border border-purple-200 shadow-md bg-white overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 p-4 flex justify-between items-center">
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 p-3 sm:p-4 flex justify-between items-center">
                 <div>
-                  <h2 className="text-purple-700 font-medium">Checklist Tasks</h2>
-                  <p className="text-purple-600 text-sm">
+                  <h2 className="text-purple-700 font-medium text-sm sm:text-base">Checklist Tasks</h2>
+                  <p className="text-purple-600 text-xs sm:text-sm mt-1">
                     {CONFIG.PAGE_CONFIG.description}
                   </p>
                 </div>
@@ -563,7 +603,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
 <div 
   ref={tableContainerRef}
   className="overflow-x-auto overflow-y-auto custom-scrollbar" 
-  style={{ maxHeight: 'calc(100vh - 220px)' }}
+  style={{ maxHeight: 'calc(100vh - 280px)' }}
 >
                 {/* Mobile Card View */}
                 <div className="sm:hidden space-y-3 p-3">
@@ -620,7 +660,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                 <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
                   <thead className="bg-gray-50 sticky top-0 z-20">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                      <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
                         <input
                           type="checkbox"
                           checked={selectedTasks.length === filteredChecklistTasks.length && filteredChecklistTasks.length > 0}
@@ -642,7 +682,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                       ].map((column) => (
                         <th
                           key={column.label}
-                          className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${column.bg || ''} ${column.minWidth || ''} ${column.key && column.key !== 'actions' ? 'cursor-pointer hover:bg-gray-100' : ''}`}
+                          className={`px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${column.bg || ''} ${column.minWidth || ''} ${column.key && column.key !== 'actions' ? 'cursor-pointer hover:bg-gray-100' : ''}`}
                           onClick={() => column.key && column.key !== 'actions' && requestSort(column.key)}
                         >
                           <div className="flex items-center">
@@ -662,7 +702,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                     {filteredChecklistTasks.length > 0 ? (
                       filteredChecklistTasks.map((task, index) => (
                         <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                             <input
                               type="checkbox"
                               checked={selectedTasks.includes(task)}
@@ -672,7 +712,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           </td>
 
                           {/* Department */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {editingTaskId === task.task_id ? (
                               <input
                                 type="text"
@@ -686,7 +726,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           </td>
 
                           {/* Given By */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm text-gray-500">
                             {editingTaskId === task.task_id ? (
                               <input
                                 type="text"
@@ -700,7 +740,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           </td>
 
                           {/* Name */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm text-gray-500">
                             {editingTaskId === task.task_id ? (
                               <input
                                 type="text"
@@ -714,7 +754,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           </td>
 
                           {/* Task Description */}
-                          <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 text-sm text-gray-500 max-w-xs">
                             {editingTaskId === task.task_id ? (
                               <textarea
                                 value={editFormData.task_description}
@@ -723,30 +763,30 @@ const filteredChecklistTasks = quickTask.filter(task => {
                                 rows="3"
                               />
                             ) : (
-                              <div className="whitespace-nowrap">
+                              <div className="break-words">
                                 {task.task_description}
                               </div>
                             )}
                           </td>
 
-                          {/* Task Start Date - Non-editable */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 bg-yellow-50">
+                          {/* Task Start Date with Time */}
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm text-gray-500 bg-yellow-50">
                             {editingTaskId === task.task_id ? (
                               <span className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-sm cursor-not-allowed">
-                                {formatTimestampToDDMMYYYY(task.task_start_date)}
+                                {formatTimestampWithTime(task.task_start_date)}
                               </span>
                             ) : (
-                              formatTimestampToDDMMYYYY(task.task_start_date)
+                              formatTimestampWithTime(task.task_start_date)
                             )}
                           </td>
 
-                          {/* Submission Date (End Date) */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 bg-yellow-50">
-                            {formatTimestampToDDMMYYYY(task.submission_date)}
+                          {/* End Date (Last Task Date) */}
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm text-gray-500 bg-yellow-50">
+                            {calculateLastTaskDate(task)}
                           </td>
 
                           {/* Frequency - Non-editable */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm text-gray-500">
                             <span className={`px-2 py-1 rounded-full text-xs ${task.frequency === 'Daily' ? 'bg-blue-100 text-blue-800' :
                               task.frequency === 'Weekly' ? 'bg-green-100 text-green-800' :
                                 task.frequency === 'Monthly' ? 'bg-purple-100 text-purple-800' :
@@ -757,7 +797,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           </td>
 
                           {/* Enable Reminders */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm text-gray-500">
                             {editingTaskId === task.task_id ? (
                               <select
                                 value={editFormData.enable_reminder}
@@ -774,7 +814,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           </td>
 
                           {/* Require Attachment */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm text-gray-500">
                             {editingTaskId === task.task_id ? (
                               <select
                                 value={editFormData.require_attachment}
@@ -792,7 +832,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
 
                           {/* Actions */}
                           {/* Actions */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm text-gray-500">
                             {editingTaskId === task.task_id ? (
                               <div className="flex gap-2">
                                 <button
@@ -828,7 +868,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={11} className="px-6 py-4 text-center text-gray-500">
+                        <td colSpan={11} className="px-2 sm:px-6 py-2 sm:py-4 text-center text-gray-500">
                           {searchTerm || nameFilter || freqFilter
                             ? "No tasks matching your filters"
                             : "No tasks available"}

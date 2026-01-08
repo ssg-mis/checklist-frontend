@@ -832,7 +832,7 @@ const handleSubmit = async () => {
             </div>
           ) : (
             /* Regular Tasks Table - Mobile Responsive */
-            <div className="overflow-x-auto custom-scrollbar">
+            <div className="overflow-x-auto overflow-y-auto" style={{maxHeight: 'calc(100vh - 280px)'}}>
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -853,6 +853,18 @@ const handleSubmit = async () => {
                     <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Task ID
                     </th>
+                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-blue-50">
+                      Status
+                    </th>
+                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-indigo-50">
+                      Next Target
+                    </th>
+                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px] bg-purple-50">
+                      Remarks
+                    </th>
+                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-orange-50">
+                      Upload
+                    </th>
                     <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Department
                     </th>
@@ -870,18 +882,6 @@ const handleSubmit = async () => {
                     </th>
                     <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-green-50">
                       Planned Date
-                    </th>
-                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-blue-50">
-                      Status
-                    </th>
-                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-indigo-50">
-                      Next Target
-                    </th>
-                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px] bg-purple-50">
-                      Remarks
-                    </th>
-                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-orange-50">
-                      Upload
                     </th>
                   </tr>
                 </thead>
@@ -915,41 +915,6 @@ const handleSubmit = async () => {
                           <td className="px-2 sm:px-6 py-2 sm:py-4">
                             <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
                               {account.task_id || "—"}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {account.department || "—"}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {account.given_by || "—"}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {account.name || "—"}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
-                            <div
-                              className="text-xs sm:text-sm text-gray-900 whitespace-nowrap"
-                              title={account.task_description}
-                            >
-                              {account.task_description || "—"}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4 bg-yellow-50">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {formatDateTimeForDisplay(
-                                account.task_start_date
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4 bg-green-50">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {formatDateTimeForDisplay(account.planned_date)}
                             </div>
                           </td>
                           <td className="px-2 sm:px-6 py-2 sm:py-4 bg-blue-50">
@@ -1069,6 +1034,41 @@ const handleSubmit = async () => {
                                 />
                               </label>
                             )}
+                          </td>
+                          <td className="px-2 sm:px-6 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
+                              {account.department || "—"}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-6 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
+                              {account.given_by || "—"}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-6 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
+                              {account.name || "—"}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                            <div
+                              className="text-xs sm:text-sm text-gray-900 whitespace-nowrap"
+                              title={account.task_description}
+                            >
+                              {account.task_description || "—"}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 bg-yellow-50">
+                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
+                              {formatDateTimeForDisplay(
+                                account.task_start_date
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 bg-green-50">
+                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
+                              {formatDateTimeForDisplay(account.planned_date)}
+                            </div>
                           </td>
                         </tr>
                       );

@@ -695,8 +695,8 @@ useEffect(() => {
   }, [dispatch, formData.department]);
   return (
     <AdminLayout>
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex justify-between items-center mb-2">
           <h1 className="text-2xl font-bold tracking-tight text-purple-500">
             Assign New Task
           </h1>
@@ -732,70 +732,71 @@ useEffect(() => {
         </div>
         <div className="rounded-lg border border-purple-200 bg-white shadow-md overflow-hidden">
           <form onSubmit={handleSubmit}>
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 border-b border-purple-100">
-              <h2 className="text-xl font-semibold text-purple-700">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 border-b border-purple-100">
+              <h2 className="text-base font-semibold text-purple-700">
                 Task Details
               </h2>
-              <p className="text-purple-600">
-                Fill in the details to assign a new task to a staff member  deplaoy.
+              <p className="text-xs text-purple-600">
+                Fill in the details to assign a new task to a staff member.
               </p>
             </div>
-            <div className="p-6 space-y-4">
-              {/* Department Name Dropdown */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="department"
-                  className="block text-sm font-medium text-purple-700"
-                >
-                  Department Name
-                </label>
-                <select
-                  id="department"
-                  name="department"
-                  value={formData.department}
-                  onChange={handleChange}
-                  required
-                  className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                >
-                  <option value="">Select Department</option>
-                  {department.map((deptName, index) => (
-                    <option key={index} value={deptName}>
-                      {deptName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Given By Dropdown */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="givenBy"
-                  className="block text-sm font-medium text-purple-700"
-                >
-                  Given By
-                </label>
-                <select
-                  id="givenBy"
-                  name="givenBy"
-                  value={formData.givenBy}
-                  onChange={handleChange}
-                  required
-                  className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                >
-                  <option value="">Select Given By</option>
-                  {givenBy
-                    .filter(person => person && person.trim() !== '')
-                    .map((person, index) => (
-                      <option key={index} value={person}>
-                        {person}
+            <div className="p-3 space-y-2">
+              {/* First Row: Department, Given By, Doer in 2-column grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Department Name Dropdown */}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="department"
+                    className="block text-sm font-medium text-purple-700"
+                  >
+                    Department Name
+                  </label>
+                  <select
+                    id="department"
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    required
+                    className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  >
+                    <option value="">Select Department</option>
+                    {department.map((deptName, index) => (
+                      <option key={index} value={deptName}>
+                        {deptName}
                       </option>
                     ))}
-                </select>
+                  </select>
+                </div>
+
+                {/* Given By Dropdown */}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="givenBy"
+                    className="block text-sm font-medium text-purple-700"
+                  >
+                    Given By
+                  </label>
+                  <select
+                    id="givenBy"
+                    name="givenBy"
+                    value={formData.givenBy}
+                    onChange={handleChange}
+                    required
+                    className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  >
+                    <option value="">Select Given By</option>
+                    {givenBy
+                      .filter(person => person && person.trim() !== '')
+                      .map((person, index) => (
+                        <option key={index} value={person}>
+                          {person}
+                        </option>
+                      ))}
+                  </select>
+                </div>
               </div>
 
-
-              {/* Doer's Name Dropdown */}
-              {/* Doer's Name Dropdown */}
+              {/* Second Row: Doer's Name - Full Width */}
               <div className="space-y-2">
                 <label
                   htmlFor="doer"
@@ -834,14 +835,14 @@ useEffect(() => {
                   value={formData.description}
                   onChange={handleChange}
                   placeholder="Enter task description"
-                  rows={4}
+                  rows={1}
                   required
                   className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
                 />
               </div>
 
               {/* Date, Time and Frequency */}
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-3">
                 {/* Date Picker */}
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-purple-700">
@@ -915,7 +916,7 @@ useEffect(() => {
 
               {/* NEW: DateTime Display */}
               {date && time && (
-                <div className="p-3 bg-purple-50 border border-purple-200 rounded-md">
+                <div className="p-2 bg-purple-50 border border-purple-200 rounded-md">
                   <p className="text-sm text-purple-700">
                     <strong>Selected Date & Time:</strong> {getFormattedDateTime()}
                   </p>
@@ -926,22 +927,19 @@ useEffect(() => {
               )}
 
               {/* Additional Options */}
-              <div className="space-y-4 pt-2 border-t border-purple-100">
-                <h3 className="text-lg font-medium text-purple-700 pt-2">
+              <div className="space-y-2 pt-2 border-t border-purple-100">
+                <h3 className="text-sm font-medium text-purple-700">
                   Additional Options
                 </h3>
 
                 <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
+                  <div>
                     <label
                       htmlFor="enable-reminders"
-                      className="text-purple-700 font-medium"
+                      className="text-sm text-purple-700 font-medium"
                     >
                       Enable Reminders
                     </label>
-                    <p className="text-sm text-purple-600">
-                      Send reminders before task due date
-                    </p>
                   </div>
                   <div className="flex items-center space-x-2">
                     <BellRing className="h-4 w-4 text-purple-500" />
@@ -961,16 +959,13 @@ useEffect(() => {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
+                  <div>
                     <label
                       htmlFor="require-attachment"
-                      className="text-purple-700 font-medium"
+                      className="text-sm text-purple-700 font-medium"
                     >
                       Require Attachment
                     </label>
-                    <p className="text-sm text-purple-600">
-                      User must upload a file when completing task
-                    </p>
                   </div>
                   <div className="flex items-center space-x-2">
                     <FileCheck className="h-4 w-4 text-purple-500" />
@@ -991,7 +986,7 @@ useEffect(() => {
               </div>
 
               {/* Preview and Submit Buttons */}
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <button
                   type="button"
                   onClick={generateTasks}
@@ -1032,8 +1027,8 @@ useEffect(() => {
                       </button>
 
                       {accordionOpen && (
-                        <div className="p-4 border-t border-purple-200">
-                          <div className="max-h-60 overflow-y-auto space-y-2">
+                        <div className="p-3 border-t border-purple-200">
+                          <div className="max-h-40 overflow-y-auto space-y-2">
                             {generatedTasks.slice(0, 20).map((task, index) => (
                               <div
                                 key={index}
@@ -1075,7 +1070,7 @@ useEffect(() => {
               </div>
             </div>
 
-            <div className="flex justify-between bg-gradient-to-r from-purple-50 to-pink-50 p-6 border-t border-purple-100">
+            <div className="flex justify-between bg-gradient-to-r from-purple-50 to-pink-50 p-3 border-t border-purple-100">
               <button
                 type="button"
                 onClick={() => {

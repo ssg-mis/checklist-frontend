@@ -22,6 +22,7 @@ function HistoryPage() {
   const [hasMoreHistory, setHasMoreHistory] = useState(true)
   const [initialHistoryLoading, setInitialHistoryLoading] = useState(false)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [approvalStatusFilter, setApprovalStatusFilter] = useState("pending") // 'all', 'pending', 'completed'
 
   // Admin approval states
   const [selectedHistoryItems, setSelectedHistoryItems] = useState([])
@@ -127,6 +128,7 @@ function HistoryPage() {
     setSelectedMembers([])
     setStartDate("")
     setEndDate("")
+    setApprovalStatusFilter("pending") // Reset to pending
   }
 
   // Handle checkbox selection for checklist admin approval
@@ -270,6 +272,15 @@ function HistoryPage() {
 
         return matchesSearch && matchesMember && matchesDateRange
       })
+      .filter((item) => {
+        // Apply approval status filter
+        if (approvalStatusFilter === "pending") {
+          return item.admin_done !== 'Done'
+        } else if (approvalStatusFilter === "completed") {
+          return item.admin_done === 'Done'
+        }
+        return true // 'all'
+      })
       .sort((a, b) => {
         const dateA = parseSupabaseDate(a.submission_date)
         const dateB = parseSupabaseDate(b.submission_date)
@@ -279,7 +290,7 @@ function HistoryPage() {
       })
 
     return filtered.slice(0, currentPageHistory * 50)
-  }, [history, searchTerm, selectedMembers, startDate, endDate, currentPageHistory])
+  }, [history, searchTerm, selectedMembers, startDate, endDate, currentPageHistory, approvalStatusFilter])
 
   // Filtered delegation data
   const filteredDelegationData = useMemo(() => {
@@ -319,6 +330,15 @@ function HistoryPage() {
 
         return matchesSearch && matchesDateRange
       })
+      .filter((item) => {
+        // Apply approval status filter
+        if (approvalStatusFilter === "pending") {
+          return item.admin_done !== 'Done' && item.status === 'completed'
+        } else if (approvalStatusFilter === "completed") {
+          return item.admin_done === 'Done'
+        }
+        return true // 'all'
+      })
       .sort((a, b) => {
         const dateA = a.created_at ? new Date(a.created_at) : null
         const dateB = b.created_at ? new Date(b.created_at) : null
@@ -327,7 +347,7 @@ function HistoryPage() {
         if (!dateB) return -1
         return dateB.getTime() - dateA.getTime()
       })
-  }, [delegation_done, searchTerm, startDate, endDate, userRole, username])
+  }, [delegation_done, searchTerm, startDate, endDate, userRole, username, approvalStatusFilter])
 
   const handleMemberSelection = (member) => {
     setSelectedMembers((prev) => {
@@ -514,6 +534,17 @@ function HistoryPage() {
                 ))}
               </select>
             )}
+
+            {/* Approval Status Filter */}
+            <select
+              value={approvalStatusFilter}
+              onChange={(e) => setApprovalStatusFilter(e.target.value)}
+              className="px-2 py-1 border border-gray-300 rounded text-xs bg-white min-w-[100px]"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="completed">Approved</option>
+            </select>
 
             {/* Reset Button */}
             <button

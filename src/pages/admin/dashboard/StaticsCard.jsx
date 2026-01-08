@@ -1,4 +1,5 @@
 import { ListTodo, CheckCircle2, Clock, AlertTriangle, BarChart3, XCircle, Calendar } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 export default function StatisticsCards({
   dashboardType,
@@ -9,6 +10,8 @@ export default function StatisticsCards({
   notDoneTask,     // <-- take from props (REAL backend value)
   dateRange = null
 }) {
+
+  const navigate = useNavigate();
 
   const completionRate = totalTask > 0 ? (completeTask / totalTask) * 100 : 0;
 
@@ -43,7 +46,10 @@ export default function StatisticsCards({
         <div className="grid grid-cols-3 sm:grid-cols-2 gap-3 sm:gap-4 justify-center">
 
           {/* Total Tasks - Updated description for date range */}
-          <div className="rounded-lg border border-l-4 border-l-blue-500 shadow-md hover:shadow-lg transition-all bg-white">
+          <div 
+            onClick={() => navigate('/dashboard/data/sales')}
+            className="rounded-lg border border-l-4 border-l-blue-500 shadow-md hover:shadow-lg transition-all bg-white cursor-pointer"
+          >
             <div className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-50 to-blue-100 rounded-tr-lg p-3 sm:p-4">
               <h3 className="text-xs sm:text-sm font-medium text-blue-700">Total Tasks</h3>
               <ListTodo className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
@@ -70,7 +76,10 @@ export default function StatisticsCards({
           </div>
 
           {/* Completed Tasks */}
-          <div className="rounded-lg border border-l-4 border-l-green-500 shadow-md hover:shadow-lg transition-all bg-white">
+          <div 
+            onClick={() => navigate('/dashboard/history')}
+            className="rounded-lg border border-l-4 border-l-green-500 shadow-md hover:shadow-lg transition-all bg-white cursor-pointer"
+          >
             <div className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-green-50 to-green-100 rounded-tr-lg p-3 sm:p-4">
               <h3 className="text-xs sm:text-sm font-medium text-green-700">
                 {dashboardType === "delegation" ? "Completed Once" : "Completed Tasks"}
@@ -92,7 +101,10 @@ export default function StatisticsCards({
           </div>
 
           {/* Pending Tasks / Completed Twice */}
-          <div className="rounded-lg border border-l-4 border-l-amber-500 shadow-md hover:shadow-lg transition-all bg-white">
+          <div 
+            onClick={() => navigate('/dashboard/data/sales')}
+            className="rounded-lg border border-l-4 border-l-amber-500 shadow-md hover:shadow-lg transition-all bg-white cursor-pointer"
+          >
             <div className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-amber-50 to-amber-100 rounded-tr-lg p-3 sm:p-4">
               <h3 className="text-xs sm:text-sm font-medium text-amber-700">
                 {dashboardType === "delegation" ? "Completed Twice" : "Pending Tasks"}
@@ -138,7 +150,10 @@ export default function StatisticsCards({
           </div>
 
           {/* Overdue Tasks / Completed 3+ Times */}
-          <div className="rounded-lg border border-l-4 border-l-red-500 shadow-md hover:shadow-lg transition-all bg-white sm:col-span-2 lg:col-span-1 col-span-2">
+          <div 
+            onClick={() => navigate('/dashboard/data/sales')}
+            className="rounded-lg border border-l-4 border-l-red-500 shadow-md hover:shadow-lg transition-all bg-white sm:col-span-2 lg:col-span-1 col-span-2 cursor-pointer"
+          >
             <div className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-red-50 to-red-100 rounded-tr-lg p-3 sm:p-4">
               <h3 className="text-xs sm:text-sm font-medium text-red-700">
                 {dashboardType === "delegation" ? "Completed 3+ Times" : "Overdue Tasks"}

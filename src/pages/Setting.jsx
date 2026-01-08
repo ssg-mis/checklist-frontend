@@ -593,14 +593,14 @@ const resetUserForm = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-2">
         {/* Header Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
           {/* Top Row: Title and Action Buttons */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">User Management System</h1>
-              <p className="text-sm text-gray-500">Manage users, departments, and leave</p>
+              <h1 className="text-lg font-bold text-gray-800">User Management System</h1>
+              <p className="text-xs text-gray-500">Manage users, departments, and leave</p>
             </div>
             
             <div className="flex flex-wrap items-center gap-2">
@@ -628,7 +628,7 @@ const resetUserForm = () => {
           {/* Bottom Row: Tabs */}
           <div className="flex border-b border-gray-200">
             <button
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'users' 
                   ? 'border-purple-600 text-purple-600 bg-purple-50' 
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -642,7 +642,7 @@ const resetUserForm = () => {
               Users
             </button>
             <button
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'departments' 
                   ? 'border-purple-600 text-purple-600 bg-purple-50' 
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -657,7 +657,7 @@ const resetUserForm = () => {
               Departments
             </button>
             <button
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'leave' 
                   ? 'border-purple-600 text-purple-600 bg-purple-50' 
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'

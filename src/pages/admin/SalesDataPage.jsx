@@ -28,6 +28,7 @@ function AccountDataPage() {
   const [additionalData, setAdditionalData] = useState({})
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all") // Filter for Today/Overdue/Upcoming
+  const [frequencyFilter, setFrequencyFilter] = useState("all") // Filter for Frequency
   const [error, setError] = useState(null)
   const [remarksData, setRemarksData] = useState({})
   const [historyData, setHistoryData] = useState([])
@@ -47,6 +48,7 @@ function AccountDataPage() {
 
   const { checklist, loading, history, hasMore, currentPage } = useSelector((state) => state.checkList);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const tableContainerRef = useRef(null);
@@ -513,6 +515,13 @@ function AccountDataPage() {
       });
     }
 
+    // Apply frequency filter
+    if (frequencyFilter !== 'all') {
+      filtered = filtered.filter((account) => {
+        return account.frequency?.toLowerCase() === frequencyFilter.toLowerCase();
+      });
+    }
+
     return filtered.sort((a, b) => {
       const dateA = new Date(a.task_start_date || "");
       const dateB = new Date(b.task_start_date || "");
@@ -522,7 +531,7 @@ function AccountDataPage() {
 
       return dateA.getTime() - dateB.getTime();
     });
-  }, [checklist, searchTerm, statusFilter]);
+  }, [checklist, searchTerm, statusFilter, frequencyFilter]);
 
   // Helper function to determine task status (Today, Upcoming, Overdue)
   const getTaskStatus = (taskStartDate) => {
@@ -962,35 +971,42 @@ const submissionData = await Promise.all(
               />
             </div>
             {!showHistory && (
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base bg-white"
-              >
-                <option value="all">All Tasks</option>
-                <option value="today">Today</option>
-                <option value="overdue">Overdue</option>
-                <option value="upcoming">Upcoming</option>
-              </select>
+              <>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-3 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base bg-white"
+                >
+                  <option value="all">All Tasks</option>
+                  <option value="today">Today</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="upcoming">Upcoming</option>
+                </select>
+                <select
+                  value={frequencyFilter}
+                  onChange={(e) => setFrequencyFilter(e.target.value)}
+                  className="px-3 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base bg-white"
+                >
+                  <option value="all">All Frequencies</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="fortnightly">Fortnightly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </>
             )}
             <div className="flex gap-2">
               <button
-                onClick={toggleHistory}
+                onClick={() => navigate('/dashboard/history')}
                 className="flex-1 sm:flex-none rounded-md gradient-bg py-2 px-3 sm:px-4 text-white hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm sm:text-base"
               >
-                {showHistory ? (
-                  <div className="flex items-center justify-center">
-                    <ArrowLeft className="h-4 w-4 mr-1" />
-                    <span className="hidden sm:inline">Back to Tasks</span>
-                    <span className="sm:hidden">Back</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                    <History className="h-4 w-4 mr-1" />
-                    <span className="hidden sm:inline">View History</span>
-                    <span className="sm:hidden">History</span>
-                  </div>
-                )}
+                <div className="flex items-center justify-center">
+                  <History className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">View History</span>
+                  <span className="sm:hidden">History</span>
+                </div>
               </button>
               {/* Submit Selected Button - Only for Users */}
               {!showHistory && (userRole === "user" || userRole === "admin" || userRole === "super_admin") && (
@@ -1189,7 +1205,7 @@ const submissionData = await Promise.all(
               </div>
 
               {/* History Table - Mobile Responsive */}
-              <div ref={historyTableContainerRef} className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+              <div ref={historyTableContainerRef} className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
                 {initialHistoryLoading ? (
                   <div className="text-center py-10">
                     <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-4"></div>
@@ -1436,8 +1452,8 @@ const submissionData = await Promise.all(
             /* Regular Tasks Table - Mobile Responsive */
             <div
               ref={tableContainerRef}
-              className="overflow-x-auto"
-              style={{ maxHeight: 'calc(100vh - 250px)' }}
+              className="overflow-x-auto overflow-y-auto"
+              style={{ maxHeight: 'calc(100vh - 280px)' }}
             >
               {/* Mobile Card View */}
               <div className="sm:hidden space-y-3 p-3">
