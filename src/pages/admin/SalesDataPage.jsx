@@ -1504,7 +1504,7 @@ const submissionData = await Promise.all(
                             return dateStr;
                           })() : "—"}</span></div>
                         </div>
-                        {userRole === "user" && isSelected && (
+                        {(userRole === "user" || userRole === "admin" || userRole === "super_admin") && isSelected && (
                           <div className="border-t pt-2 mt-2 space-y-2">
                             <select
                               value={additionalData[account.task_id] || ""}
@@ -1524,6 +1524,65 @@ const submissionData = await Promise.all(
                               onChange={(e) => setRemarksData((prev) => ({ ...prev, [account.task_id]: e.target.value }))}
                               className="border border-gray-300 rounded-md px-2 py-1 w-full text-xs"
                             />
+                            {/* Image Upload for Mobile */}
+                            <div className="space-y-1">
+                              {uploadedImages[account.task_id] || account.image ? (
+                                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
+                                  <img
+                                    src={
+                                      uploadedImages[account.task_id]?.previewUrl ||
+                                      (typeof account.image === 'string' ? account.image : '')
+                                    }
+                                    alt="Receipt"
+                                    className="h-10 w-10 object-cover rounded-md flex-shrink-0"
+                                  />
+                                  <div className="flex flex-col flex-1 min-w-0">
+                                    <span className="text-xs text-gray-600 truncate">
+                                      {uploadedImages[account.task_id]?.file.name ||
+                                        (account.image instanceof File ? account.image.name : "Uploaded")}
+                                    </span>
+                                    {uploadedImages[account.task_id] ? (
+                                      <span className="text-xs text-green-600">Ready to upload</span>
+                                    ) : (
+                                      <button
+                                        className="text-xs text-purple-600 hover:text-purple-800 text-left"
+                                        onClick={() => window.open(account.image, "_blank")}
+                                      >
+                                        View Image
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <label
+                                  className={`flex items-center justify-center gap-2 cursor-pointer ${
+                                    account.require_attachment?.toUpperCase() === "YES" &&
+                                    additionalData[account.task_id] !== "No"
+                                      ? "text-red-600 font-medium bg-red-50"
+                                      : "text-purple-600 bg-purple-50"
+                                  } hover:bg-opacity-80 px-3 py-2 rounded-md border ${
+                                    account.require_attachment?.toUpperCase() === "YES" &&
+                                    additionalData[account.task_id] !== "No"
+                                      ? "border-red-300"
+                                      : "border-purple-300"
+                                  }`}
+                                >
+                                  <Upload className="h-4 w-4 flex-shrink-0" />
+                                  <span className="text-xs">
+                                    {account.require_attachment?.toUpperCase() === "YES" &&
+                                    additionalData[account.task_id] !== "No"
+                                      ? "Upload Image (Required)"
+                                      : "Upload Image"}
+                                  </span>
+                                  <input
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={(e) => handleImageUpload(account.task_id, e)}
+                                  />
+                                </label>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

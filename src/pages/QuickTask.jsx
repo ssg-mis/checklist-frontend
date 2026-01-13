@@ -628,22 +628,135 @@ const filteredChecklistTasks = quickTask.filter(task => {
                             </span>
                           </div>
                           {userRole === "super_admin" && (
-                          <button
-                            onClick={() => handleEditClick(task)}
-                            className="text-blue-600 text-xs underline"
-                          >
-                            Edit
-                          </button>
+                            editingTaskId === task.task_id ? (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={handleSaveEdit}
+                                  disabled={isSaving}
+                                  className="flex items-center gap-1 px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-50"
+                                >
+                                  <Save size={12} />
+                                  {isSaving ? 'Saving...' : 'Save'}
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="flex items-center gap-1 px-2 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700"
+                                >
+                                  <X size={12} />
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleEditClick(task)}
+                                className="text-blue-600 text-xs underline"
+                              >
+                                Edit
+                              </button>
+                            )
                           )}
                         </div>
-                        <p className="text-sm font-medium text-gray-900 mb-2">{task.task_description || "—"}</p>
+                        
+                        {/* Task Description */}
+                        {editingTaskId === task.task_id ? (
+                          <textarea
+                            value={editFormData.task_description}
+                            onChange={(e) => handleInputChange('task_description', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm mb-2"
+                            rows="3"
+                            placeholder="Task Description"
+                          />
+                        ) : (
+                          <p className="text-sm font-medium text-gray-900 mb-2">{task.task_description || "—"}</p>
+                        )}
+                        
                         <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div><span className="text-gray-500">Name:</span> <span className="font-medium">{task.name || "—"}</span></div>
-                          <div><span className="text-gray-500">Dept:</span> <span className="font-medium">{task.department || "—"}</span></div>
-                          <div><span className="text-gray-500">Given By:</span> <span className="font-medium">{task.given_by || "—"}</span></div>
-                          <div><span className="text-gray-500">Start:</span> <span className="font-medium">{formatTimestampToDDMMYYYY(task.task_start_date)}</span></div>
-                          <div><span className="text-gray-500">Reminder:</span> <span className="font-medium">{task.enable_reminder || "—"}</span></div>
-                          <div><span className="text-gray-500">Attachment:</span> <span className="font-medium">{task.require_attachment || "—"}</span></div>
+                          {/* Name */}
+                          <div>
+                            <span className="text-gray-500">Name:</span>{' '}
+                            {editingTaskId === task.task_id ? (
+                              <input
+                                type="text"
+                                value={editFormData.name}
+                                onChange={(e) => handleInputChange('name', e.target.value)}
+                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs mt-1"
+                              />
+                            ) : (
+                              <span className="font-medium">{task.name || "—"}</span>
+                            )}
+                          </div>
+                          
+                          {/* Department */}
+                          <div>
+                            <span className="text-gray-500">Dept:</span>{' '}
+                            {editingTaskId === task.task_id ? (
+                              <input
+                                type="text"
+                                value={editFormData.department}
+                                onChange={(e) => handleInputChange('department', e.target.value)}
+                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs mt-1"
+                              />
+                            ) : (
+                              <span className="font-medium">{task.department || "—"}</span>
+                            )}
+                          </div>
+                          
+                          {/* Given By */}
+                          <div>
+                            <span className="text-gray-500">Given By:</span>{' '}
+                            {editingTaskId === task.task_id ? (
+                              <input
+                                type="text"
+                                value={editFormData.given_by}
+                                onChange={(e) => handleInputChange('given_by', e.target.value)}
+                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs mt-1"
+                              />
+                            ) : (
+                              <span className="font-medium">{task.given_by || "—"}</span>
+                            )}
+                          </div>
+                          
+                          {/* Start Date (non-editable) */}
+                          <div>
+                            <span className="text-gray-500">Start:</span>{' '}
+                            <span className="font-medium">{formatTimestampToDDMMYYYY(task.task_start_date)}</span>
+                          </div>
+                          
+                          {/* Reminder */}
+                          <div>
+                            <span className="text-gray-500">Reminder:</span>{' '}
+                            {editingTaskId === task.task_id ? (
+                              <select
+                                value={editFormData.enable_reminder}
+                                onChange={(e) => handleInputChange('enable_reminder', e.target.value)}
+                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs mt-1"
+                              >
+                                <option value="">Select</option>
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                              </select>
+                            ) : (
+                              <span className="font-medium">{task.enable_reminder || "—"}</span>
+                            )}
+                          </div>
+                          
+                          {/* Attachment */}
+                          <div>
+                            <span className="text-gray-500">Attachment:</span>{' '}
+                            {editingTaskId === task.task_id ? (
+                              <select
+                                value={editFormData.require_attachment}
+                                onChange={(e) => handleInputChange('require_attachment', e.target.value)}
+                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs mt-1"
+                              >
+                                <option value="">Select</option>
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                              </select>
+                            ) : (
+                              <span className="font-medium">{task.require_attachment || "—"}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))
