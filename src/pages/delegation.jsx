@@ -831,9 +831,126 @@ const handleSubmit = async () => {
               </button>
             </div>
           ) : (
-            /* Regular Tasks Table - Mobile Responsive */
+            /* Regular Tasks - Mobile Card View and Desktop Table */
             <div className="overflow-x-auto overflow-y-auto" style={{maxHeight: 'calc(100vh - 280px)'}}>
-              <table className="min-w-full divide-y divide-gray-200">
+              {/* Mobile Card View */}
+              <div className="sm:hidden space-y-3 p-3">
+                {filteredDelegationTasks.length > 0 ? (
+                  filteredDelegationTasks.map((account, index) => {
+                    const isSelected = selectedItems.has(account.task_id);
+                    const rowColorClass = getRowColor(account.color_code_for);
+                    const sequenceNumber = index + 1;
+                    return (
+                      <div key={index} className={`bg-white border rounded-lg p-3 shadow-sm ${rowColorClass}`}>
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300 text-purple-600"
+                              checked={isSelected}
+                              onChange={(e) => handleCheckboxClick(e, account.task_id)}
+                            />
+                            <span className="text-xs font-semibold text-gray-700">#{sequenceNumber}</span>
+                          </div>
+                          <span className="text-xs text-gray-500">ID: {account.task_id}</span>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900 mb-2">{account.task_description || "—"}</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                          <div><span className="text-gray-500">Name:</span> <span className="font-medium">{account.name || "—"}</span></div>
+                          <div><span className="text-gray-500">Dept:</span> <span className="font-medium">{account.department || "—"}</span></div>
+                          <div><span className="text-gray-500">Given By:</span> <span className="font-medium">{account.given_by || "—"}</span></div>
+                          <div><span className="text-gray-500">End Date:</span> <span className="font-medium">{formatDateTimeForDisplay(account.task_start_date)}</span></div>
+                          <div className="col-span-2"><span className="text-gray-500">Planned:</span> <span className="font-medium">{formatDateTimeForDisplay(account.planned_date)}</span></div>
+                        </div>
+                        {isSelected && (
+                          <div className="border-t pt-2 mt-2 space-y-2">
+                            <select
+                              value={statusData[account.task_id] || ""}
+                              onChange={(e) => handleStatusChange(account.task_id, e.target.value)}
+                              className="border border-gray-300 rounded-md px-2 py-1 w-full text-xs"
+                            >
+                              <option value="">Select Status...</option>
+                              <option value="Done">Done</option>
+                              <option value="Extend date">Extend</option>
+                            </select>
+                            {statusData[account.task_id] === "Extend date" && (
+                              <input
+                                type="date"
+                                value={nextTargetDate[account.task_id] || ""}
+                                onChange={(e) => handleNextTargetDateChange(account.task_id, e.target.value)}
+                                className="border border-gray-300 rounded-md px-2 py-1 w-full text-xs"
+                              />
+                            )}
+                            <textarea
+                              placeholder="Remarks"
+                              value={remarksData[account.task_id] || ""}
+                              onChange={(e) => setRemarksData((prev) => ({ ...prev, [account.task_id]: e.target.value }))}
+                              className="border border-gray-300 rounded-md px-2 py-1 w-full text-xs resize-none"
+                              rows="2"
+                            />
+                            {uploadedImages[account.task_id] || account.image ? (
+                              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
+                                <img
+                                  src={uploadedImages[account.task_id] ? URL.createObjectURL(uploadedImages[account.task_id]) : account.image}
+                                  alt="Receipt"
+                                  className="h-10 w-10 object-cover rounded-md flex-shrink-0"
+                                />
+                                <div className="flex flex-col flex-1 min-w-0">
+                                  <span className="text-xs text-gray-600 truncate">
+                                    {uploadedImages[account.task_id]?.name || "Uploaded"}
+                                  </span>
+                                  {uploadedImages[account.task_id] ? (
+                                    <span className="text-xs text-green-600">Ready to upload</span>
+                                  ) : (
+                                    <button
+                                      className="text-xs text-purple-600 hover:text-purple-800 text-left"
+                                      onClick={() => window.open(account.image, "_blank")}
+                                    >
+                                      View Image
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <label
+                                className={`flex items-center justify-center gap-2 cursor-pointer ${
+                                  account.require_attachment?.toUpperCase() === "YES"
+                                    ? "text-red-600 font-medium bg-red-50"
+                                    : "text-purple-600 bg-purple-50"
+                                } hover:bg-opacity-80 px-3 py-2 rounded-md border ${
+                                  account.require_attachment?.toUpperCase() === "YES"
+                                    ? "border-red-300"
+                                    : "border-purple-300"
+                                }`}
+                              >
+                                <Upload className="h-4 w-4 flex-shrink-0" />
+                                <span className="text-xs">
+                                  {account.require_attachment?.toUpperCase() === "YES"
+                                    ? "Upload Image (Required)"
+                                    : "Upload Image"}
+                                </span>
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/*"
+                                  onChange={(e) => handleImageUpload(account.task_id, e)}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-6 text-gray-500 text-sm">
+                    {searchTerm ? "No tasks matching your search" : "No pending tasks found"}
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Table View */}
+              <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -853,18 +970,6 @@ const handleSubmit = async () => {
                     <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Task ID
                     </th>
-                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-blue-50">
-                      Status
-                    </th>
-                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-indigo-50">
-                      Next Target
-                    </th>
-                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px] bg-purple-50">
-                      Remarks
-                    </th>
-                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-orange-50">
-                      Upload
-                    </th>
                     <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Department
                     </th>
@@ -882,6 +987,18 @@ const handleSubmit = async () => {
                     </th>
                     <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-green-50">
                       Planned Date
+                    </th>
+                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-blue-50">
+                      Status
+                    </th>
+                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-indigo-50">
+                      Next Target
+                    </th>
+                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px] bg-purple-50">
+                      Remarks
+                    </th>
+                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-orange-50">
+                      Upload
                     </th>
                   </tr>
                 </thead>
@@ -915,6 +1032,41 @@ const handleSubmit = async () => {
                           <td className="px-2 sm:px-6 py-2 sm:py-4">
                             <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
                               {account.task_id || "—"}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-6 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
+                              {account.department || "—"}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-6 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
+                              {account.given_by || "—"}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-6 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
+                              {account.name || "—"}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                            <div
+                              className="text-xs sm:text-sm text-gray-900 whitespace-nowrap"
+                              title={account.task_description}
+                            >
+                              {account.task_description || "—"}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 bg-yellow-50">
+                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
+                              {formatDateTimeForDisplay(
+                                account.task_start_date
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 bg-green-50">
+                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
+                              {formatDateTimeForDisplay(account.planned_date)}
                             </div>
                           </td>
                           <td className="px-2 sm:px-6 py-2 sm:py-4 bg-blue-50">
@@ -1034,41 +1186,6 @@ const handleSubmit = async () => {
                                 />
                               </label>
                             )}
-                          </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {account.department || "—"}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {account.given_by || "—"}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {account.name || "—"}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
-                            <div
-                              className="text-xs sm:text-sm text-gray-900 whitespace-nowrap"
-                              title={account.task_description}
-                            >
-                              {account.task_description || "—"}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4 bg-yellow-50">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {formatDateTimeForDisplay(
-                                account.task_start_date
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4 bg-green-50">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {formatDateTimeForDisplay(account.planned_date)}
-                            </div>
                           </td>
                         </tr>
                       );

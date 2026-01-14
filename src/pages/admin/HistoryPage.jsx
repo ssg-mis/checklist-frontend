@@ -596,6 +596,60 @@ function HistoryPage() {
 
         {/* Table Container - More height */}
         <div className="bg-white rounded-md shadow-sm overflow-hidden">
+          <style>{`
+            /* Mobile Card Layout Styles */
+            @media (max-width: 768px) {
+              .mobile-card-table {
+                display: block;
+              }
+              .mobile-card-table thead {
+                display: none;
+              }
+              .mobile-card-table tbody {
+                display: block;
+              }
+              .mobile-card-table tr {
+                display: block;
+                margin-bottom: 1rem;
+                border: 1px solid #e5e7eb;
+                border-radius: 0.5rem;
+                padding: 1rem;
+                background-color: #ffffff;
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+              }
+              .mobile-card-table td {
+                display: flex;
+                flex-direction: column;
+                text-align: left;
+                padding: 0.5rem 0;
+                border: none;
+                background: transparent !important;
+              }
+              .mobile-card-table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #6b7280;
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                margin-bottom: 0.25rem;
+              }
+              .mobile-card-table td:first-child {
+                border-top: none;
+              }
+              .mobile-card-table td.mobile-checkbox-cell {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem 0;
+                border-bottom: 1px solid #e5e7eb;
+                margin-bottom: 0.5rem;
+              }
+              .mobile-card-table td.mobile-checkbox-cell::before {
+                margin-bottom: 0;
+              }
+            }
+          `}</style>
           <div ref={historyTableContainerRef} className="overflow-x-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 220px)' }}>
             {initialHistoryLoading ? (
               <div className="text-center py-10">
@@ -604,7 +658,7 @@ function HistoryPage() {
               </div>
             ) : activeTab === "checklist" ? (
               /* Checklist Table */
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 mobile-card-table">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     {isSuperAdmin && (
@@ -641,7 +695,7 @@ function HistoryPage() {
                     filteredHistoryData.map((historyItem, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         {isSuperAdmin && (
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <td className="px-2 sm:px-3 py-2 sm:py-4 mobile-checkbox-cell" data-label="Select">
                             {historyItem.admin_done !== 'Done' ? (
                               <input
                                 type="checkbox"
@@ -654,7 +708,7 @@ function HistoryPage() {
                             )}
                           </td>
                         )}
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Admin Status">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                             historyItem.admin_done === 'Done'
                               ? "bg-green-100 text-green-800"
@@ -664,7 +718,7 @@ function HistoryPage() {
                           </span>
                         </td>
                         {isSuperAdmin && (
-                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50">
+                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50" data-label="Admin Remarks">
                             {historyItem.admin_done !== 'Done' ? (
                               <input
                                 type="text"
@@ -684,25 +738,25 @@ function HistoryPage() {
                             )}
                           </td>
                         )}
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Task ID">
                           <div className="text-xs sm:text-sm font-medium text-gray-900">{historyItem.task_id || "—"}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Department">
                           <div className="text-xs sm:text-sm text-gray-900">{historyItem.department || "—"}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Given By">
                           <div className="text-xs sm:text-sm text-gray-900">{historyItem.given_by || "—"}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Name">
                           <div className="text-xs sm:text-sm text-gray-900">{historyItem.name || "—"}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[150px]">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[150px]" data-label="Task Description">
                           <div className="text-xs sm:text-sm text-gray-900" title={historyItem.task_description}>
                             {historyItem.task_description || "—"}
                           </div>
                         </td>
 
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50" data-label="Task Start Date">
                           <div className="text-xs sm:text-sm text-gray-900">
                             {historyItem.task_start_date ? (() => {
                               const date = parseSupabaseDate(historyItem.task_start_date)
@@ -714,10 +768,10 @@ function HistoryPage() {
                             })() : "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Frequency">
                           <div className="text-xs sm:text-sm text-gray-900">{historyItem.frequency || "—"}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-green-50">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-green-50" data-label="Submission Date">
                           <div className="text-xs sm:text-sm text-gray-900">
                             {historyItem.submission_date ? (() => {
                               const dateObj = new Date(historyItem.submission_date)
@@ -735,7 +789,7 @@ function HistoryPage() {
                             })() : "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-blue-50">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-blue-50" data-label="Status">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                             historyItem.status === "yes"
                               ? "bg-green-100 text-green-800"
@@ -746,12 +800,12 @@ function HistoryPage() {
                             {historyItem.status || "—"}
                           </span>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[120px]">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[120px]" data-label="Remarks">
                           <div className="text-xs sm:text-sm text-gray-900" title={historyItem.remark}>
                             {historyItem.remark || "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="File">
                           {historyItem.image ? (
                             <a
                               href={historyItem.image}
@@ -785,7 +839,7 @@ function HistoryPage() {
               </table>
             ) : (
               /* Delegation Table */
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 mobile-card-table">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     {isSuperAdmin && (
@@ -822,7 +876,7 @@ function HistoryPage() {
                     filteredDelegationData.map((item, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         {isSuperAdmin && (
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <td className="px-2 sm:px-3 py-2 sm:py-4 mobile-checkbox-cell" data-label="Select">
                             {item.admin_done !== 'Done' ? (
                               <input
                                 type="checkbox"
@@ -838,7 +892,7 @@ function HistoryPage() {
                             )}
                           </td>
                         )}
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Admin Status">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                             item.admin_done === 'Done'
                               ? "bg-green-100 text-green-800"
@@ -848,7 +902,7 @@ function HistoryPage() {
                           </span>
                         </td>
                         {isSuperAdmin && (
-                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50">
+                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50" data-label="Admin Remarks">
                             {item.admin_done !== 'Done' ? (
                               <input
                                 type="text"
@@ -868,27 +922,27 @@ function HistoryPage() {
                             )}
                           </td>
                         )}
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Task ID">
                           <div className="text-xs sm:text-sm font-medium text-gray-900">{item.task_id || "—"}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Given By">
                           <div className="text-xs sm:text-sm text-gray-900">{item.given_by || "—"}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Name">
                           <div className="text-xs sm:text-sm text-gray-900">{item.name || "—"}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[150px]">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[150px]" data-label="Task Description">
                           <div className="text-xs sm:text-sm text-gray-900" title={item.task_description}>
                             {item.task_description || "—"}
                           </div>
                         </td>
 
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50" data-label="Created At">
                           <div className="text-xs sm:text-sm text-gray-900">
                             {formatDateForDisplay(item.created_at)}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-blue-50">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-blue-50" data-label="Status">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                             item.status === "completed"
                               ? "bg-green-100 text-green-800"
@@ -899,17 +953,17 @@ function HistoryPage() {
                             {item.status || "—"}
                           </span>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Next Extend Date">
                           <div className="text-xs sm:text-sm text-gray-900">
                             {item.next_extend_date ? formatDateForDisplay(item.next_extend_date) : "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[120px]">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[120px]" data-label="Reason">
                           <div className="text-xs sm:text-sm text-gray-900" title={item.reason}>
                             {item.reason || "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="File">
                           {item.image_url ? (
                             <a
                               href={item.image_url}

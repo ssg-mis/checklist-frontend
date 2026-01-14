@@ -4,6 +4,7 @@ import { Plus, User, Building, X, Save, Edit, Trash2, Settings, Search, ChevronD
 import AdminLayout from '../components/layout/AdminLayout';
 import { useDispatch, useSelector } from 'react-redux';
 import { createDepartment, createUser, deleteUser, departmentOnlyDetails, givenByDetails, departmentDetails, updateDepartment, updateUser, userDetails } from '../redux/slice/settingSlice';
+import { uniqueDoerNameData } from '../redux/slice/assignTaskSlice';
 // import supabase from '../SupabaseClient';
 
 const Setting = () => {
@@ -24,11 +25,25 @@ const Setting = () => {
   const [leaveEndDate, setLeaveEndDate] = useState('');
   const [remark, setRemark] = useState('');
   const [leaveUsernameFilter, setLeaveUsernameFilter] = useState('');
-  const [showPasswords, setShowPasswords] = useState({}); // Track which passwords are visibl
+  const [showPasswords, setShowPasswords] = useState({}); // Track which passwords are visible
   const [showModalPassword, setShowModalPassword] = useState(false);
   const [showDeptDropdown, setShowDeptDropdown] = useState(false);
   
+  // Task Delegation Modal State
+  const [showDelegationModal, setShowDelegationModal] = useState(false);
+  const [selectedDoer, setSelectedDoer] = useState('');
+  
+  // Leave Transfer Popup State
+  const [showLeavePopup, setShowLeavePopup] = useState(false);
+  const [currentLeaveUser, setCurrentLeaveUser] = useState(null);
+  const [popupLeaveStartDate, setPopupLeaveStartDate] = useState('');
+  const [popupLeaveEndDate, setPopupLeaveEndDate] = useState('');
+  const [popupDoer, setPopupDoer] = useState('');
+  const [popupRemarks, setPopupRemarks] = useState('');
+  
+  
   const { userData, department, departmentsOnly, givenBy, loading, error } = useSelector((state) => state.setting);
+  const { doerName } = useSelector((state) => state.assignTask);
   // Get current logged-in user to check for super_admin role
   const { userData: currentUser } = useSelector((state) => state.login);
   const dispatch = useDispatch();
@@ -173,8 +188,22 @@ const debugUserStatus = async () => {
 
   const handleUserSelection = (userId, isSelected) => {
     if (isSelected) {
-      setSelectedUsers(prev => [...prev, userId]);
+      // Open popup form when checkbox is checked
+      const user = userData.find(u => u.id === userId);
+      setCurrentLeaveUser(user);
+      setShowLeavePopup(true);
+      // Set today's date as default
+      const today = new Date().toISOString().split('T')[0];
+      setPopupLeaveStartDate(today);
+      setPopupLeaveEndDate(today);
     } else {
+      // Close popup and clear selection when unchecked
+      setShowLeavePopup(false);
+      setCurrentLeaveUser(null);
+      setPopupLeaveStartDate('');
+      setPopupLeaveEndDate('');
+      setPopupDoer('');
+      setPopupRemarks('');
       setSelectedUsers(prev => prev.filter(id => id !== userId));
     }
   };
@@ -202,56 +231,52 @@ const handleSubmitLeave = async () => {
     return;
   }
 
+  // Show delegation modal instead of directly submitting
+  setShowDelegationModal(true);
+};
+
+// New function to handle actual delegation after doer selection
+const handleConfirmDelegation = async () => {
+  if (!selectedDoer) {
+    alert('Please select a doer to delegate tasks to');
+    return;
+  }
+
   try {
-    // Update each selected user with leave information
-    // const updatePromises = selectedUsers.map(userId =>
-    //   dispatch(updateUser({
-    //     id: userId,
-    //     updatedUser: {
-    //       leave_date: leaveStartDate, // You can store start date or both dates
-    //       leave_end_date: leaveEndDate, // Add this field to your user table if needed
-    //       remark: remark
-    //     }
-    //   })).unwrap()
-    // );
-
-    // await Promise.all(updatePromises);
-
-    // Delete matching checklist tasks for the date range
-    const deleteChecklistPromises = selectedUsers.map(async (userId) => {
+    // Call API to transfer tasks
+    const transferPromises = selectedUsers.map(async (userId) => {
       const user = userData.find(u => u.id === userId);
       if (user && user.user_name) {
         try {
-          // Format dates for Supabase query
-          const formattedStartDate = `${leaveStartDate}T00:00:00`;
-          const formattedEndDate = `${leaveEndDate}T23:59:59`;
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/leave/transfer-tasks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: user.user_name,
+              delegateTo: selectedDoer,
+              startDate: leaveStartDate,
+              endDate: leaveEndDate
+            })
+          });
 
-          // console.log(`Deleting tasks for ${user.user_name} from ${leaveStartDate} to ${leaveEndDate}`);
-
-          // Delete checklist tasks where name matches and date falls within the range
-          const { error } = await fetch(`${import.meta.env.VITE_API_BASE_URL}/checklist/delete-range`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    username: user.user_name,
-    startDate: formattedStartDate,
-    endDate: formattedEndDate
-  })
-});
-   if (error) {
-            console.error('Error deleting checklist tasks:', error);
+          const result = await response.json();
+          
+          if (!response.ok) {
+            console.error('Error transferring tasks:', result.message);
           } else {
-            console.log(`Deleted checklist tasks for ${user.user_name} from ${leaveStartDate} to ${leaveEndDate}`);
+            console.log(`Transferred ${result.tasksTransferred} tasks from ${user.user_name} to ${selectedDoer}`);
           }
         } catch (error) {
-          console.error('Error in checklist deletion:', error);
+          console.error('Error in task transfer:', error);
         }
       }
     });
 
-    await Promise.all(deleteChecklistPromises);
+    await Promise.all(transferPromises);
 
-    // Reset form
+    // Close modal and reset form
+    setShowDelegationModal(false);
+    setSelectedDoer('');
     setSelectedUsers([]);
     setLeaveStartDate('');
     setLeaveEndDate('');
@@ -259,12 +284,66 @@ const handleSubmitLeave = async () => {
 
     // Refresh data
     setTimeout(() => window.location.reload(), 1000);
-    alert('Leave information submitted successfully and matching tasks deleted');
+    alert('Tasks transferred successfully to delegation');
   } catch (error) {
-    console.error('Error submitting leave information:', error);
-    alert('Error submitting leave information');
+    console.error('Error submitting delegation:', error);
+    alert('Error submitting delegation');
   }
 };
+
+  // Handler for Leave Transfer Popup submission
+  const handleLeaveTransferSubmit = async () => {
+    if (!popupLeaveStartDate || !popupLeaveEndDate || !popupDoer) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    // Validate date range
+    const startDate = new Date(popupLeaveStartDate);
+    const endDate = new Date(popupLeaveEndDate);
+    
+    if (startDate > endDate) {
+      alert('End date cannot be before start date');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/leave/transfer-tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: currentLeaveUser.user_name,
+          delegateTo: popupDoer,
+          startDate: popupLeaveStartDate,
+          endDate: popupLeaveEndDate,
+          remarks: popupRemarks
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to transfer tasks');
+      }
+
+      // Close popup and reset form
+      setShowLeavePopup(false);
+      setCurrentLeaveUser(null);
+      setPopupLeaveStartDate('');
+      setPopupLeaveEndDate('');
+      setPopupDoer('');
+      setPopupRemarks('');
+      setSelectedUsers([]);
+
+      alert(`Successfully transferred ${result.tasksTransferred || 0} tasks from ${currentLeaveUser.user_name} to ${popupDoer}`);
+      
+      // Refresh data
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      console.error('Error transferring tasks:', error);
+      alert(`Error: ${error.message}`);
+    }
+  };
 
   // Add to your existing handleTabChange function
   // Handle tab change
@@ -275,6 +354,9 @@ const handleSubmitLeave = async () => {
       dispatch(departmentDetails()); // Ensure departments are fetched
     } else if (tab === 'departments') {
       dispatch(departmentDetails());
+    } else if (tab === 'leave') {
+      dispatch(userDetails());
+      dispatch(uniqueDoerNameData()); // Fetch all doer names for delegation
     }
   };
 
@@ -738,46 +820,6 @@ const resetUserForm = () => {
               </div>
             </div>
 
-
-            {/* Leave Form */}
-<div className="p-6 border-b border-gray-200">
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Leave Start Date
-      </label>
-      <input
-        type="date"
-        value={leaveStartDate}
-        onChange={(e) => setLeaveStartDate(e.target.value)}
-        className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-      />
-    </div>
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Leave End Date
-      </label>
-      <input
-        type="date"
-        value={leaveEndDate}
-        onChange={(e) => setLeaveEndDate(e.target.value)}
-        className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-      />
-    </div>
-    <div className="md:col-span-2">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Remarks
-      </label>
-      <input
-        type="text"
-        value={remark}
-        onChange={(e) => setRemark(e.target.value)}
-        placeholder="Enter remarks"
-        className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-      />
-    </div>
-  </div>
-</div>
 
             {/* Users List for Leave Selection - Updated with filter */}
             {/* Users List for Leave Selection */}
@@ -1626,6 +1668,226 @@ const resetUserForm = () => {
                         </button>
                       </div>
                     </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Task Delegation Modal */}
+        {showDelegationModal && (
+          <div className="fixed z-10 inset-0 overflow-y-auto">
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+              </div>
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Delegate Tasks
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setShowDelegationModal(false);
+                        setSelectedDoer('');
+                      }}
+                      className="text-gray-400 hover:text-gray-500"
+                    >
+                      <X size={24} />
+                    </button>
+                  </div>
+                  <div className="mt-4">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Leave Start Date
+                        </label>
+                        <input
+                          type="date"
+                          value={leaveStartDate}
+                          readOnly
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100 cursor-not-allowed text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Leave End Date
+                        </label>
+                        <input
+                          type="date"
+                          value={leaveEndDate}
+                          readOnly
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100 cursor-not-allowed text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Delegate To (Doer Name) <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={selectedDoer}
+                          onChange={(e) => setSelectedDoer(e.target.value)}
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                        >
+                          <option value="">Select a doer...</option>
+                          {doerName && doerName.length > 0 ? (
+                            doerName.map((name, index) => (
+                              <option key={index} value={name}>
+                                {name}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="" disabled>No doers available</option>
+                          )}
+                        </select>
+                      </div>
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                        <p className="text-xs text-blue-800">
+                          <strong>Note:</strong> Tasks from the selected date range will be transferred to the delegation system and assigned to the selected doer.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 sm:mt-6 flex gap-3 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowDelegationModal(false);
+                        setSelectedDoer('');
+                      }}
+                      className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmDelegation}
+                      className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:text-sm"
+                    >
+                      Submit Delegation
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Leave Transfer Popup Modal */}
+        {showLeavePopup && currentLeaveUser && (
+          <div className="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="leave-transfer-modal" role="dialog" aria-modal="true">
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => {
+                setShowLeavePopup(false);
+                setCurrentLeaveUser(null);
+                setSelectedUsers([]);
+              }}></div>
+              
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              
+              <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div>
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Transfer Tasks for {currentLeaveUser.user_name}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setShowLeavePopup(false);
+                        setCurrentLeaveUser(null);
+                        setSelectedUsers([]);
+                      }}
+                      className="text-gray-400 hover:text-gray-500"
+                    >
+                      <X size={24} />
+                    </button>
+                  </div>
+                  <div className="mt-4">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Leave Start Date <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          value={popupLeaveStartDate}
+                          onChange={(e) => setPopupLeaveStartDate(e.target.value)}
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Leave End Date <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          value={popupLeaveEndDate}
+                          onChange={(e) => setPopupLeaveEndDate(e.target.value)}
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Shift Doer Name <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={popupDoer}
+                          onChange={(e) => setPopupDoer(e.target.value)}
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                        >
+                          <option value="">Select a doer...</option>
+                          {userData && userData.length > 0 ? (
+                            userData.map((user) => (
+                              <option key={user.id} value={user.user_name}>
+                                {user.user_name}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="" disabled>No users available</option>
+                          )}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Remarks
+                        </label>
+                        <textarea
+                          value={popupRemarks}
+                          onChange={(e) => setPopupRemarks(e.target.value)}
+                          placeholder="Enter remarks (optional)"
+                          rows="3"
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                        />
+                      </div>
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                        <p className="text-xs text-blue-800">
+                          <strong>Note:</strong> This will delete {currentLeaveUser.user_name}'s tasks from the checklist for the selected dates and assign them to the chosen doer in the delegation system.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 sm:mt-6 flex gap-3 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowLeavePopup(false);
+                        setCurrentLeaveUser(null);
+                        setSelectedUsers([]);
+                      }}
+                      className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLeaveTransferSubmit}
+                      className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:text-sm"
+                    >
+                      Transfer Tasks
+                    </button>
                   </div>
                 </div>
               </div>
