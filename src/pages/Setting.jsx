@@ -41,6 +41,12 @@ const Setting = () => {
   const [popupDoer, setPopupDoer] = useState('');
   const [popupRemarks, setPopupRemarks] = useState('');
   
+  // Individual Task Assignment State
+  const [userTasks, setUserTasks] = useState([]);
+  const [taskAssignments, setTaskAssignments] = useState({});
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [fetchError, setFetchError] = useState('');
+  
   
   const { userData, department, departmentsOnly, givenBy, loading, error } = useSelector((state) => state.setting);
   const { doerName } = useSelector((state) => state.assignTask);
@@ -291,9 +297,69 @@ const handleConfirmDelegation = async () => {
   }
 };
 
+  // Fetch user tasks when dates are selected
+  useEffect(() => {
+    const fetchUserTasks = async () => {
+      if (!currentLeaveUser || !popupLeaveStartDate || !popupLeaveEndDate) {
+        setUserTasks([]);
+        setTaskAssignments({});
+        return;
+      }
+
+      // Validate date range
+      const startDate = new Date(popupLeaveStartDate);
+      const endDate = new Date(popupLeaveEndDate);
+      
+      if (startDate > endDate) {
+        setFetchError('End date cannot be before start date');
+        setUserTasks([]);
+        return;
+      }
+
+      setIsLoadingTasks(true);
+      setFetchError('');
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/leave/user-tasks?username=${encodeURIComponent(currentLeaveUser.user_name)}&startDate=${popupLeaveStartDate}&endDate=${popupLeaveEndDate}`
+        );
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to fetch tasks');
+        }
+
+        setUserTasks(result.tasks || []);
+        // Initialize task assignments with empty values
+        const initialAssignments = {};
+        (result.tasks || []).forEach(task => {
+          initialAssignments[task.task_id] = '';
+        });
+        setTaskAssignments(initialAssignments);
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+        setFetchError(error.message);
+        setUserTasks([]);
+      } finally {
+        setIsLoadingTasks(false);
+      }
+    };
+
+    fetchUserTasks();
+  }, [currentLeaveUser, popupLeaveStartDate, popupLeaveEndDate]);
+
+  // Handler for individual task assignment
+  const handleTaskAssignment = (taskId, assignedUser) => {
+    setTaskAssignments(prev => ({
+      ...prev,
+      [taskId]: assignedUser
+    }));
+  };
+
   // Handler for Leave Transfer Popup submission
   const handleLeaveTransferSubmit = async () => {
-    if (!popupLeaveStartDate || !popupLeaveEndDate || !popupDoer) {
+    if (!popupLeaveStartDate || !popupLeaveEndDate) {
       alert('Please fill in all required fields');
       return;
     }
@@ -307,41 +373,62 @@ const handleConfirmDelegation = async () => {
       return;
     }
 
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/leave/transfer-tasks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: currentLeaveUser.user_name,
-          delegateTo: popupDoer,
-          startDate: popupLeaveStartDate,
-          endDate: popupLeaveEndDate,
-          remarks: popupRemarks
-        })
-      });
-
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to transfer tasks');
+    // If there are tasks to assign individually
+    if (userTasks.length > 0) {
+      // Validate all tasks have assigned users
+      const unassignedTasks = userTasks.filter(task => !taskAssignments[task.task_id]);
+      if (unassignedTasks.length > 0) {
+        alert(`Please assign all ${userTasks.length} tasks to users. ${unassignedTasks.length} task(s) still unassigned.`);
+        return;
       }
 
-      // Close popup and reset form
-      setShowLeavePopup(false);
-      setCurrentLeaveUser(null);
-      setPopupLeaveStartDate('');
-      setPopupLeaveEndDate('');
-      setPopupDoer('');
-      setPopupRemarks('');
-      setSelectedUsers([]);
+      // Build assignments array
+      const assignments = userTasks.map(task => ({
+        task_id: task.task_id,
+        username: task.name,
+        delegateTo: taskAssignments[task.task_id],
+        task_description: task.task_description,
+        department: task.department,
+        given_by: task.given_by,
+        frequency: task.frequency,
+        task_start_date: task.task_start_date,
+        planned_date: task.planned_date
+      }));
 
-      alert(`Successfully transferred ${result.tasksTransferred || 0} tasks from ${currentLeaveUser.user_name} to ${popupDoer}`);
-      
-      // Refresh data
-      setTimeout(() => window.location.reload(), 1000);
-    } catch (error) {
-      console.error('Error transferring tasks:', error);
-      alert(`Error: ${error.message}`);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/leave/assign-individual-tasks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ assignments })
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to assign tasks');
+        }
+
+        // Close popup and reset form
+        setShowLeavePopup(false);
+        setCurrentLeaveUser(null);
+        setPopupLeaveStartDate('');
+        setPopupLeaveEndDate('');
+        setPopupDoer('');
+        setPopupRemarks('');
+        setUserTasks([]);
+        setTaskAssignments({});
+        setSelectedUsers([]);
+
+        alert(`Successfully transferred ${result.tasksTransferred || 0} tasks with individual assignments!`);
+        
+        // Refresh data
+        setTimeout(() => window.location.reload(), 1000);
+      } catch (error) {
+        console.error('Error assigning tasks:', error);
+        alert(`Error: ${error.message}`);
+      }
+    } else {
+      alert('No tasks found in the selected date range');
     }
   };
 
@@ -1788,7 +1875,7 @@ const resetUserForm = () => {
               
               <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
               
-              <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full sm:p-6">
                 <div>
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg leading-6 font-medium text-gray-900">
@@ -1829,27 +1916,79 @@ const resetUserForm = () => {
                           className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Shift Doer Name <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={popupDoer}
-                          onChange={(e) => setPopupDoer(e.target.value)}
-                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                        >
-                          <option value="">Select a doer...</option>
-                          {userData && userData.length > 0 ? (
-                            userData.map((user) => (
-                              <option key={user.id} value={user.user_name}>
-                                {user.user_name}
-                              </option>
-                            ))
+                      
+                      {/* Tasks Table Section */}
+                      {popupLeaveStartDate && popupLeaveEndDate && (
+                        <div className="mt-4">
+                          {isLoadingTasks ? (
+                            <div className="text-center py-4">
+                              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-2"></div>
+                              <p className="text-sm text-gray-600">Loading tasks...</p>
+                            </div>
+                          ) : fetchError ? (
+                            <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                              <p className="text-sm text-red-800">{fetchError}</p>
+                            </div>
+                          ) : userTasks.length === 0 ? (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                              <p className="text-sm text-yellow-800">No tasks found for {currentLeaveUser.user_name} in the selected date range.</p>
+                            </div>
                           ) : (
-                            <option value="" disabled>No users available</option>
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-900 mb-2">
+                                Tasks to Assign ({userTasks.length})
+                              </h4>
+                              <div className="border border-gray-300 rounded-md overflow-hidden">
+                                <div className="max-h-64 overflow-y-auto">
+                                  <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50 sticky top-0">
+                                      <tr>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assign To <span className="text-red-500">*</span></th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                      {userTasks.map((task) => (
+                                        <tr key={task.task_id} className="hover:bg-gray-50">
+                                          <td className="px-3 py-2 text-xs text-gray-900">{task.task_id}</td>
+                                          <td className="px-3 py-2 text-xs text-gray-900" title={task.task_description}>
+                                            <div className="max-w-xs truncate">{task.task_description}</div>
+                                          </td>
+                                          <td className="px-3 py-2 text-xs text-gray-900">
+                                            {task.task_start_date ? new Date(task.task_start_date).toLocaleDateString() : '-'}
+                                          </td>
+                                          <td className="px-3 py-2">
+                                            <select
+                                              value={taskAssignments[task.task_id] || ''}
+                                              onChange={(e) => handleTaskAssignment(task.task_id, e.target.value)}
+                                              className="w-full text-xs border border-gray-300 rounded-md shadow-sm py-1 px-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                                            >
+                                              <option value="">Select user...</option>
+                                              {userData && userData.length > 0 ? (
+                                                userData.map((user) => (
+                                                  <option key={user.id} value={user.user_name}>
+                                                    {user.user_name}
+                                                  </option>
+                                                ))
+                                              ) : (
+                                                <option value="" disabled>No users available</option>
+                                              )}
+                                            </select>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </div>
                           )}
-                        </select>
-                      </div>
+                        </div>
+                      )}
+
+                      {/* Shift Doer Name field removed - now using individual task assignments */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Remarks
