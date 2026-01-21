@@ -377,9 +377,13 @@ const handleConfirmDelegation = async () => {
     if (userTasks.length > 0) {
       // Validate all tasks have assigned users
       const unassignedTasks = userTasks.filter(task => !taskAssignments[task.task_id]);
+      
+      // If there are unassigned tasks, ask for confirmation
       if (unassignedTasks.length > 0) {
-        alert(`Please assign all ${userTasks.length} tasks to users. ${unassignedTasks.length} task(s) still unassigned.`);
-        return;
+        const confirmDelete = window.confirm(`${unassignedTasks.length} tasks are unassigned and will be PERMANENTLY DELETED from the checklist. Are you sure you want to continue?`);
+        if (!confirmDelete) {
+          return;
+        }
       }
 
       // Build assignments array
