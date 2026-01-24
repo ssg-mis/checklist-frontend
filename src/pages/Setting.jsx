@@ -4,6 +4,7 @@ import { Plus, User, Building, X, Save, Edit, Trash2, Settings, Search, ChevronD
 import AdminLayout from '../components/layout/AdminLayout';
 import { useDispatch, useSelector } from 'react-redux';
 import { createDepartment, createUser, deleteUser, departmentOnlyDetails, givenByDetails, departmentDetails, updateDepartment, updateUser, userDetails } from '../redux/slice/settingSlice';
+import { extendTaskApi } from '../redux/api/settingApi';
 import { uniqueDoerNameData } from '../redux/slice/assignTaskSlice';
 // import supabase from '../SupabaseClient';
 
@@ -40,6 +41,15 @@ const Setting = () => {
   const [popupLeaveEndDate, setPopupLeaveEndDate] = useState('');
   const [popupDoer, setPopupDoer] = useState('');
   const [popupRemarks, setPopupRemarks] = useState('');
+
+  // Extend Task State
+  const [showExtendTaskPopup, setShowExtendTaskPopup] = useState(false);
+  const [currentExtendUser, setCurrentExtendUser] = useState(null);
+  const [extendStartDate, setExtendStartDate] = useState('');
+  const [extendEndDate, setExtendEndDate] = useState('');
+  const [extendUserTasks, setExtendUserTasks] = useState([]);
+  const [extendLoading, setExtendLoading] = useState(false);
+  const [newStartDates, setNewStartDates] = useState({});
   
   // Individual Task Assignment State
   const [userTasks, setUserTasks] = useState([]);
@@ -436,6 +446,110 @@ const handleConfirmDelegation = async () => {
     }
   };
 
+  // EXTEND TASK HANDLERS
+  
+  const handleExtendUserSelection = (userId, isSelected) => {
+    if (isSelected) {
+      // Open popup form when checkbox is checked
+      const user = userData.find(u => u.id === userId);
+      setCurrentExtendUser(user);
+      setShowExtendTaskPopup(true);
+      // Set today's date as default
+      const today = new Date().toISOString().split('T')[0];
+      setExtendStartDate(today);
+      setExtendEndDate(today);
+    } else {
+      // Close popup and clear selection when unchecked
+      setShowExtendTaskPopup(false);
+      setCurrentExtendUser(null);
+      setExtendStartDate('');
+      setExtendEndDate('');
+      setExtendUserTasks([]);
+      setNewStartDates({});
+      setSelectedUsers(prev => prev.filter(id => id !== userId));
+    }
+  };
+
+  // Fetch tasks for Extend Task Popup
+  useEffect(() => {
+    const fetchExtendTasks = async () => {
+      if (!currentExtendUser || !extendStartDate || !extendEndDate) {
+        setExtendUserTasks([]);
+        return;
+      }
+
+      // Validate date range
+      const startDate = new Date(extendStartDate);
+      const endDate = new Date(extendEndDate);
+      
+      if (startDate > endDate) {
+        // Just return, don't show error yet or show in UI
+        setExtendUserTasks([]);
+        return;
+      }
+
+      setExtendLoading(true);
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/leave/user-tasks?username=${encodeURIComponent(currentExtendUser.user_name)}&startDate=${extendStartDate}&endDate=${extendEndDate}`
+        );
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to fetch tasks');
+        }
+
+        setExtendUserTasks(result.tasks || []);
+      } catch (error) {
+        console.error('Error fetching tasks for extend:', error);
+        setExtendUserTasks([]);
+      } finally {
+        setExtendLoading(false);
+      }
+    };
+
+    fetchExtendTasks();
+  }, [currentExtendUser, extendStartDate, extendEndDate]);
+
+  const handleUpdateTaskDate = async (taskId) => {
+    const newDate = newStartDates[taskId];
+    if (!newDate) {
+      alert('Please select a new start date');
+      return;
+    }
+
+    try {
+      // Use the direct import extendTaskApi since it might not be in the slice
+      // Importing manually at top of file or use fetch directly if needed
+      // Assuming extendTaskApi calls the backend endpoint we created
+      const result = await extendTaskApi(taskId, newDate);
+      
+      if (result && result.success) {
+        alert('Task extended successfully!');
+        // Refresh the list
+        const updatedTasks = extendUserTasks.map(task => 
+          task.task_id === taskId 
+            ? { ...task, task_start_date: newDate, planned_date: newDate } // Update local state to reflect change
+            : task
+        );
+        setExtendUserTasks(updatedTasks);
+        // Clear the input
+        setNewStartDates(prev => {
+          const newState = { ...prev };
+          delete newState[taskId];
+          return newState;
+        });
+      } else {
+        alert('Failed to extend task: ' + (result?.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error updating task date:', error);
+      alert('Error updating task date');
+    }
+  };
+
   // Add to your existing handleTabChange function
   // Handle tab change
   const handleTabChange = (tab) => {
@@ -448,6 +562,8 @@ const handleConfirmDelegation = async () => {
     } else if (tab === 'leave') {
       dispatch(userDetails());
       dispatch(uniqueDoerNameData()); // Fetch all doer names for delegation
+    } else if (tab === 'extendTask') {
+      dispatch(userDetails());
     }
   };
 
@@ -842,6 +958,19 @@ const resetUserForm = () => {
             >
               <Calendar size={18} />
               Leave
+            </button>
+            <button
+              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'extendTask' 
+                  ? 'border-purple-600 text-purple-600 bg-purple-50' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => {
+                handleTabChange('extendTask');
+              }}
+            >
+              <Calendar size={18} />
+              Extend Task
             </button>
           </div>
         </div>
@@ -1387,6 +1516,185 @@ const resetUserForm = () => {
     )}
   </div>
 )}
+
+        
+        {/* Extend Task Tab */}
+        {activeTab === 'extendTask' && (
+          <div className="bg-white shadow rounded-lg overflow-hidden border border-purple-200">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple px-6 py-4 border-gray-200 flex justify-between items-center">
+              <h2 className="text-lg font-medium text-purple-700">Extend Task Management</h2>
+
+              <div className="flex items-center gap-4">
+                {/* Username Search Filter */}
+                <div className="relative">
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                      <input
+                        type="text"
+                        list="leaveUsernameOptions"
+                        placeholder="Filter by username..."
+                        value={leaveUsernameFilter}
+                        onChange={(e) => setLeaveUsernameFilter(e.target.value)}
+                        className="w-48 pl-10 pr-8 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                      />
+                      <datalist id="leaveUsernameOptions">
+                        {userData?.map(user => (
+                          <option key={user.id} value={user.user_name} />
+                        ))}
+                      </datalist>
+
+                      {leaveUsernameFilter && (
+                        <button
+                          onClick={clearLeaveUsernameFilter}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Users List for Extend Task Selection */}
+            <div className="h-[calc(100vh-400px)] overflow-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Select
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Username
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pending Tasks
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredLeaveUsers?.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.includes(user.id)}
+                          onChange={(e) => handleExtendUserSelection(user.id, e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{user.user_name}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          -
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Extend Task Modal Popup */}
+        {showExtendTaskPopup && currentExtendUser && (
+          <div className="fixed z-20 inset-0 overflow-y-auto">
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <div className="fixed inset-0 transition-opacity" aria-hidden="true" onClick={() => setShowExtendTaskPopup(false)}>
+                <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+              </div>
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full sm:p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Extend Tasks for: <span className="text-purple-600">{currentExtendUser.user_name}</span>
+                  </h3>
+                  <button
+                    onClick={() => setShowExtendTaskPopup(false)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Start Date</label>
+                    <input
+                      type="date"
+                      value={extendStartDate}
+                      onChange={(e) => setExtendStartDate(e.target.value)}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">End Date</label>
+                    <input
+                      type="date"
+                      value={extendEndDate}
+                      onChange={(e) => setExtendEndDate(e.target.value)}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="overflow-auto max-h-[60vh]">
+                  {extendLoading ? (
+                    <div className="text-center py-4">Loading tasks...</div>
+                  ) : extendUserTasks.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500">No tasks found for selected date range.</div>
+                  ) : (
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Start Date</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">New Start Date</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {extendUserTasks.map((task) => (
+                          <tr key={task.task_id}>
+                            <td className="px-4 py-2 text-sm text-gray-900 max-w-xs truncate" title={task.task_description}>
+                              {task.task_description}
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-500">
+                              {new Date(task.task_start_date).toLocaleDateString()}
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap">
+                              <input
+                                type="date"
+                                value={newStartDates[task.task_id] || ''}
+                                onChange={(e) => setNewStartDates(prev => ({ ...prev, [task.task_id]: e.target.value }))}
+                                className="block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-xs focus:ring-purple-500 focus:border-purple-500"
+                                min={new Date().toISOString().split('T')[0]}
+                              />
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap text-right">
+                              <button
+                                onClick={() => handleUpdateTaskDate(task.task_id)}
+                                disabled={!newStartDates[task.task_id]}
+                                className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Update
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* User Modal */}
         {showUserModal && (

@@ -267,3 +267,20 @@ export const fetchGivenByDataApi = async () => {
     return [];
   }
 };
+// =======================================================
+// 8️⃣ EXTEND TASK
+// =======================================================
+export const extendTaskApi = async (taskId, newStartDate) => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/leave/extend-task`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId, newStartDate }),
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.log("Error extending task", error);
+    return null;
+  }
+};

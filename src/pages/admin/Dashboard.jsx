@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import AdminLayout from "../../components/layout/AdminLayout.jsx"
-import WelcomeCard from "../../components/WelcomeCard.jsx"
+
 import DashboardHeader from "./dashboard/DashboardHeader.jsx"
 import StatisticsCards from "./dashboard/StaticsCard.jsx"
 import TaskNavigationTabs from "./dashboard/TaskNavigationTab.jsx"
@@ -1009,8 +1009,7 @@ useEffect(() => {
 
   return (
     <AdminLayout>
-      {/* Animated Welcome Card */}
-      <WelcomeCard username={username} />
+
       
       <div className="space-y-6">
         <DashboardHeader
