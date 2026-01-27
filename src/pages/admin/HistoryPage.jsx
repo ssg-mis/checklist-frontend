@@ -300,6 +300,7 @@ function HistoryPage() {
       .filter((item) => {
         const userMatch =
           userRole === "admin" ||
+          userRole === "super_admin" ||
           (item.name && item.name.toLowerCase() === username.toLowerCase())
         if (!userMatch) return false
 
