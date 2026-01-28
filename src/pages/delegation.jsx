@@ -294,6 +294,17 @@ function DelegationDataPage() {
       if (isChecked) {
         newSelected.add(id);
         setStatusData((prevStatus) => ({ ...prevStatus, [id]: "Done" }));
+        
+        // Pre-fill remark with the latest from history
+        if (delegation_done && Array.isArray(delegation_done)) {
+          const latestTask = delegation_done.find(d => d.task_id === id);
+          if (latestTask && latestTask.reason) {
+            setRemarksData(prevRemarks => ({
+              ...prevRemarks,
+              [id]: latestTask.reason
+            }));
+          }
+        }
       } else {
         newSelected.delete(id);
         setAdditionalData((prevData) => {
@@ -320,7 +331,7 @@ function DelegationDataPage() {
 
       return newSelected;
     });
-  }, []);
+  }, [delegation_done]);
 
   const handleCheckboxClick = useCallback(
     (e, id) => {
@@ -341,10 +352,22 @@ function DelegationDataPage() {
         setSelectedItems(new Set(allIds));
 
         const newStatusData = {};
+        const newRemarksData = {};
+        
         allIds.forEach((id) => {
           newStatusData[id] = "Done";
+          
+          // Pre-fill remarks
+          if (delegation_done && Array.isArray(delegation_done)) {
+            const latestTask = delegation_done.find(d => d.task_id === id);
+            if (latestTask && latestTask.reason) {
+              newRemarksData[id] = latestTask.reason;
+            }
+          }
         });
+        
         setStatusData((prev) => ({ ...prev, ...newStatusData }));
+        setRemarksData((prev) => ({ ...prev, ...newRemarksData }));
       } else {
         setSelectedItems(new Set());
         setAdditionalData({});
@@ -353,7 +376,7 @@ function DelegationDataPage() {
         setNextTargetDate({});
       }
     },
-    [delegation]
+    [delegation, delegation_done]
   );
 
   const handleImageUpload = useCallback((id, e) => {
@@ -389,6 +412,13 @@ function DelegationDataPage() {
       reader.onerror = (error) => reject(error);
     });
   }, []);
+
+  // Helper to get latest remark for display
+  const getLatestRemark = useCallback((taskId) => {
+    if (!delegation_done || !Array.isArray(delegation_done)) return "";
+    const latestTask = delegation_done.find(d => d.task_id === taskId);
+    return latestTask ? (latestTask.reason || "") : "";
+  }, [delegation_done]);
 
 //   const handleSubmit = async () => {
 //     const selectedItemsArray = Array.from(selectedItems);
@@ -1049,9 +1079,9 @@ const handleSubmit = async () => {
                               {account.name || "—"}
                             </div>
                           </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 min-w-[300px] whitespace-normal">
                             <div
-                              className="text-xs sm:text-sm text-gray-900 whitespace-nowrap"
+                              className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words"
                               title={account.task_description}
                             >
                               {account.task_description || "—"}
@@ -1104,19 +1134,26 @@ const handleSubmit = async () => {
                             />
                           </td>
                           <td className="px-2 sm:px-6 py-2 sm:py-4 min-w-[150px] max-w-[250px] bg-purple-50">
-                            <textarea
-                              placeholder="Enter remarks"
-                              disabled={!isSelected}
-                              value={remarksData[account.task_id] || ""}
-                              onChange={(e) =>
-                                setRemarksData((prev) => ({
-                                  ...prev,
-                                  [account.task_id]: e.target.value,
-                                }))
-                              }
-                              className="border rounded-md px-2 py-1 w-full border-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-xs sm:text-sm resize-none whitespace-normal"
-                              rows="2"
-                            />
+                            {isSelected ? (
+                              <textarea
+                                placeholder="Enter remarks"
+                                value={remarksData[account.task_id] || ""}
+                                onChange={(e) =>
+                                  setRemarksData((prev) => ({
+                                    ...prev,
+                                    [account.task_id]: e.target.value,
+                                  }))
+                                }
+                                className="border rounded-md px-2 py-1 w-full border-gray-300 text-xs sm:text-sm resize-none whitespace-normal focus:ring-purple-500 focus:border-purple-500"
+                                rows="2"
+                              />
+                            ) : (
+                              <div className="text-xs sm:text-sm text-gray-700 whitespace-normal break-words p-1">
+                                {getLatestRemark(account.task_id) || (
+                                  <span className="text-gray-400 italic">No remarks</span>
+                                )}
+                              </div>
+                            )}
                           </td>
                           <td className="px-2 sm:px-6 py-2 sm:py-4 bg-orange-50">
                             {uploadedImages[account.task_id] ? (
