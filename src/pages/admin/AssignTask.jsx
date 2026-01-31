@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BellRing, FileCheck, Calendar, Clock, Download } from "lucide-react";
+import { BellRing, FileCheck, Calendar, Clock, Download, ClipboardList, Users, ArrowLeft } from "lucide-react";
 import AdminLayout from "../../components/layout/AdminLayout";
 import { fetchUniqueDepartmentDataApi, fetchUniqueDoerNameDataApi, fetchUniqueGivenByDataApi, pushAssignTaskApi } from "../../redux/api/assignTaskApi";
 import { useDispatch, useSelector } from "react-redux";
@@ -217,6 +217,7 @@ export default function AssignTask() {
   const [accordionOpen, setAccordionOpen] = useState(false);
   const [workingDays, setWorkingDays] = useState([]);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [taskType, setTaskType] = useState(null); // 'checklist' or 'delegation'
 
   const frequencies = [
     { value: "one-time", label: "One Time (No Recurrence)" },
@@ -443,12 +444,13 @@ useEffect(() => {
           case "end-of-1st-week":
           case "end-of-2nd-week":
           case "end-of-3rd-week":
-          case "end-of-4th-week":
+          case "end-of-4th-week": {
             const weekNum = parseInt(formData.frequency.split("-")[2]);
             taskDate = findEndOfWeekDate(currentDate, weekNum);
             if (!taskDate) break; // No more working days available
             currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
             break;
+          }
 
           case "end-of-last-week":
             taskDate = findEndOfWeekDate(currentDate, -1);
@@ -589,12 +591,13 @@ useEffect(() => {
               case "end-of-1st-week":
               case "end-of-2nd-week":
               case "end-of-3rd-week":
-              case "end-of-4th-week":
+              case "end-of-4th-week": {
                 const weekNum = parseInt(formData.frequency.split("-")[2]);
                 taskDate = findEndOfWeekDate(currentDate, weekNum);
                 if (!taskDate) break;
                 currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
                 break;
+              }
               case "end-of-last-week":
                 taskDate = findEndOfWeekDate(currentDate, -1);
                 if (!taskDate) break;
@@ -697,8 +700,17 @@ useEffect(() => {
     <AdminLayout>
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex justify-between items-center mb-2">
-          <h1 className="text-2xl font-bold tracking-tight text-purple-500">
-            Assign New Task
+          <h1 className="text-2xl font-bold tracking-tight text-purple-500 flex items-center gap-2">
+            {taskType && (
+              <button 
+                onClick={() => setTaskType(null)}
+                className="p-1 hover:bg-purple-100 rounded-full transition-colors"
+                title="Back to selection"
+              >
+                <ArrowLeft className="h-6 w-6 text-purple-500" />
+              </button>
+            )}
+            Assign New Task {taskType ? `(${taskType === 'checklist' ? 'Checklist' : 'Delegation'})` : ''}
           </h1>
           <button
             onClick={() => setShowImportModal(true)}
@@ -730,378 +742,422 @@ useEffect(() => {
             Import Tasks
           </button>
         </div>
-        <div className="rounded-lg border border-purple-200 bg-white shadow-md overflow-hidden">
-          <form onSubmit={handleSubmit}>
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 border-b border-purple-100">
-              <h2 className="text-base font-semibold text-purple-700">
-                Task Details
-              </h2>
-              <p className="text-xs text-purple-600">
-                Fill in the details to assign a new task to a staff member.
-              </p>
+        {!taskType ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-8">
+            {/* Checklist Card */}
+            <div 
+              onClick={() => {
+                setTaskType('checklist');
+                setFormData(prev => ({ ...prev, frequency: 'daily' }));
+              }}
+              className="group cursor-pointer bg-white rounded-xl border-2 border-purple-100 p-8 shadow-sm hover:shadow-xl hover:border-purple-400 transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center text-center space-y-4"
+            >
+              <div className="p-4 bg-purple-50 rounded-full group-hover:bg-purple-100 transition-colors">
+                <ClipboardList className="h-12 w-12 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Checklist</h3>
+                <p className="text-gray-500 mt-2">Create recurring tasks with daily, weekly, or monthly frequencies.</p>
+              </div>
             </div>
-            <div className="p-3 space-y-2">
-              {/* First Row: Department, Given By, Doer in 2-column grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Department Name Dropdown */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="department"
-                    className="block text-sm font-medium text-purple-700"
-                  >
-                    Department Name
-                  </label>
-                  <select
-                    id="department"
-                    name="department"
-                    value={formData.department}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  >
-                    <option value="">Select Department</option>
-                    {department.map((deptName, index) => (
-                      <option key={index} value={deptName}>
-                        {deptName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
-                {/* Given By Dropdown */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="givenBy"
-                    className="block text-sm font-medium text-purple-700"
-                  >
-                    Given By
-                  </label>
-                  <select
-                    id="givenBy"
-                    name="givenBy"
-                    value={formData.givenBy}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  >
-                    <option value="">Select Given By</option>
-                    {givenBy
-                      .filter(person => person && person.trim() !== '')
-                      .map((person, index) => (
-                        <option key={index} value={person}>
-                          {person}
+            {/* Delegation Card */}
+            <div 
+              onClick={() => {
+                setTaskType('delegation');
+                setFormData(prev => ({ ...prev, frequency: 'one-time' }));
+              }}
+              className="group cursor-pointer bg-white rounded-xl border-2 border-purple-100 p-8 shadow-sm hover:shadow-xl hover:border-purple-400 transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center text-center space-y-4"
+            >
+              <div className="p-4 bg-pink-50 rounded-full group-hover:bg-pink-100 transition-colors">
+                <Users className="h-12 w-12 text-pink-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Delegation</h3>
+                <p className="text-gray-500 mt-2">Assign one-time tasks to staff members with specific deadlines.</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-purple-200 bg-white shadow-md overflow-hidden">
+            <form onSubmit={handleSubmit}>
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 border-b border-purple-100">
+                <h2 className="text-base font-semibold text-purple-700">
+                  {taskType === 'checklist' ? 'Checklist Task Details' : 'Delegation Task Details'}
+                </h2>
+                <p className="text-xs text-purple-600">
+                  Fill in the details to assign a new {taskType} task.
+                </p>
+              </div>
+              <div className="p-3 space-y-2">
+                {/* First Row: Department, Given By, Doer in 2-column grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Department Name Dropdown */}
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="department"
+                      className="block text-sm font-medium text-purple-700"
+                    >
+                      Department Name
+                    </label>
+                    <select
+                      id="department"
+                      name="department"
+                      value={formData.department}
+                      onChange={handleChange}
+                      required
+                      className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    >
+                      <option value="">Select Department</option>
+                      {department.map((deptName, index) => (
+                        <option key={index} value={deptName}>
+                          {deptName}
                         </option>
                       ))}
-                  </select>
-                </div>
-              </div>
+                    </select>
+                  </div>
 
-              {/* Second Row: Doer's Name - Full Width */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="doer"
-                  className="block text-sm font-medium text-purple-700"
-                >
-                  Doer's Name
-                </label>
-                <select
-                  id="doer"
-                  name="doer"
-                  value={formData.doer}
-                  onChange={handleChange}
-                  required
-                  className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                >
-                  <option value="">Select Doer</option>
-                  {filteredDoerNames.map((doer, index) => (
-                    <option key={index} value={doer}>
-                      {doer}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Description */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-medium text-purple-700"
-                >
-                  Task Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  placeholder="Enter task description"
-                  rows={1}
-                  required
-                  className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                />
-              </div>
-
-              {/* Date, Time and Frequency */}
-              <div className="grid gap-3 md:grid-cols-3">
-                {/* Date Picker */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-purple-700">
-                    Task End Date
-                  </label>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowCalendar(!showCalendar)}
-                      className="w-full flex justify-start items-center rounded-md border border-purple-200 p-2 text-left focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  {/* Given By Dropdown */}
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="givenBy"
+                      className="block text-sm font-medium text-purple-700"
                     >
-                      <Calendar className="mr-2 h-4 w-4 text-purple-500" />
-                      {date ? getFormattedDate(date) : "Select a date"}
-                    </button>
-                    {showCalendar && (
-                      <div className="absolute z-10 mt-1">
-                        <CalendarComponent
-                          date={date}
-                          onChange={setSelectedDate}
-                          onClose={() => setShowCalendar(false)}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* NEW: Time Picker */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="time"
-                    className="block text-sm font-medium text-purple-700"
-                  >
-                    Time
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="time"
-                      id="time"
-                      value={time}
-                      onChange={(e) => setTime(e.target.value)}
+                      Given By
+                    </label>
+                    <select
+                      id="givenBy"
+                      name="givenBy"
+                      value={formData.givenBy}
+                      onChange={handleChange}
                       required
-                      className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 pl-8"
-                    />
-                    <Clock className="absolute left-2 top-2.5 h-4 w-4 text-purple-500" />
+                      className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    >
+                      <option value="">Select Given By</option>
+                      {givenBy
+                        .filter(person => person && person.trim() !== '')
+                        .map((person, index) => (
+                          <option key={index} value={person}>
+                            {person}
+                          </option>
+                        ))}
+                    </select>
                   </div>
                 </div>
 
-                {/* Frequency */}
+                {/* Second Row: Doer's Name - Full Width */}
                 <div className="space-y-2">
                   <label
-                    htmlFor="frequency"
+                    htmlFor="doer"
                     className="block text-sm font-medium text-purple-700"
                   >
-                    Frequency
+                    Doer's Name
                   </label>
                   <select
-                    id="frequency"
-                    name="frequency"
-                    value={formData.frequency}
+                    id="doer"
+                    name="doer"
+                    value={formData.doer}
                     onChange={handleChange}
+                    required
                     className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
                   >
-                    {frequencies.map((freq) => (
-                      <option key={freq.value} value={freq.value}>
-                        {freq.label}
+                    <option value="">Select Doer</option>
+                    {filteredDoerNames.map((doer, index) => (
+                      <option key={index} value={doer}>
+                        {doer}
                       </option>
                     ))}
                   </select>
                 </div>
-              </div>
 
-              {/* NEW: DateTime Display */}
-              {date && time && (
-                <div className="p-2 bg-purple-50 border border-purple-200 rounded-md">
-                  <p className="text-sm text-purple-700">
-                    <strong>Selected Date & Time:</strong> {getFormattedDateTime()}
-                  </p>
-                  {/* <p className="text-xs text-purple-600 mt-1">
-                    Will be stored as: {formatDateTimeForStorage(date, time)}
-                  </p> */}
-                </div>
-              )}
-
-              {/* Additional Options */}
-              <div className="space-y-2 pt-2 border-t border-purple-100">
-                <h3 className="text-sm font-medium text-purple-700">
-                  Additional Options
-                </h3>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label
-                      htmlFor="enable-reminders"
-                      className="text-sm text-purple-700 font-medium"
-                    >
-                      Enable Reminders
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <BellRing className="h-4 w-4 text-purple-500" />
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        id="enable-reminders"
-                        checked={formData.enableReminders}
-                        onChange={(e) =>
-                          handleSwitchChange("enableReminders", e)
-                        }
-                        className="sr-only peer"
-                      />
-                      <div className="w-16 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                    </label>
-                  </div>
+                {/* Description */}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-medium text-purple-700"
+                  >
+                    Task Description
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    placeholder="Enter task description"
+                    rows={1}
+                    required
+                    className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label
-                      htmlFor="require-attachment"
-                      className="text-sm text-purple-700 font-medium"
-                    >
-                      Require Attachment
+                {/* Date, Time and Frequency */}
+                <div className="grid gap-3 md:grid-cols-3">
+                  {/* Date Picker */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-purple-700">
+                      Task End Date
                     </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <FileCheck className="h-4 w-4 text-purple-500" />
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        id="require-attachment"
-                        checked={formData.requireAttachment}
-                        onChange={(e) =>
-                          handleSwitchChange("requireAttachment", e)
-                        }
-                        className="sr-only peer"
-                      />
-                      <div className="w-16 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Preview and Submit Buttons */}
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={generateTasks}
-                  className="w-full rounded-md border border-purple-200 bg-purple-50 py-2 px-4 text-purple-700 hover:bg-purple-100 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                >
-                  Preview Generated Tasks
-                </button>
-
-                {generatedTasks.length > 0 && (
-                  <div className="w-full">
-                    <div className="border border-purple-200 rounded-md">
+                    <div className="relative">
                       <button
                         type="button"
-                        onClick={() => setAccordionOpen(!accordionOpen)}
-                        className="w-full flex justify-between items-center p-4 text-purple-700 hover:bg-purple-50 focus:outline-none"
+                        onClick={() => setShowCalendar(!showCalendar)}
+                        className="w-full flex justify-start items-center rounded-md border border-purple-200 p-2 text-left focus:outline-none focus:ring-1 focus:ring-purple-500"
                       >
-                        <span className="font-medium">
-                          {generatedTasks.length} Tasks Generated
-                          {formData.frequency === "one-time"
-                            ? " (Will be stored in DELEGATION sheet)"
-                            : " (Will be stored in Checklist sheet)"
-                          }
-                        </span>
-                        <svg
-                          className={`w-5 h-5 transition-transform ${accordionOpen ? "rotate-180" : ""
-                            }`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
+                        <Calendar className="mr-2 h-4 w-4 text-purple-500" />
+                        {date ? getFormattedDate(date) : "Select a date"}
                       </button>
-
-                      {accordionOpen && (
-                        <div className="p-3 border-t border-purple-200">
-                          <div className="max-h-40 overflow-y-auto space-y-2">
-                            {generatedTasks.slice(0, 20).map((task, index) => (
-                              <div
-                                key={index}
-                                className="text-sm p-2 border rounded-md border-purple-200 bg-purple-50"
-                              >
-                                <div className="font-medium text-purple-700">
-                                  {task.description}
-                                </div>
-                                <div className="text-xs text-purple-600">
-                                  Due: {formatDateForDisplay(task.dueDate)} | Department: {task.department}
-                                </div>
-                                <div className="flex space-x-2 mt-1">
-                                  {task.enableReminders && (
-                                    <span className="inline-flex items-center text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
-                                      <BellRing className="h-3 w-3 mr-1" />{" "}
-                                      Reminders
-                                    </span>
-                                  )}
-                                  {task.requireAttachment && (
-                                    <span className="inline-flex items-center text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
-                                      <FileCheck className="h-3 w-3 mr-1" />{" "}
-                                      Attachment Required
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                            {generatedTasks.length > 20 && (
-                              <div className="text-sm text-center text-purple-600 py-2">
-                                ...and {generatedTasks.length - 20} more tasks
-                              </div>
-                            )}
-                          </div>
+                      {showCalendar && (
+                        <div className="absolute z-10 mt-1">
+                          <CalendarComponent
+                            date={date}
+                            onChange={setSelectedDate}
+                            onClose={() => setShowCalendar(false)}
+                          />
                         </div>
                       )}
                     </div>
                   </div>
-                )}
-              </div>
-            </div>
 
-            <div className="flex justify-between bg-gradient-to-r from-purple-50 to-pink-50 p-3 border-t border-purple-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setFormData({
-                    department: "",
-                    givenBy: "",
-                    doer: "",
-                    description: "",
-                    frequency: "daily",
-                    enableReminders: true,
-                    requireAttachment: false,
-                  });
-                  setSelectedDate(null);
-                  setTime("09:00");
-                  setGeneratedTasks([]);
-                  setAccordionOpen(false);
-                }}
-                className="rounded-md border border-purple-200 py-2 px-4 text-purple-700 hover:border-purple-300 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="rounded-md gradient-bg py-2 px-4 text-white hover:gradient-bg:hover focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? "Assigning..." : "Assign Task"}
-              </button>
-            </div>
-          </form>
-        </div>
+                  {/* NEW: Time Picker */}
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="time"
+                      className="block text-sm font-medium text-purple-700"
+                    >
+                      Time
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="time"
+                        id="time"
+                        value={time}
+                        onChange={(e) => setTime(e.target.value)}
+                        required
+                        className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 pl-8"
+                      />
+                      <Clock className="absolute left-2 top-2.5 h-4 w-4 text-purple-500" />
+                    </div>
+                  </div>
+
+                  {/* Frequency */}
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="frequency"
+                      className="block text-sm font-medium text-purple-700"
+                    >
+                      Frequency
+                    </label>
+                    {taskType === 'delegation' ? (
+                      <div className="w-full rounded-md border border-purple-200 p-2 bg-gray-50 text-gray-700">
+                        One Time (No Recurrence)
+                      </div>
+                    ) : (
+                      <select
+                        id="frequency"
+                        name="frequency"
+                        value={formData.frequency}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      >
+                        {frequencies
+                          .filter(f => f.value !== 'one-time')
+                          .map((freq) => (
+                            <option key={freq.value} value={freq.value}>
+                              {freq.label}
+                            </option>
+                          ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
+
+                {/* NEW: DateTime Display */}
+                {date && time && (
+                  <div className="p-2 bg-purple-50 border border-purple-200 rounded-md">
+                    <p className="text-sm text-purple-700">
+                      <strong>Selected Date & Time:</strong> {getFormattedDateTime()}
+                    </p>
+                  </div>
+                )}
+
+                {/* Additional Options */}
+                <div className="space-y-2 pt-2 border-t border-purple-100">
+                  <h3 className="text-sm font-medium text-purple-700">
+                    Additional Options
+                  </h3>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label
+                        htmlFor="enable-reminders"
+                        className="text-sm text-purple-700 font-medium"
+                      >
+                        Enable Reminders
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <BellRing className="h-4 w-4 text-purple-500" />
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          id="enable-reminders"
+                          checked={formData.enableReminders}
+                          onChange={(e) =>
+                            handleSwitchChange("enableReminders", e)
+                          }
+                          className="sr-only peer"
+                        />
+                        <div className="w-16 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label
+                        htmlFor="require-attachment"
+                        className="text-sm text-purple-700 font-medium"
+                      >
+                        Require Attachment
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <FileCheck className="h-4 w-4 text-purple-500" />
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          id="require-attachment"
+                          checked={formData.requireAttachment}
+                          onChange={(e) =>
+                            handleSwitchChange("requireAttachment", e)
+                          }
+                          className="sr-only peer"
+                        />
+                        <div className="w-16 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preview and Submit Buttons */}
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={generateTasks}
+                    className="w-full rounded-md border border-purple-200 bg-purple-50 py-2 px-4 text-purple-700 hover:bg-purple-100 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  >
+                    Preview Generated Tasks
+                  </button>
+
+                  {generatedTasks.length > 0 && (
+                    <div className="w-full">
+                      <div className="border border-purple-200 rounded-md">
+                        <button
+                          type="button"
+                          onClick={() => setAccordionOpen(!accordionOpen)}
+                          className="w-full flex justify-between items-center p-4 text-purple-700 hover:bg-purple-50 focus:outline-none"
+                        >
+                          <span className="font-medium">
+                            {generatedTasks.length} Tasks Generated
+                            {formData.frequency === "one-time"
+                              ? " (Will be stored in DELEGATION sheet)"
+                              : " (Will be stored in Checklist sheet)"
+                            }
+                          </span>
+                          <svg
+                            className={`w-5 h-5 transition-transform ${accordionOpen ? "rotate-180" : ""
+                              }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </button>
+
+                        {accordionOpen && (
+                          <div className="p-3 border-t border-purple-200">
+                            <div className="max-h-40 overflow-y-auto space-y-2">
+                              {generatedTasks.slice(0, 20).map((task, index) => (
+                                <div
+                                  key={index}
+                                  className="text-sm p-2 border rounded-md border-purple-200 bg-purple-50"
+                                >
+                                  <div className="font-medium text-purple-700">
+                                    {task.description}
+                                  </div>
+                                  <div className="text-xs text-purple-600">
+                                    Due: {formatDateForDisplay(task.dueDate)} | Department: {task.department}
+                                  </div>
+                                  <div className="flex space-x-2 mt-1">
+                                    {task.enableReminders && (
+                                      <span className="inline-flex items-center text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                                        <BellRing className="h-3 w-3 mr-1" />{" "}
+                                        Reminders
+                                      </span>
+                                    )}
+                                    {task.requireAttachment && (
+                                      <span className="inline-flex items-center text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                                        <FileCheck className="h-3 w-3 mr-1" />{" "}
+                                        Attachment Required
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                              {generatedTasks.length > 20 && (
+                                <div className="text-sm text-center text-purple-600 py-2">
+                                  ...and {generatedTasks.length - 20} more tasks
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-between bg-gradient-to-r from-purple-50 to-pink-50 p-3 border-t border-purple-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData({
+                      department: "",
+                      givenBy: "",
+                      doer: "",
+                      description: "",
+                      frequency: "daily",
+                      enableReminders: true,
+                      requireAttachment: false,
+                    });
+                    setSelectedDate(null);
+                    setTime(getCurrentTime());
+                    setGeneratedTasks([]);
+                    setAccordionOpen(false);
+                    setTaskType(null);
+                  }}
+                  className="rounded-md border border-purple-200 py-2 px-4 text-purple-700 hover:border-purple-300 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="rounded-md gradient-bg py-2 px-4 text-white hover:gradient-bg:hover focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? "Assigning..." : "Assign Task"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
       
       {/* CSV Import Modal */}
