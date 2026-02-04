@@ -517,17 +517,101 @@ useEffect(() => {
         return;
       }
 
-      // Generate tasks if not already generated
-      let tasksToSubmit = generatedTasks;
-      if (tasksToSubmit.length === 0) {
-        const selectedDate = new Date(date);
-        const tasks = [];
+      // Always generate fresh tasks from current form data (don't reuse preview)
+      const selectedDate = new Date(date);
+      const tasks = [];
 
-        // For one-time tasks
-        if (formData.frequency === "one-time") {
-          const taskDateStr = findNextWorkingDay(selectedDate);
+      // For one-time tasks
+      if (formData.frequency === "one-time") {
+        const taskDateStr = findNextWorkingDay(selectedDate);
+        const taskDateTimeStr = formatDateTimeForStorage(
+          new Date(taskDateStr.split("/").reverse().join("-")),
+          time
+        );
+
+        tasks.push({
+          description: formData.description,
+          department: formData.department,
+          givenBy: formData.givenBy,
+          doer: formData.doer,
+          dueDate: taskDateTimeStr,
+          status: "pending",
+          frequency: formData.frequency,
+          enableReminders: formData.enableReminders,
+          requireAttachment: formData.requireAttachment,
+        });
+      } else {
+        // For recurring tasks
+        let currentDate = new Date(selectedDate);
+        const endDate = addYears(currentDate, 2);
+        let taskCount = 0;
+        const maxTasks = 365;
+
+        while (currentDate <= endDate && taskCount < maxTasks) {
+          let taskDate;
+
+          switch (formData.frequency) {
+            case "daily":
+              taskDate = findNextWorkingDay(currentDate);
+              if (!taskDate) break;
+              currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 1);
+              break;
+            case "weekly":
+              taskDate = findNextWorkingDay(currentDate);
+              if (!taskDate) break;
+              currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 7);
+              break;
+            case "fortnightly":
+              taskDate = findNextWorkingDay(currentDate);
+              if (!taskDate) break;
+              currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 14);
+              break;
+            case "monthly":
+              taskDate = findNextWorkingDay(currentDate);
+              if (!taskDate) break;
+              currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
+              break;
+            case "quarterly":
+              taskDate = findNextWorkingDay(currentDate);
+              if (!taskDate) break;
+              currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 3);
+              break;
+            case "half-yearly":
+              taskDate = findNextWorkingDay(currentDate);
+              if (!taskDate) break;
+              currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 6);
+              break;
+            case "yearly":
+              taskDate = findNextWorkingDay(currentDate);
+              if (!taskDate) break;
+              currentDate = addYears(new Date(taskDate.split("/").reverse().join("-")), 1);
+              break;
+            case "end-of-1st-week":
+            case "end-of-2nd-week":
+            case "end-of-3rd-week":
+            case "end-of-4th-week": {
+              const weekNum = parseInt(formData.frequency.split("-")[2]);
+              taskDate = findEndOfWeekDate(currentDate, weekNum);
+              if (!taskDate) break;
+              currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
+              break;
+            }
+            case "end-of-last-week":
+              taskDate = findEndOfWeekDate(currentDate, -1);
+              if (!taskDate) break;
+              currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
+              break;
+            default:
+              currentDate = endDate;
+              break;
+          }
+
+          if (!taskDate) {
+            break;
+          }
+
           const taskDateTimeStr = formatDateTimeForStorage(
-            new Date(taskDateStr.split("/").reverse().join("-")),
+            new Date(taskDate.split("/").reverse().join("-")),
             time
           );
 
@@ -542,98 +626,12 @@ useEffect(() => {
             enableReminders: formData.enableReminders,
             requireAttachment: formData.requireAttachment,
           });
-        } else {
-          // For recurring tasks
-          let currentDate = new Date(selectedDate);
-          const endDate = addYears(currentDate, 2);
-          let taskCount = 0;
-          const maxTasks = 365;
 
-          while (currentDate <= endDate && taskCount < maxTasks) {
-            let taskDate;
-
-            switch (formData.frequency) {
-              case "daily":
-                taskDate = findNextWorkingDay(currentDate);
-                if (!taskDate) break;
-                currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 1);
-                break;
-              case "weekly":
-                taskDate = findNextWorkingDay(currentDate);
-                if (!taskDate) break;
-                currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 7);
-                break;
-              case "fortnightly":
-                taskDate = findNextWorkingDay(currentDate);
-                if (!taskDate) break;
-                currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 14);
-                break;
-              case "monthly":
-                taskDate = findNextWorkingDay(currentDate);
-                if (!taskDate) break;
-                currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
-                break;
-              case "quarterly":
-                taskDate = findNextWorkingDay(currentDate);
-                if (!taskDate) break;
-                currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 3);
-                break;
-              case "half-yearly":
-                taskDate = findNextWorkingDay(currentDate);
-                if (!taskDate) break;
-                currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 6);
-                break;
-              case "yearly":
-                taskDate = findNextWorkingDay(currentDate);
-                if (!taskDate) break;
-                currentDate = addYears(new Date(taskDate.split("/").reverse().join("-")), 1);
-                break;
-              case "end-of-1st-week":
-              case "end-of-2nd-week":
-              case "end-of-3rd-week":
-              case "end-of-4th-week": {
-                const weekNum = parseInt(formData.frequency.split("-")[2]);
-                taskDate = findEndOfWeekDate(currentDate, weekNum);
-                if (!taskDate) break;
-                currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
-                break;
-              }
-              case "end-of-last-week":
-                taskDate = findEndOfWeekDate(currentDate, -1);
-                if (!taskDate) break;
-                currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
-                break;
-              default:
-                currentDate = endDate;
-                break;
-            }
-
-            if (!taskDate) {
-              break;
-            }
-
-            const taskDateTimeStr = formatDateTimeForStorage(
-              new Date(taskDate.split("/").reverse().join("-")),
-              time
-            );
-
-            tasks.push({
-              description: formData.description,
-              department: formData.department,
-              givenBy: formData.givenBy,
-              doer: formData.doer,
-              dueDate: taskDateTimeStr,
-              status: "pending",
-              frequency: formData.frequency,
-              enableReminders: formData.enableReminders,
-              requireAttachment: formData.requireAttachment,
-            });
-
-            taskCount++;
-          }
+          taskCount++;
         }
-        tasksToSubmit = tasks;
       }
+      
+      const tasksToSubmit = tasks;
 
       if (tasksToSubmit.length === 0) {
         alert("No tasks could be generated. Please check your inputs.");
@@ -650,11 +648,11 @@ useEffect(() => {
         givenBy: "",
         doer: "",
         description: "",
-        frequency: "daily",
+        frequency: taskType === 'delegation' ? 'one-time' : 'daily', // Set based on task type
         enableReminders: true,
         requireAttachment: false,
       });
-      setSelectedDate(null);
+      setSelectedDate(new Date()); // Reset to today's date instead of null
       setTime(getCurrentTime());
       setGeneratedTasks([]);
       setAccordionOpen(false);
