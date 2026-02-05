@@ -68,6 +68,8 @@ function DelegationDataPage() {
   const [dateFilter, setDateFilter] = useState("all");
   const [selectedDelegationItems, setSelectedDelegationItems] = useState([]);
   const [adminRemarks, setAdminRemarks] = useState({});
+  const [adminRemarksInput, setAdminRemarksInput] = useState({}); // Track which task has reply input open
+  const [adminRemarksSubmitting, setAdminRemarksSubmitting] = useState(false);
   const [markingAsDone, setMarkingAsDone] = useState(false);
   const [mainStatusFilter, setMainStatusFilter] = useState("pending"); // 'all', 'pending', 'completed'
   const [activeNameTab, setActiveNameTab] = useState("EA"); // 'EA' or 'Gyan Ranjan Das'
@@ -935,6 +937,51 @@ const handleSubmit = async () => {
       setMarkingAsDone(false);
     }
   };
+
+  // Handle Admin Remarks Submit
+  const handleAdminRemarksSubmit = async (taskId) => {
+    const remark = adminRemarksInput[taskId];
+    if (!remark || !remark.trim()) {
+      alert("Please enter a remark before submitting");
+      return;
+    }
+
+    setAdminRemarksSubmitting(true);
+    try {
+      const response = await fetch(`http://localhost:5050/api/delegation/${taskId}/admin-remarks`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ adminremarks: remark.trim() })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit admin remarks");
+      }
+
+      // Clear the input for this task
+      setAdminRemarksInput(prev => {
+        const updated = { ...prev };
+        delete updated[taskId];
+        return updated;
+      });
+
+      // Refresh data
+      dispatch(delegationData());
+      dispatch(delegationDoneData());
+
+      setSuccessMessage("✅ Admin remark submitted successfully!");
+      setTimeout(() => setSuccessMessage(""), 3000);
+
+    } catch (error) {
+      console.error("Error submitting admin remark:", error);
+      alert("Failed to submit admin remark. Please try again.");
+    } finally {
+      setAdminRemarksSubmitting(false);
+    }
+  };
+
   // Confirmation Modal Component
   const ConfirmationModal = ({ isOpen, itemCount, onConfirm, onCancel }) => {
     if (!isOpen) return null;
@@ -1147,6 +1194,7 @@ const handleSubmit = async () => {
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Seq No.</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin Remarks</th>
                     <th className="px-6 py-3 text-left">
                       <input
                         type="checkbox"
@@ -1182,6 +1230,65 @@ const handleSubmit = async () => {
                       return (
                         <tr key={item.unifiedId} className={`${isSelected ? (isApproval ? "bg-green-50" : "bg-purple-50") : isAlreadyApproved ? "bg-gray-50 opacity-60" : "hover:bg-gray-50"} ${rowColorClass} transition-colors`}>
                           <td className="px-6 py-4 text-xs text-gray-500">{index + 1}</td>
+                          <td className="px-6 py-4 min-w-[180px]">
+                              {isApproval ? (
+                                <div className="text-xs text-gray-500 italic">
+                                  {item.adminremarks || "—"}
+                                </div>
+                              ) : (
+                                <div className="space-y-1">
+                                  {userRole === 'super_admin' ? (
+                                    adminRemarksInput[item.task_id] !== undefined ? (
+                                      <div className="space-y-2">
+                                        <textarea
+                                          placeholder="Type admin remark here..."
+                                          value={adminRemarksInput[item.task_id] || ""}
+                                          onChange={(e) => setAdminRemarksInput(prev => ({ ...prev, [item.task_id]: e.target.value }))}
+                                          className="w-full border rounded p-1 text-xs h-16 focus:ring-1 focus:ring-blue-500 outline-none"
+                                          disabled={adminRemarksSubmitting}
+                                        />
+                                        <div className="flex gap-1">
+                                          <button
+                                            onClick={() => handleAdminRemarksSubmit(item.task_id)}
+                                            disabled={adminRemarksSubmitting}
+                                            className="px-2 py-1 bg-blue-600 text-white rounded text-[10px] hover:bg-blue-700 disabled:opacity-50"
+                                          >
+                                            {adminRemarksSubmitting ? "..." : "Submit"}
+                                          </button>
+                                          <button
+                                            onClick={() => setAdminRemarksInput(prev => {
+                                              const updated = { ...prev };
+                                              delete updated[item.task_id];
+                                              return updated;
+                                            })}
+                                            disabled={adminRemarksSubmitting}
+                                            className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-[10px] hover:bg-gray-400 disabled:opacity-50"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        {item.adminremarks ? (
+                                          <div className="text-xs text-gray-700 mb-1 whitespace-pre-wrap">{item.adminremarks}</div>
+                                        ) : <div className="text-xs text-gray-400 italic mb-1">—</div>}
+                                        <button
+                                          onClick={() => setAdminRemarksInput(prev => ({ ...prev, [item.task_id]: item.adminremarks || "" }))}
+                                          className="px-2 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded text-[10px] hover:bg-blue-100"
+                                        >
+                                          Reply
+                                        </button>
+                                      </div>
+                                    )
+                                  ) : (
+                                    <div className="text-xs text-gray-700 whitespace-pre-wrap">
+                                      {item.adminremarks || "—"}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </td>
                           <td className="px-6 py-4">
                             {!isAlreadyApproved && (
                               <input
