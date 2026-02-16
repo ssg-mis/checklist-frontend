@@ -950,7 +950,7 @@ const handleSubmit = async () => {
 
     setAdminRemarksSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:5050/api/delegation/${taskId}/admin-remarks`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/delegation/${taskId}/admin-remarks`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json"
@@ -994,7 +994,7 @@ const handleSubmit = async () => {
  
      setUserRemarksSubmitting(true);
      try {
-       const response = await fetch(`http://localhost:5050/api/delegation/${taskId}/user-remarks`, {
+       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/delegation/${taskId}/user-remarks`, {
          method: "PATCH",
          headers: {
            "Content-Type": "application/json"
