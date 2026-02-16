@@ -71,6 +71,8 @@ function DelegationDataPage() {
   const [adminRemarksInput, setAdminRemarksInput] = useState({}); // Track which task has reply input open
   const [adminRemarksSubmitting, setAdminRemarksSubmitting] = useState(false);
   const [markingAsDone, setMarkingAsDone] = useState(false);
+  const [userRemarksInput, setUserRemarksInput] = useState({}); // Track user reply input
+  const [userRemarksSubmitting, setUserRemarksSubmitting] = useState(false);
   const [mainStatusFilter, setMainStatusFilter] = useState("pending"); // 'all', 'pending', 'completed'
   const [activeNameTab, setActiveNameTab] = useState("EA"); // 'EA' or 'Gyan Ranjan Das'
   const [unifiedTypeFilter, setUnifiedTypeFilter] = useState("all"); // 'all', 'pending', 'approval'
@@ -978,9 +980,53 @@ const handleSubmit = async () => {
       console.error("Error submitting admin remark:", error);
       alert("Failed to submit admin remark. Please try again.");
     } finally {
-      setAdminRemarksSubmitting(false);
-    }
-  };
+       setAdminRemarksSubmitting(false);
+     }
+   };
+ 
+   // Handle User Remarks Submit
+   const handleUserRemarksSubmit = async (taskId) => {
+     const remark = userRemarksInput[taskId];
+     if (!remark || !remark.trim()) {
+       alert("Please enter a remark before submitting");
+       return;
+     }
+ 
+     setUserRemarksSubmitting(true);
+     try {
+       const response = await fetch(`http://localhost:5050/api/delegation/${taskId}/user-remarks`, {
+         method: "PATCH",
+         headers: {
+           "Content-Type": "application/json"
+         },
+         body: JSON.stringify({ remarks: remark.trim() })
+       });
+ 
+       if (!response.ok) {
+         throw new Error("Failed to submit remarks");
+       }
+ 
+       // Clear the input for this task
+       setUserRemarksInput(prev => {
+         const updated = { ...prev };
+         delete updated[taskId];
+         return updated;
+       });
+ 
+       // Refresh data
+       dispatch(delegationData());
+       dispatch(delegationDoneData());
+ 
+       setSuccessMessage("✅ Remark submitted successfully!");
+       setTimeout(() => setSuccessMessage(""), 3000);
+ 
+     } catch (error) {
+       console.error("Error submitting remark:", error);
+       alert("Failed to submit remark. Please try again.");
+     } finally {
+       setUserRemarksSubmitting(false);
+     }
+   };
 
   // Confirmation Modal Component
   const ConfirmationModal = ({ isOpen, itemCount, onConfirm, onCancel }) => {
@@ -1319,7 +1365,7 @@ const handleSubmit = async () => {
                                 )}
                                 {item.unifiedType === 'pending' && statusData[item.task_id] === 'Extend date' && (
                                   <input
-                                    type="date"
+                                    type="datetime-local"
                                     value={nextTargetDate[item.task_id] || ""}
                                     onChange={(e) => handleNextTargetDateChange(item.task_id, e.target.value)}
                                     className="border border-gray-300 rounded px-2 py-1 w-full text-xs"
@@ -1343,11 +1389,53 @@ const handleSubmit = async () => {
                                     {item.admin_done_remarks && <div><span className="font-semibold text-gray-400 not-italic">Admin:</span> {item.admin_done_remarks}</div>}
                                     {!item.reason && !item.admin_done_remarks && "—"}
                                   </>
-                                ) : (
-                                  getLatestRemark(item.task_id) || "—"
-                                )}
-                              </div>
-                            )}
+                                   ) : (
+                                   item.remarks || getLatestRemark(item.task_id) || "—"
+                                 )}
+                                 {item.unifiedType === 'pending' && !isSelected && (
+                                   <div className="mt-1">
+                                      {userRemarksInput[item.task_id] !== undefined ? (
+                                        <div className="space-y-1">
+                                          <textarea
+                                            placeholder="Type your remark here..."
+                                            value={userRemarksInput[item.task_id] || ""}
+                                            onChange={(e) => setUserRemarksInput(prev => ({ ...prev, [item.task_id]: e.target.value }))}
+                                            className="w-full border rounded p-1 text-xs h-16 focus:ring-1 focus:ring-purple-500 outline-none"
+                                            disabled={userRemarksSubmitting}
+                                          />
+                                          <div className="flex gap-1">
+                                            <button
+                                              onClick={() => handleUserRemarksSubmit(item.task_id)}
+                                              disabled={userRemarksSubmitting}
+                                              className="px-2 py-1 bg-purple-600 text-white rounded text-[10px] hover:bg-purple-700 disabled:opacity-50"
+                                            >
+                                              {userRemarksSubmitting ? "..." : "Submit"}
+                                            </button>
+                                            <button
+                                              onClick={() => setUserRemarksInput(prev => {
+                                                const updated = { ...prev };
+                                                delete updated[item.task_id];
+                                                return updated;
+                                              })}
+                                              disabled={userRemarksSubmitting}
+                                              className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-[10px] hover:bg-gray-400 disabled:opacity-50"
+                                            >
+                                              Cancel
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => setUserRemarksInput(prev => ({ ...prev, [item.task_id]: item.remarks || "" }))}
+                                          className="px-2 py-1 bg-purple-50 text-purple-600 border border-purple-200 rounded text-[10px] hover:bg-purple-100"
+                                        >
+                                          Reply
+                                        </button>
+                                      )}
+                                   </div>
+                                 )}
+                               </div>
+                             )}
                           </td>
                           <td className="px-6 py-4 text-xs text-gray-700">
                             <div>{item.name}</div>
@@ -1423,10 +1511,65 @@ const handleSubmit = async () => {
                          <span>ID: {item.task_id}</span>
                          <span> {isApproval ? "ADMIN APPROVAL" : "MY TASK"}</span>
                        </div>
-                       <div className="flex justify-between text-[10px] mb-2">
+                       <div className="flex justify-between text-[10px] mb-1">
                          <span className="text-gray-600">Target: {formatDateTimeForDisplay(isApproval ? item.next_extend_date || item.planned_date : item.planned_date)}</span>
                          <span className="text-blue-600 font-medium">{item.submission_date ? `Submitted: ${formatDateTimeForDisplay(item.submission_date)}` : ""}</span>
                        </div>
+                       
+                       <div className="text-[10px] text-gray-500 italic mb-2">
+                         {isApproval ? (
+                             <>
+                               {item.reason && <div className="mb-1"><span className="font-semibold text-gray-400 not-italic">Doer:</span> {item.reason}</div>}
+                               {item.admin_done_remarks && <div><span className="font-semibold text-gray-400 not-italic">Admin:</span> {item.admin_done_remarks}</div>}
+                               {!item.reason && !item.admin_done_remarks && "—"}
+                             </>
+                         ) : (
+                             item.remarks || getLatestRemark(item.task_id) || "—"
+                         )}
+                       </div>
+
+                       {!isSelected && item.unifiedType === 'pending' && (
+                           <div className="mb-2">
+                               {userRemarksInput[item.task_id] !== undefined ? (
+                                   <div className="space-y-1">
+                                       <textarea
+                                           placeholder="Type your remark here..."
+                                           value={userRemarksInput[item.task_id] || ""}
+                                           onChange={(e) => setUserRemarksInput(prev => ({ ...prev, [item.task_id]: e.target.value }))}
+                                           className="w-full border rounded p-1 text-xs h-16 focus:ring-1 focus:ring-purple-500 outline-none"
+                                           disabled={userRemarksSubmitting}
+                                       />
+                                       <div className="flex gap-1">
+                                           <button
+                                               onClick={() => handleUserRemarksSubmit(item.task_id)}
+                                               disabled={userRemarksSubmitting}
+                                               className="px-2 py-1 bg-purple-600 text-white rounded text-[10px] hover:bg-purple-700 disabled:opacity-50"
+                                           >
+                                               {userRemarksSubmitting ? "..." : "Submit"}
+                                           </button>
+                                           <button
+                                               onClick={() => setUserRemarksInput(prev => {
+                                                   const updated = { ...prev };
+                                                   delete updated[item.task_id];
+                                                   return updated;
+                                               })}
+                                               disabled={userRemarksSubmitting}
+                                               className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-[10px] hover:bg-gray-400 disabled:opacity-50"
+                                           >
+                                               Cancel
+                                           </button>
+                                       </div>
+                                   </div>
+                               ) : (
+                                   <button
+                                       onClick={() => setUserRemarksInput(prev => ({ ...prev, [item.task_id]: item.remarks || "" }))}
+                                       className="px-2 py-1 bg-purple-50 text-purple-600 border border-purple-200 rounded text-[10px] hover:bg-purple-100"
+                                   >
+                                       Reply
+                                   </button>
+                               )}
+                           </div>
+                       )}
                       {isSelected && (
                         <div className="pt-2 border-t space-y-2">
                            {/* Simplified mobile controls similar to desktop logic */}
@@ -1443,7 +1586,7 @@ const handleSubmit = async () => {
                                 </select>
                                 {statusData[item.task_id] === 'Extend date' && (
                                   <input
-                                    type="date"
+                                    type="datetime-local"
                                     value={nextTargetDate[item.task_id] || ""}
                                     onChange={(e) => handleNextTargetDateChange(item.task_id, e.target.value)}
                                     className="w-full border rounded text-xs p-1"
