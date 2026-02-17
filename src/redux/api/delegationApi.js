@@ -133,6 +133,17 @@ export const sendDelegationWhatsAppAPI = async (selectedItems) => {
   }
 };
 
+// REVERT TO PENDING (Admin Only)
+export const revertDelegationTaskAPI = async (items) => {
+  try {
+    const { data } = await axios.post(`${API}/delegation/revert`, { items });
+    return { data, error: null };
+  } catch (err) {
+    console.error("❌ Revert error:", err);
+    return { data: null, error: err };
+  }
+};
+
 // SUBMIT
 // export const insertDelegationDoneAndUpdate = async ({
 //   selectedDataArray,

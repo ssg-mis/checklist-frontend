@@ -15,7 +15,7 @@ import {
   delegationData,
 } from "../redux/slice/delegationSlice";
 
-import { insertDelegationDoneAndUpdate, sendDelegationWhatsAppAPI, postDelegationAdminDoneAPI } from "../redux/api/delegationApi";
+import { insertDelegationDoneAndUpdate, sendDelegationWhatsAppAPI, postDelegationAdminDoneAPI, revertDelegationTaskAPI } from "../redux/api/delegationApi";
 
 // Configuration object - Move all configurations here
 const CONFIG = {
@@ -1066,6 +1066,68 @@ const handleSubmit = async () => {
   };
 
 
+  const handleRevertToPending = async () => {
+    // 1. Get selected items from the list
+    // filteredApprovalData has the full objects including 'id' (delegation_done id) and 'task_id'
+    // selectedDelegationItems only has Ids or we need to see how it is populated. 
+    // Wait, 'selectedDelegationItems' seems to be the state for the checkbox in the approval list?
+    // Let's check the code for 'unified items' selection.
+    // Actually, looking at the code, I see 'selectedDelegationItems' is used.
+    
+    if (selectedDelegationItems.length === 0) {
+      alert("Please select items to revert.");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to revert ${selectedDelegationItems.length} tasks to Pending? This will delete the completion history and reset the task.`)) {
+      return;
+    }
+
+    // Map selected IDs to { id, task_id }
+    // selectedDelegationItems contains the unified IDs (e.g. "a-123") or just IDs depending on implementation.
+    // The Table rendering code usually sets the value of checkbox.
+    
+    // Let's assume we can map it back to the data objects.
+    console.log("Debug Revert - Selected IDs:", selectedDelegationItems);
+    console.log("Debug Revert - Unified Data Sample:", unifiedData.slice(0, 3));
+
+    // Fix: selectedDelegationItems is an array of objects { id: ... }
+    const itemsToRevert = selectedDelegationItems.map(selectedItem => {
+      const doneId = selectedItem.id;
+      
+      // Find the item in 'unifiedData' matching this delegation_done ID
+      // We look for items where id matches (and mostly these are approval items)
+      const item = unifiedData.find(d => d.id === doneId);
+      
+      if (!item) {
+         console.warn(`Could not find item for ID: ${doneId}`);
+         return null;
+      }
+      return { 
+        id: item.id,       // delegation_done ID
+        task_id: item.task_id 
+      };
+    }).filter(Boolean);
+
+    console.log("Debug Revert - Mapped Items:", itemsToRevert);
+
+
+    try {
+      const { data, error } = await revertDelegationTaskAPI(itemsToRevert);
+      if (data) {
+        alert("Tasks reverted successfully!");
+        setSelectedDelegationItems([]);
+        dispatch(delegationData());
+        dispatch(delegationDoneData());
+      } else {
+        alert("Failed to revert tasks: " + (error?.message || "Unknown error"));
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error reverting tasks");
+    }
+  };
+
 
   return (
     <AdminLayout>
@@ -1161,6 +1223,14 @@ const handleSubmit = async () => {
                     className="flex-1 rounded-md bg-emerald-500 py-2 px-3 text-white hover:bg-emerald-600 disabled:opacity-50 text-xs font-medium"
                   >
                     WhatsApp
+                  </button>
+                  {/* NEW: Revert Button */}
+                  <button
+                    onClick={handleRevertToPending}
+                    disabled={selectedDelegationItems.length === 0}
+                    className={`flex-1 rounded-md bg-red-500 py-2 px-3 text-white hover:bg-red-600 disabled:opacity-50 text-xs font-medium whitespace-nowrap`}
+                  >
+                    Revert to Pending
                   </button>
                 </>
               )}
