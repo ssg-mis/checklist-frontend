@@ -19,17 +19,17 @@ function TrainingVideoPage() {
     admin: {
       title: "Admin Training Video",
       description: "Complete guide for administrators on how to manage tasks, users, and the system.",
-      url: "https://www.youtube.com/embed/HgJPzwnnqT4",
+      url: "https://www.youtube.com/embed/0kL9aXvXE-A",
     },
     user: {
       title: "User Training Video", 
       description: "Learn how to use the checklist and delegation system effectively.",
-      url: "https://www.youtube.com/embed/Ke4GqjtVp1Y",
+      url: "https://www.youtube.com/embed/YxEfdVlax8Y",
     }
   }
 
-  // Get video based on role - admin sees admin video, user sees user video
-  const currentVideo = userRole === "admin" ? videoConfig.admin : videoConfig.user
+  // Get video based on role - admin and super_admin see admin video, user sees user video
+  const currentVideo = (userRole === "admin" || userRole === "super_admin") ? videoConfig.admin : videoConfig.user
 
   return (
     <AdminLayout>
