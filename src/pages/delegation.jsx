@@ -702,6 +702,7 @@ function DelegationDataPage() {
 
 
 const handleSubmit = async () => {
+  if (userRole === 'pc role') return;
   const selectedItemsArray = Array.from(selectedItems);
 
   if (selectedItemsArray.length === 0) {
@@ -1159,7 +1160,7 @@ const handleSubmit = async () => {
             >
               <option value="all">All Items</option>
               <option value="pending">My Tasks</option>
-              {(userRole === 'admin' || userRole === 'super_admin') && (
+              {(userRole === 'admin' || userRole === 'super_admin') && userRole !== 'pc role' && (
                 <option value="approval">Approvals Queue</option>
               )}
             </select>
@@ -1201,6 +1202,7 @@ const handleSubmit = async () => {
             )}
 
             <div className="flex gap-2 w-full md:w-auto">
+            {userRole !== 'pc role' && (
               <button
                 onClick={handleSubmit}
                 disabled={selectedItems.size === 0 || isSubmitting}
@@ -1208,6 +1210,7 @@ const handleSubmit = async () => {
               >
                 {isSubmitting ? "..." : `Submit Tasks (${selectedItems.size})`}
               </button>
+            )}
               {(userRole === 'admin' || userRole === 'super_admin') && (
                 <>
                   <button
@@ -1314,7 +1317,8 @@ const handleSubmit = async () => {
                     <th className="px-6 py-3 text-left">
                       <input
                         type="checkbox"
-                        className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        disabled={userRole === 'pc role'}
+                        className={`h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 ${userRole === 'pc role' ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
                         onChange={(e) => handleUnifiedSelectAll(e.target.checked)}
                         checked={
                           unifiedData.length > 0 && 
@@ -1409,8 +1413,8 @@ const handleSubmit = async () => {
                             {!isAlreadyApproved && (
                               <input
                                 type="checkbox"
-                                disabled={isApproval && userRole !== 'admin' && userRole !== 'super_admin'}
-                                className={`h-4 w-4 rounded border-gray-300 ${isApproval ? "text-green-600 focus:ring-green-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30" : "text-purple-600 focus:ring-purple-500 cursor-pointer"}`}
+                                disabled={(isApproval && userRole !== 'admin' && userRole !== 'super_admin') || userRole === 'pc role'}
+                                className={`h-4 w-4 rounded border-gray-300 ${(isApproval && userRole !== 'admin' && userRole !== 'super_admin') || userRole === 'pc role' ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
                                 checked={isSelected}
                                 onChange={(e) => toggleRowSelection(item, e.target.checked)}
                               />
@@ -1420,7 +1424,7 @@ const handleSubmit = async () => {
                             <StatusBadge status={isApproval ? item.status : 'pending'} adminDone={isApproval ? item.admin_done : null} type={item.unifiedType} />
                           </td>
                           <td className="px-6 py-4 min-w-[200px]">
-                            {isSelected ? (
+                            {isSelected && userRole !== 'pc role' ? (
                               <div className="space-y-2">
                                 {item.unifiedType === 'pending' && (
                                   <select
@@ -1462,7 +1466,7 @@ const handleSubmit = async () => {
                                    ) : (
                                    item.remarks || getLatestRemark(item.task_id) || "—"
                                  )}
-                                 {item.unifiedType === 'pending' && !isSelected && (
+                                 {item.unifiedType === 'pending' && !isSelected && userRole !== 'pc role' && (
                                    <div className="mt-1">
                                       {userRemarksInput[item.task_id] !== undefined ? (
                                         <div className="space-y-1">
@@ -1569,8 +1573,8 @@ const handleSubmit = async () => {
                               type="checkbox"
                               checked={isSelected}
                               onChange={(e) => toggleRowSelection(item, e.target.checked)}
-                               disabled={isApproval && userRole !== 'admin' && userRole !== 'super_admin'}
-                               className={`h-4 w-4 rounded ${isApproval && userRole !== 'admin' && userRole !== 'super_admin' ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
+                               disabled={isApproval && userRole !== 'admin' && userRole !== 'super_admin' || userRole === 'pc role'}
+                               className={`h-4 w-4 rounded ${isApproval && userRole !== 'admin' && userRole !== 'super_admin' || userRole === 'pc role' ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
                            />
                            <span className="text-xs font-bold text-gray-400">#{index+1}</span>
                          </div>
@@ -1640,7 +1644,7 @@ const handleSubmit = async () => {
                                )}
                            </div>
                        )}
-                      {isSelected && (
+                      {isSelected && userRole !== 'pc role' && (
                         <div className="pt-2 border-t space-y-2">
                            {/* Simplified mobile controls similar to desktop logic */}
                             {item.unifiedType === 'pending' && (

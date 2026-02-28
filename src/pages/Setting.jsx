@@ -874,7 +874,9 @@ const resetUserForm = () => {
 
   const getRoleColor = (role) => {
     switch (role) {
+      case 'super_admin': return 'bg-red-100 text-red-800';
       case 'admin': return 'bg-blue-100 text-blue-800';
+      case 'pc role': return 'bg-orange-100 text-orange-800';
       case 'manager': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -902,7 +904,7 @@ const resetUserForm = () => {
                 <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
               </button>
               
-              {activeTab !== 'leave' && localStorage.getItem('role') === 'super_admin' && (
+              {activeTab !== 'leave' && localStorage.getItem('role') === 'super_admin' && localStorage.getItem('role') !== 'pc role' && (
                 <button
                   onClick={handleAddButtonClick}
                   className="flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-purple-600 text-white hover:bg-purple-700"
@@ -1029,7 +1031,7 @@ const resetUserForm = () => {
                 {/* Submit Button */}
                 {/* Submit Button */}
                 {/* Submit Button */}
-                {localStorage.getItem('role') === 'super_admin' && (
+                {localStorage.getItem('role') === 'super_admin' && localStorage.getItem('role') !== 'pc role' && (
                 <button
                   onClick={handleSubmitLeave}
                   className="rounded-md bg-green-600 py-2 px-4 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
@@ -1100,7 +1102,7 @@ const resetUserForm = () => {
             <div className="text-sm text-gray-900">{user.remark || 'No remarks'}</div>
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            {localStorage.getItem('role') === 'super_admin' && (
+            {localStorage.getItem('role') === 'super_admin' && localStorage.getItem('role') !== 'pc role' && (
               <button
                 onClick={() => {
                   if(window.confirm(`Are you sure you want to clear leave for ${user.user_name}?`)) {
@@ -1221,7 +1223,7 @@ const resetUserForm = () => {
                   </span>
                 </div>
                 <div className="flex space-x-2">
-                  {localStorage.getItem('role') === 'super_admin' && (
+                  {localStorage.getItem('role') === 'super_admin' && localStorage.getItem('role') !== 'pc role' && (
                     <>
                       <button onClick={() => handleEditUser(user?.id)} className="text-blue-600" title="Edit">
                         <Edit size={16} />
@@ -1342,7 +1344,7 @@ const resetUserForm = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  {localStorage.getItem('role') === 'super_admin' && (
+                  {localStorage.getItem('role') === 'super_admin' && localStorage.getItem('role') !== 'pc role' && (
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEditUser(user?.id)}
@@ -1829,6 +1831,7 @@ const resetUserForm = () => {
                           >
                             <option value="user">User</option>
                             <option value="admin">Admin</option>
+                            <option value="pc role">PC Role</option>
                             {/* Only show/allow super_admin option if current user is super_admin (or you can decide policy) */}
                             {localStorage.getItem('role') === 'super_admin' && <option value="super_admin">Super Admin</option>}
                           </select>

@@ -56,7 +56,7 @@ function HistoryPage() {
     const user = localStorage.getItem("user-name")
     setUserRole(role || "")
     setUsername(user || "")
-    setIsSuperAdmin(role === "super_admin" || role === "admin")
+    setIsSuperAdmin((role === "super_admin" || role === "admin") && role !== "pc role")
   }, [])
 
   // Handle scroll for history

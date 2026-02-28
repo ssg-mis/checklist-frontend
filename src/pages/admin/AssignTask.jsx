@@ -495,6 +495,7 @@ useEffect(() => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (userRole === 'pc role') return;
     setIsSubmitting(true);
 
     try {
@@ -710,35 +711,37 @@ useEffect(() => {
             )}
             Assign New Task {taskType ? `(${taskType === 'checklist' ? 'Checklist' : 'Delegation'})` : ''}
           </h1>
-          <button
-            onClick={() => setShowImportModal(true)}
-            type="button"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.5rem 1rem',
-              background: 'linear-gradient(to right, #9333ea, #db2777)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '0.375rem',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              whiteSpace: 'nowrap',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-              transition: 'all 0.3s'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(to right, #7e22ce, #be185d)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(to right, #9333ea, #db2777)';
-            }}
-          >
-            <Download className="h-4 w-4" style={{ flexShrink: 0 }} />
-            Import Tasks
-          </button>
+          {userRole !== 'pc role' && (
+            <button
+              onClick={() => setShowImportModal(true)}
+              type="button"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 1rem',
+                background: 'linear-gradient(to right, #9333ea, #db2777)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                transition: 'all 0.3s'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(to right, #7e22ce, #be185d)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(to right, #9333ea, #db2777)';
+              }}
+            >
+              <Download className="h-4 w-4" style={{ flexShrink: 0 }} />
+              Import Tasks
+            </button>
+          )}
         </div>
         {!taskType ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-8">
@@ -1039,13 +1042,15 @@ useEffect(() => {
 
                 {/* Preview and Submit Buttons */}
                 <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={generateTasks}
-                    className="w-full rounded-md border border-purple-200 bg-purple-50 py-2 px-4 text-purple-700 hover:bg-purple-100 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                  >
-                    Preview Generated Tasks
-                  </button>
+                  {userRole !== 'pc role' && (
+                    <button
+                      type="button"
+                      onClick={generateTasks}
+                      className="w-full rounded-md border border-purple-200 bg-purple-50 py-2 px-4 text-purple-700 hover:bg-purple-100 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                    >
+                      Preview Generated Tasks
+                    </button>
+                  )}
 
                   {generatedTasks.length > 0 && (
                     <div className="w-full">
@@ -1145,13 +1150,15 @@ useEffect(() => {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="rounded-md gradient-bg py-2 px-4 text-white hover:gradient-bg:hover focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? "Assigning..." : "Assign Task"}
-                </button>
+                {userRole !== 'pc role' && (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="rounded-md gradient-bg py-2 px-4 text-white hover:gradient-bg:hover focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? "Assigning..." : "Assign Task"}
+                  </button>
+                )}
               </div>
             </form>
           </div>

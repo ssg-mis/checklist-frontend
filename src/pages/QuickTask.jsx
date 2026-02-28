@@ -547,7 +547,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                 )}
               </div>
             </div>
-            {selectedTasks.length > 0 && activeTab === 'checklist' && userRole === "super_admin" && (
+            {selectedTasks.length > 0 && activeTab === 'checklist' && userRole === "super_admin" && userRole !== "pc role" && (
               <button
                 onClick={handleDeleteSelected}
                 disabled={isDeleting}
@@ -627,7 +627,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                               {task.frequency}
                             </span>
                           </div>
-                          {userRole === "super_admin" && (
+                          {userRole === "super_admin" && userRole !== "pc role" && (
                             editingTaskId === task.task_id ? (
                               <div className="flex gap-2">
                                 <button
@@ -966,7 +966,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                               </div>
                             ) : (
                               // REMOVED THE submission_date CHECK - ALWAYS SHOW EDIT BUTTON
-                              userRole === "super_admin" && (
+                              userRole === "super_admin" && userRole !== "pc role" && (
                               <button
                                 onClick={() => handleEditClick(task)}
                                 className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"

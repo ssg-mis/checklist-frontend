@@ -77,7 +77,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       label: "Dashboard",
       icon: Database,
       active: location.pathname === "/dashboard/admin",
-      showFor: ["admin", "user", "super_admin"],
+      showFor: ["admin", "user", "super_admin", "pc role"],
     },
     {
       href: "/dashboard/quick-task",
@@ -85,49 +85,49 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: Zap,
       active: location.pathname === "/dashboard/quick-task",
       // Show for all admins
-      showFor: ["admin", "super_admin"],
+      showFor: ["admin", "super_admin", "pc role"],
     },
     {
       href: "/dashboard/assign-task",
       label: "Assign Task",
       icon: CheckSquare,
       active: location.pathname === "/dashboard/assign-task",
-      showFor: ["admin", "super_admin"],
+      showFor: ["admin", "super_admin", "pc role"],
     },
     {
       href: "/dashboard/delegation",
       label: "Delegation",
       icon: ClipboardList,
       active: location.pathname === "/dashboard/delegation",
-      showFor: ["admin", "user", "super_admin"],
+      showFor: ["admin", "user", "super_admin", "pc role"],
     },
     {
       href: "/dashboard/data/sales",
       label: "Checklist",
       icon: CalendarCheck,
       active: location.pathname === "/dashboard/data/sales",
-      showFor: ["admin", "user", "super_admin"],
+      showFor: ["admin", "user", "super_admin", "pc role"],
     },
     {
       href: "/dashboard/history",
       label: "Admin Approval",
       icon: History,
       active: location.pathname === "/dashboard/history",
-      showFor: ["admin", "user", "super_admin"],
+      showFor: ["admin", "user", "super_admin", "pc role"],
     },
     {
       href: "/dashboard/calendar",
       label: "Calendar",
       icon: Calendar,
       active: location.pathname === "/dashboard/calendar",
-      showFor: ["admin", "user", "super_admin"],
+      showFor: ["admin", "user", "super_admin", "pc role"],
     },
     {
       href: "/dashboard/holidays",
       label: "Holiday List",
       icon: CalendarCheck,
       active: location.pathname === "/dashboard/holidays",
-      showFor: ["admin", "super_admin"],
+      showFor: ["admin", "super_admin", "pc role"],
     },
     // {
     //   href: "/dashboard/mis-report",
@@ -143,14 +143,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: Settings,
       active: location.pathname.includes("/dashboard/setting"),
       // Show for all admins
-      showFor: ["admin", "super_admin"],
+      showFor: ["admin", "super_admin", "pc role"],
     },
     {
       href: "/dashboard/training-video",
       label: "Training Video",
       icon: Video,
       active: location.pathname === "/dashboard/training-video",
-      showFor: ["admin", "user", "super_admin"],
+      showFor: ["admin", "user", "super_admin", "pc role"],
     },
   ];
 
@@ -234,6 +234,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                       ? "(Super Admin)"
                       : userRole === "admin"
                       ? "(Admin)"
+                      : userRole === "pc role"
+                      ? "(PC Role)"
                       : ""}
                   </p>
                   <p className="text-xs text-blue-600 truncate">
