@@ -180,7 +180,7 @@ function AccountDataPage() {
 
   useEffect(() => {
     const role = localStorage.getItem("role")
-    const user = localStorage.getItem("username")
+    const user = localStorage.getItem("user-name")
     setUserRole(role || "")
     setUsername(user || "")
   }, [])

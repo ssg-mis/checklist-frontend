@@ -56,7 +56,7 @@ function HistoryPage() {
     const user = localStorage.getItem("user-name")
     setUserRole(role || "")
     setUsername(user || "")
-    setIsSuperAdmin((role === "super_admin" || role === "admin") && role !== "pc role")
+    setIsSuperAdmin(role === "super_admin" || role === "admin" || role === "pc role")
   }, [])
 
   // Handle scroll for history
@@ -301,6 +301,7 @@ function HistoryPage() {
         const userMatch =
           userRole === "admin" ||
           userRole === "super_admin" ||
+          userRole === "pc role" ||
           (item.name && item.name.toLowerCase() === username.toLowerCase())
         if (!userMatch) return false
 
@@ -662,7 +663,7 @@ function HistoryPage() {
               <table className="min-w-full divide-y divide-gray-200 mobile-card-table">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    {isSuperAdmin && (
+                    {isSuperAdmin && userRole !== "pc role" && (
                       <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <input
                           type="checkbox"
@@ -695,7 +696,7 @@ function HistoryPage() {
                   {filteredHistoryData.length > 0 ? (
                     filteredHistoryData.map((historyItem, index) => (
                       <tr key={index} className="hover:bg-gray-50">
-                        {isSuperAdmin && (
+                        {isSuperAdmin && userRole !== "pc role" && (
                           <td className="px-2 sm:px-3 py-2 sm:py-4 mobile-checkbox-cell" data-label="Select">
                             {historyItem.admin_done !== 'Done' ? (
                               <input
@@ -829,7 +830,7 @@ function HistoryPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={isSuperAdmin ? 14 : 13} className="px-4 sm:px-6 py-4 text-center text-gray-500 text-xs sm:text-sm">
+                      <td colSpan={isSuperAdmin ? (userRole === "pc role" ? 13 : 14) : 13} className="px-4 sm:px-6 py-4 text-center text-gray-500 text-xs sm:text-sm">
                         {searchTerm || selectedMembers.length > 0 || startDate || endDate
                           ? "No records matching your filters"
                           : "No completed records found"}
@@ -843,7 +844,7 @@ function HistoryPage() {
               <table className="min-w-full divide-y divide-gray-200 mobile-card-table">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    {isSuperAdmin && (
+                    {isSuperAdmin && userRole !== "pc role" && (
                       <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <input
                           type="checkbox"
@@ -860,11 +861,7 @@ function HistoryPage() {
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Given By</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Task Description</th>
-                    {isSuperAdmin && (
-                      <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th>
-                    )}
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">Created At</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Status</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Extend Date</th>
@@ -876,7 +873,7 @@ function HistoryPage() {
                   {filteredDelegationData.length > 0 ? (
                     filteredDelegationData.map((item, index) => (
                       <tr key={index} className="hover:bg-gray-50">
-                        {isSuperAdmin && (
+                        {isSuperAdmin && userRole !== "pc role" && (
                           <td className="px-2 sm:px-3 py-2 sm:py-4 mobile-checkbox-cell" data-label="Select">
                             {item.admin_done !== 'Done' ? (
                               <input
@@ -987,7 +984,7 @@ function HistoryPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={isSuperAdmin ? 12 : 11} className="px-4 sm:px-6 py-4 text-center text-gray-500 text-xs sm:text-sm">
+                      <td colSpan={isSuperAdmin ? (userRole === "pc role" ? 11 : 12) : 11} className="px-4 sm:px-6 py-4 text-center text-gray-500 text-xs sm:text-sm">
                         {searchTerm || startDate || endDate
                           ? "No records matching your filters"
                           : "No delegation records found"}
