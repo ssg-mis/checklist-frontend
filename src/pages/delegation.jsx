@@ -127,6 +127,8 @@ function DelegationDataPage() {
     setUsername(user || "");
   }, []);
 
+  const normalizedRole = useMemo(() => userRole.toLowerCase().trim(), [userRole]);
+
   const parseGoogleSheetsDateTime = useCallback(
     (dateTimeStr) => {
       if (!dateTimeStr) return "";
@@ -249,8 +251,9 @@ function DelegationDataPage() {
     return delegation_done
       .filter((item) => {
         const userMatch =
-          userRole === "admin" ||
-          userRole === "super_admin" ||
+          normalizedRole === "admin" ||
+          normalizedRole === "super_admin" ||
+          normalizedRole === "pc role" ||
           (item.name && item.name.toLowerCase() === username.toLowerCase());
         if (!userMatch) return false;
 
@@ -297,7 +300,7 @@ function DelegationDataPage() {
         if (!dateB) return -1;
         return dateB.getTime() - dateA.getTime();
       });
-  }, [delegation_done, debouncedSearchTerm, startDate, endDate, userRole, username, mainStatusFilter]);
+  }, [delegation_done, debouncedSearchTerm, startDate, endDate, normalizedRole, username, mainStatusFilter]);
 
   const pendingApprovalCount = useMemo(() => {
     const targetName = "gyan ranjan das";
@@ -386,7 +389,7 @@ function DelegationDataPage() {
 
     // Apply Person Tab Filter (EA vs Gyan Ranjan Das)
     const targetName = "gyan ranjan das";
-    const showNameTabs = userRole === 'admin' || userRole === 'super_admin' || (username || "").toLowerCase().includes(targetName);
+    const showNameTabs = normalizedRole === 'admin' || normalizedRole === 'super_admin' || normalizedRole === 'pc role' || (username || "").toLowerCase().includes(targetName);
     
     if (showNameTabs) {
       if (activeNameTab === "EA") {
@@ -397,7 +400,7 @@ function DelegationDataPage() {
     }
 
     return combined.sort((a, b) => (b.task_id || 0) - (a.task_id || 0));
-  }, [filteredDelegationTasks, filteredApprovalData, unifiedTypeFilter, mainStatusFilter, activeNameTab, userRole, username]);
+  }, [filteredDelegationTasks, filteredApprovalData, unifiedTypeFilter, mainStatusFilter, activeNameTab, normalizedRole, username]);
 
   const StatusBadge = ({ status, adminDone, type }) => {
     // If it's an approval item and admin has marked it Done
@@ -702,7 +705,7 @@ function DelegationDataPage() {
 
 
 const handleSubmit = async () => {
-  if (userRole === 'pc role') return;
+  if (normalizedRole === 'pc role') return;
   const selectedItemsArray = Array.from(selectedItems);
 
   if (selectedItemsArray.length === 0) {
@@ -1160,7 +1163,7 @@ const handleSubmit = async () => {
             >
               <option value="all">All Items</option>
               <option value="pending">My Tasks</option>
-              {(userRole === 'admin' || userRole === 'super_admin') && userRole !== 'pc role' && (
+              {(normalizedRole === 'admin' || normalizedRole === 'super_admin') && (
                 <option value="approval">Approvals Queue</option>
               )}
             </select>
@@ -1202,7 +1205,7 @@ const handleSubmit = async () => {
             )}
 
             <div className="flex gap-2 w-full md:w-auto">
-            {userRole !== 'pc role' && (
+            {normalizedRole !== 'pc role' && (
               <button
                 onClick={handleSubmit}
                 disabled={selectedItems.size === 0 || isSubmitting}
@@ -1211,7 +1214,7 @@ const handleSubmit = async () => {
                 {isSubmitting ? "..." : `Submit Tasks (${selectedItems.size})`}
               </button>
             )}
-              {(userRole === 'admin' || userRole === 'super_admin') && (
+              {(normalizedRole === 'admin' || normalizedRole === 'super_admin') && (
                 <>
                   <button
                     onClick={handleMarkDone}
@@ -1259,7 +1262,7 @@ const handleSubmit = async () => {
         <div className="rounded-lg border border-purple-200 shadow-md bg-white overflow-hidden">
           <div className="bg-linear-to-r from-purple-50 to-pink-50 border-b border-purple-100 p-3 sm:p-4">
             <div className="flex justify-between items-center">
-              {(userRole === 'admin' || userRole === 'super_admin' || (username || "").toLowerCase().includes("gyan ranjan das")) && (
+              {(normalizedRole === 'admin' || normalizedRole === 'super_admin' || normalizedRole === 'pc role' || (username || "").toLowerCase().includes("gyan ranjan das")) && (
                 <div className="flex space-x-1 p-0.5 bg-purple-100 rounded-lg">
                   <button
                     onClick={() => setActiveNameTab("EA")}
@@ -1317,8 +1320,8 @@ const handleSubmit = async () => {
                     <th className="px-6 py-3 text-left">
                       <input
                         type="checkbox"
-                        disabled={userRole === 'pc role'}
-                        className={`h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 ${userRole === 'pc role' ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
+                        disabled={normalizedRole === 'pc role'}
+                        className={`h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 ${normalizedRole === 'pc role' ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
                         onChange={(e) => handleUnifiedSelectAll(e.target.checked)}
                         checked={
                           unifiedData.length > 0 && 
@@ -1357,7 +1360,7 @@ const handleSubmit = async () => {
                                 </div>
                               ) : (
                                 <div className="space-y-1">
-                                  {userRole === 'super_admin' ? (
+                                  {normalizedRole === 'super_admin' ? (
                                     adminRemarksInput[item.task_id] !== undefined ? (
                                       <div className="space-y-2">
                                         <textarea
@@ -1413,8 +1416,8 @@ const handleSubmit = async () => {
                             {!isAlreadyApproved && (
                               <input
                                 type="checkbox"
-                                disabled={(isApproval && userRole !== 'admin' && userRole !== 'super_admin') || userRole === 'pc role'}
-                                className={`h-4 w-4 rounded border-gray-300 ${(isApproval && userRole !== 'admin' && userRole !== 'super_admin') || userRole === 'pc role' ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
+                                disabled={(isApproval && normalizedRole !== 'admin' && normalizedRole !== 'super_admin') || normalizedRole === 'pc role'}
+                                className={`h-4 w-4 rounded border-gray-300 ${(isApproval && normalizedRole !== 'admin' && normalizedRole !== 'super_admin') || normalizedRole === 'pc role' ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
                                 checked={isSelected}
                                 onChange={(e) => toggleRowSelection(item, e.target.checked)}
                               />
@@ -1424,7 +1427,7 @@ const handleSubmit = async () => {
                             <StatusBadge status={isApproval ? item.status : 'pending'} adminDone={isApproval ? item.admin_done : null} type={item.unifiedType} />
                           </td>
                           <td className="px-6 py-4 min-w-[200px]">
-                            {isSelected && userRole !== 'pc role' ? (
+                            {isSelected && normalizedRole !== 'pc role' ? (
                               <div className="space-y-2">
                                 {item.unifiedType === 'pending' && (
                                   <select
@@ -1466,7 +1469,7 @@ const handleSubmit = async () => {
                                    ) : (
                                    item.remarks || getLatestRemark(item.task_id) || "—"
                                  )}
-                                 {item.unifiedType === 'pending' && !isSelected && userRole !== 'pc role' && (
+                                 {item.unifiedType === 'pending' && !isSelected && normalizedRole !== 'pc role' && (
                                    <div className="mt-1">
                                       {userRemarksInput[item.task_id] !== undefined ? (
                                         <div className="space-y-1">
@@ -1573,8 +1576,8 @@ const handleSubmit = async () => {
                               type="checkbox"
                               checked={isSelected}
                               onChange={(e) => toggleRowSelection(item, e.target.checked)}
-                               disabled={isApproval && userRole !== 'admin' && userRole !== 'super_admin' || userRole === 'pc role'}
-                               className={`h-4 w-4 rounded ${isApproval && userRole !== 'admin' && userRole !== 'super_admin' || userRole === 'pc role' ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
+                                disabled={(isApproval && normalizedRole !== 'admin' && normalizedRole !== 'super_admin') || normalizedRole === 'pc role'}
+                                className={`h-4 w-4 rounded ${(isApproval && normalizedRole !== 'admin' && normalizedRole !== 'super_admin') || normalizedRole === 'pc role' ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
                            />
                            <span className="text-xs font-bold text-gray-400">#{index+1}</span>
                          </div>
@@ -1644,7 +1647,7 @@ const handleSubmit = async () => {
                                )}
                            </div>
                        )}
-                      {isSelected && userRole !== 'pc role' && (
+                      {isSelected && normalizedRole !== 'pc role' && (
                         <div className="pt-2 border-t space-y-2">
                            {/* Simplified mobile controls similar to desktop logic */}
                             {item.unifiedType === 'pending' && (
