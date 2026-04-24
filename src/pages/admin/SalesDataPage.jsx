@@ -154,6 +154,10 @@ function AccountDataPage() {
     itemCount: 0,
   })
   const [adminRemarks, setAdminRemarks] = useState({}) // New state for admin remarks
+  const [adminRemarksInput, setAdminRemarksInput] = useState({}) // Track which task has admin reply input open
+  const [adminRemarksSubmitting, setAdminRemarksSubmitting] = useState(false)
+  const [userRemarksInput, setUserRemarksInput] = useState({}) // Track user reply input
+  const [userRemarksSubmitting, setUserRemarksSubmitting] = useState(false)
 
   // UPDATED: Format date-time to DD/MM/YYYY HH:MM:SS
   const formatDateTimeToDDMMYYYY = (date) => {
@@ -949,6 +953,60 @@ const submissionData = await Promise.all(
 };
 
 
+  // Handle Admin Remarks Submit (Checklist)
+  const handleAdminRemarksSubmit = async (taskId) => {
+    const remark = adminRemarksInput[taskId];
+    if (!remark || !remark.trim()) {
+      alert("Please enter a remark before submitting");
+      return;
+    }
+    setAdminRemarksSubmitting(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/checklist/${taskId}/admin-remarks`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminremarks: remark.trim() })
+      });
+      if (!response.ok) throw new Error("Failed to submit admin remarks");
+      setAdminRemarksInput(prev => { const updated = { ...prev }; delete updated[taskId]; return updated; });
+      dispatch(checklistData({ page: 1, search: debouncedSearch }));
+      setSuccessMessage("✅ Admin remark submitted successfully!");
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error) {
+      console.error("Error submitting admin remark:", error);
+      alert("Failed to submit admin remark. Please try again.");
+    } finally {
+      setAdminRemarksSubmitting(false);
+    }
+  };
+
+  // Handle User Remarks Submit (Checklist)
+  const handleUserRemarksSubmit = async (taskId) => {
+    const remark = userRemarksInput[taskId];
+    if (!remark || !remark.trim()) {
+      alert("Please enter a remark before submitting");
+      return;
+    }
+    setUserRemarksSubmitting(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/checklist/${taskId}/user-remarks`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ remarks: remark.trim() })
+      });
+      if (!response.ok) throw new Error("Failed to submit remarks");
+      setUserRemarksInput(prev => { const updated = { ...prev }; delete updated[taskId]; return updated; });
+      dispatch(checklistData({ page: 1, search: debouncedSearch }));
+      setSuccessMessage("✅ Remark submitted successfully!");
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error) {
+      console.error("Error submitting remark:", error);
+      alert("Failed to submit remark. Please try again.");
+    } finally {
+      setUserRemarksSubmitting(false);
+    }
+  };
+
   // Convert Set to Array for display
   const selectedItemsCount = selectedItems.size
 
@@ -1257,6 +1315,9 @@ const submissionData = await Promise.all(
                           <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[120px]">
                             Remarks
                           </th>
+                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-teal-50 min-w-[120px]">
+                            Admin Reply
+                          </th>
                           <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             File
                           </th>
@@ -1359,6 +1420,11 @@ const submissionData = await Promise.all(
                                   {history.remark || "—"}
                                 </div>
                               </td>
+                              <td className="px-2 sm:px-3 py-2 sm:py-4 bg-teal-50 min-w-[120px]">
+                                <div className="text-xs sm:text-sm text-gray-900 break-words">
+                                  {history.admin_reply || "—"}
+                                </div>
+                              </td>
                               <td className="px-2 sm:px-3 py-2 sm:py-4">
                                 {history.image ? (
                                   <a
@@ -1457,6 +1523,86 @@ const submissionData = await Promise.all(
                           <div><span className="text-gray-500">Frequency:</span> <span className="font-medium">{account.frequency || "—"}</span></div>
                           <div><span className="text-gray-500">Date:</span> <span className="font-medium">{account.task_start_date || "—"}</span></div>
                         </div>
+                        {(userRole === "user" || userRole === "admin" || userRole === "super_admin") && !isSelected && (
+                          <div className="border-t pt-2 mt-2 space-y-2">
+                            <div className="text-xs text-gray-500 font-medium">Remarks:</div>
+                            <div className="text-xs text-gray-700 break-words">{account.remark || "—"}</div>
+                            {userRemarksInput[account.task_id] !== undefined ? (
+                              <div className="space-y-1">
+                                <textarea
+                                  placeholder="Type your remark here..."
+                                  value={userRemarksInput[account.task_id] || ""}
+                                  onChange={(e) => setUserRemarksInput(prev => ({ ...prev, [account.task_id]: e.target.value }))}
+                                  className="w-full border rounded p-1 text-xs h-16 focus:ring-1 focus:ring-purple-500 outline-none"
+                                  disabled={userRemarksSubmitting}
+                                />
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => handleUserRemarksSubmit(account.task_id)}
+                                    disabled={userRemarksSubmitting}
+                                    className="px-2 py-1 bg-purple-600 text-white rounded text-[10px] hover:bg-purple-700 disabled:opacity-50"
+                                  >
+                                    {userRemarksSubmitting ? "..." : "Submit"}
+                                  </button>
+                                  <button
+                                    onClick={() => setUserRemarksInput(prev => { const updated = { ...prev }; delete updated[account.task_id]; return updated; })}
+                                    disabled={userRemarksSubmitting}
+                                    className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-[10px] hover:bg-gray-400 disabled:opacity-50"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setUserRemarksInput(prev => ({ ...prev, [account.task_id]: account.remark || "" }))}
+                                className="px-2 py-1 bg-purple-50 text-purple-600 border border-purple-200 rounded text-[10px] hover:bg-purple-100"
+                              >
+                                Reply
+                              </button>
+                            )}
+                            {userRole === "super_admin" && (
+                              <>
+                                <div className="text-xs text-gray-500 font-medium mt-1">Admin Reply:</div>
+                                <div className="text-xs text-gray-700 break-words">{account.admin_reply || "—"}</div>
+                                {adminRemarksInput[account.task_id] !== undefined ? (
+                                  <div className="space-y-1">
+                                    <textarea
+                                      placeholder="Type admin remark here..."
+                                      value={adminRemarksInput[account.task_id] || ""}
+                                      onChange={(e) => setAdminRemarksInput(prev => ({ ...prev, [account.task_id]: e.target.value }))}
+                                      className="w-full border rounded p-1 text-xs h-16 focus:ring-1 focus:ring-blue-500 outline-none"
+                                      disabled={adminRemarksSubmitting}
+                                    />
+                                    <div className="flex gap-1">
+                                      <button
+                                        onClick={() => handleAdminRemarksSubmit(account.task_id)}
+                                        disabled={adminRemarksSubmitting}
+                                        className="px-2 py-1 bg-blue-600 text-white rounded text-[10px] hover:bg-blue-700 disabled:opacity-50"
+                                      >
+                                        {adminRemarksSubmitting ? "..." : "Submit"}
+                                      </button>
+                                      <button
+                                        onClick={() => setAdminRemarksInput(prev => { const updated = { ...prev }; delete updated[account.task_id]; return updated; })}
+                                        disabled={adminRemarksSubmitting}
+                                        className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-[10px] hover:bg-gray-400 disabled:opacity-50"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setAdminRemarksInput(prev => ({ ...prev, [account.task_id]: account.admin_reply || "" }))}
+                                    className="px-2 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded text-[10px] hover:bg-blue-100"
+                                  >
+                                    Reply
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
                         {(userRole === "user" || userRole === "admin" || userRole === "super_admin") && isSelected && (
                           <div className="border-t pt-2 mt-2 space-y-2">
                             <select
@@ -1555,6 +1701,9 @@ const submissionData = await Promise.all(
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-16">
                       Seq. No.
                     </th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                      Admin Reply
+                    </th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Task Status
                     </th>
@@ -1628,6 +1777,53 @@ const submissionData = await Promise.all(
                               {sequenceNumber}
                             </div>
                           </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-teal-50 min-w-[120px]">
+                            <div className="space-y-1">
+                              {userRole === "super_admin" ? (
+                                adminRemarksInput[account.task_id] !== undefined ? (
+                                  <div className="space-y-2">
+                                    <textarea
+                                      placeholder="Type admin remark here..."
+                                      value={adminRemarksInput[account.task_id] || ""}
+                                      onChange={(e) => setAdminRemarksInput(prev => ({ ...prev, [account.task_id]: e.target.value }))}
+                                      className="w-full border rounded p-1 text-xs h-16 focus:ring-1 focus:ring-blue-500 outline-none"
+                                      disabled={adminRemarksSubmitting}
+                                    />
+                                    <div className="flex gap-1">
+                                      <button
+                                        onClick={() => handleAdminRemarksSubmit(account.task_id)}
+                                        disabled={adminRemarksSubmitting}
+                                        className="px-2 py-1 bg-blue-600 text-white rounded text-[10px] hover:bg-blue-700 disabled:opacity-50"
+                                      >
+                                        {adminRemarksSubmitting ? "..." : "Submit"}
+                                      </button>
+                                      <button
+                                        onClick={() => setAdminRemarksInput(prev => { const updated = { ...prev }; delete updated[account.task_id]; return updated; })}
+                                        disabled={adminRemarksSubmitting}
+                                        className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-[10px] hover:bg-gray-400 disabled:opacity-50"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    {account.admin_reply ? (
+                                      <div className="text-xs text-gray-700 mb-1 break-words">{account.admin_reply}</div>
+                                    ) : <div className="text-xs text-gray-400 italic mb-1">—</div>}
+                                    <button
+                                      onClick={() => setAdminRemarksInput(prev => ({ ...prev, [account.task_id]: account.admin_reply || "" }))}
+                                      className="px-2 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded text-[10px] hover:bg-blue-100"
+                                    >
+                                      Reply
+                                    </button>
+                                  </div>
+                                )
+                              ) : (
+                                <div className="text-xs text-gray-900 break-words">{account.admin_reply || "—"}</div>
+                              )}
+                            </div>
+                          </td>
                           <td className="px-2 sm:px-3 py-2 sm:py-4">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                               taskStatus === 'today' 
@@ -1675,14 +1871,54 @@ const submissionData = await Promise.all(
                             </select>
                           </td>
                           <td className="px-2 sm:px-3 py-2 sm:py-4 bg-orange-50 min-w-[120px]">
-                            <input
-                              type="text"
-                              placeholder="Enter remarks"
-                              disabled={!isSelected || !additionalData[account.task_id]}
-                              value={remarksData[account.task_id] || ""}
-                              onChange={(e) => setRemarksData((prev) => ({ ...prev, [account.task_id]: e.target.value }))}
-                              className="border rounded-md px-2 py-1 w-full border-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-xs sm:text-sm break-words"
-                            />
+                            {isSelected ? (
+                              <input
+                                type="text"
+                                placeholder="Enter remarks"
+                                disabled={!additionalData[account.task_id]}
+                                value={remarksData[account.task_id] || ""}
+                                onChange={(e) => setRemarksData((prev) => ({ ...prev, [account.task_id]: e.target.value }))}
+                                className="border rounded-md px-2 py-1 w-full border-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-xs sm:text-sm break-words"
+                              />
+                            ) : (
+                              <div className="space-y-1">
+                                <div className="text-xs text-gray-700 break-words">{account.remark || "—"}</div>
+                                {userRemarksInput[account.task_id] !== undefined ? (
+                                  <div className="space-y-1">
+                                    <textarea
+                                      placeholder="Type your remark here..."
+                                      value={userRemarksInput[account.task_id] || ""}
+                                      onChange={(e) => setUserRemarksInput(prev => ({ ...prev, [account.task_id]: e.target.value }))}
+                                      className="w-full border rounded p-1 text-xs h-16 focus:ring-1 focus:ring-purple-500 outline-none"
+                                      disabled={userRemarksSubmitting}
+                                    />
+                                    <div className="flex gap-1">
+                                      <button
+                                        onClick={() => handleUserRemarksSubmit(account.task_id)}
+                                        disabled={userRemarksSubmitting}
+                                        className="px-2 py-1 bg-purple-600 text-white rounded text-[10px] hover:bg-purple-700 disabled:opacity-50"
+                                      >
+                                        {userRemarksSubmitting ? "..." : "Submit"}
+                                      </button>
+                                      <button
+                                        onClick={() => setUserRemarksInput(prev => { const updated = { ...prev }; delete updated[account.task_id]; return updated; })}
+                                        disabled={userRemarksSubmitting}
+                                        className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-[10px] hover:bg-gray-400 disabled:opacity-50"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setUserRemarksInput(prev => ({ ...prev, [account.task_id]: account.remark || "" }))}
+                                    className="px-2 py-1 bg-purple-50 text-purple-600 border border-purple-200 rounded text-[10px] hover:bg-purple-100"
+                                  >
+                                    Reply
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </td>
                           <td className="px-2 sm:px-3 py-2 sm:py-4 bg-green-50">
                             {uploadedImages[account.task_id] || account.image ? (

@@ -35,6 +35,7 @@ function HistoryPage() {
     type: "checklist" // 'checklist' or 'delegation'
   })
   const [adminRemarks, setAdminRemarks] = useState({}) // New state for admin remarks
+  const [adminReplyData, setAdminReplyData] = useState({}) // New state for admin reply
 
   const { history } = useSelector((state) => state.checkList)
   const { delegation_done } = useSelector((state) => state.delegation)
@@ -193,7 +194,8 @@ function HistoryPage() {
       if (type === "checklist") {
         const payload = selectedHistoryItems.map(item => ({
           task_id: item.task_id,
-          remarks: adminRemarks[item.task_id] || ""
+          remarks: adminRemarks[item.task_id] || "",
+          admin_reply: adminReplyData[item.task_id] || ""
         }))
         const result = await postChecklistAdminDoneAPI(payload)
         data = result.data
@@ -214,6 +216,8 @@ function HistoryPage() {
 
       if (type === "checklist") {
         setSelectedHistoryItems([])
+        setAdminRemarks({})
+        setAdminReplyData({})
         dispatch(checklistHistoryData(1))
       } else {
         setSelectedDelegationItems([])
@@ -689,6 +693,8 @@ function HistoryPage() {
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-green-50">Submission Date</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Status</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[120px]">Remarks</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-indigo-50 min-w-[120px]">User Reply</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-teal-50 min-w-[120px]">Admin Reply</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
                   </tr>
                 </thead>
@@ -722,21 +728,39 @@ function HistoryPage() {
                         {isSuperAdmin && (
                           <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50" data-label="Admin Remarks">
                             {historyItem.admin_done !== 'Done' ? (
-                              <input
-                                type="text"
-                                placeholder="Remark..."
-                                value={adminRemarks[historyItem.task_id] || ""}
-                                onChange={(e) => setAdminRemarks(prev => ({
-                                  ...prev,
-                                  [historyItem.task_id]: e.target.value
-                                }))}
-                                disabled={!isItemSelected(historyItem.task_id)}
-                                className={`w-full text-xs p-1 border-2 border-purple-300 rounded font-bold focus:border-purple-500 focus:bg-white bg-purple-50 ${
-                                  !isItemSelected(historyItem.task_id) ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
-                              />
+                              <div className="flex flex-col gap-1">
+                                <input
+                                  type="text"
+                                  placeholder="Remark..."
+                                  value={adminRemarks[historyItem.task_id] || ""}
+                                  onChange={(e) => setAdminRemarks(prev => ({
+                                    ...prev,
+                                    [historyItem.task_id]: e.target.value
+                                  }))}
+                                  disabled={!isItemSelected(historyItem.task_id)}
+                                  className={`w-full text-xs p-1 border-2 border-purple-300 rounded font-bold focus:border-purple-500 focus:bg-white bg-purple-50 ${
+                                    !isItemSelected(historyItem.task_id) ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Admin Reply..."
+                                  value={adminReplyData[historyItem.task_id] || ""}
+                                  onChange={(e) => setAdminReplyData(prev => ({
+                                    ...prev,
+                                    [historyItem.task_id]: e.target.value
+                                  }))}
+                                  disabled={!isItemSelected(historyItem.task_id)}
+                                  className={`w-full text-xs p-1 border-2 border-teal-300 rounded font-bold focus:border-teal-500 focus:bg-white bg-teal-50 ${
+                                    !isItemSelected(historyItem.task_id) ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
+                                />
+                              </div>
                             ) : (
-                              <div className="text-xs text-gray-600 font-medium">{historyItem.admin_done_remarks || "—"}</div>
+                              <div className="flex flex-col gap-1">
+                                <div className="text-xs text-gray-600 font-medium">Remarks: {historyItem.admin_done_remarks || "—"}</div>
+                                <div className="text-xs text-teal-600 font-medium">Reply: {historyItem.admin_reply || "—"}</div>
+                              </div>
                             )}
                           </td>
                         )}
@@ -805,6 +829,16 @@ function HistoryPage() {
                         <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[120px]" data-label="Remarks">
                           <div className="text-xs sm:text-sm text-gray-900" title={historyItem.remark}>
                             {historyItem.remark || "—"}
+                          </div>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-indigo-50 min-w-[120px]" data-label="User Reply">
+                          <div className="text-xs sm:text-sm text-gray-900">
+                            {historyItem.user_reply || "—"}
+                          </div>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-teal-50 min-w-[120px]" data-label="Admin Reply">
+                          <div className="text-xs sm:text-sm text-gray-900">
+                            {historyItem.admin_reply || "—"}
                           </div>
                         </td>
                         <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="File">
