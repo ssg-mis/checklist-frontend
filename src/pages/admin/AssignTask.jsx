@@ -214,6 +214,7 @@ export default function AssignTask() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedTasks, setGeneratedTasks] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showDoerDropdown, setShowDoerDropdown] = useState(false);
   const [accordionOpen, setAccordionOpen] = useState(false);
   const [workingDays, setWorkingDays] = useState([]);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -239,7 +240,7 @@ export default function AssignTask() {
   const [formData, setFormData] = useState({
     department: "",
     givenBy: "",
-    doer: "",
+    doer: [],
     description: "",
     frequency: "daily",
     enableReminders: true,
@@ -272,12 +273,33 @@ useEffect(() => {
 
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, selectedOptions } = e.target;
+    if (name === "doer") {
+      setFormData((prev) => ({
+        ...prev,
+        doer: Array.from(selectedOptions, (option) => option.value),
+      }));
+      return;
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSwitchChange = (name, e) => {
     setFormData((prev) => ({ ...prev, [name]: e.target.checked }));
+  };
+
+  const handleDoerToggle = (doer) => {
+    setFormData((prev) => {
+      const selectedDoers = Array.isArray(prev.doer) ? prev.doer : [];
+      const isSelected = selectedDoers.includes(doer);
+
+      return {
+        ...prev,
+        doer: isSelected
+          ? selectedDoers.filter((selectedDoer) => selectedDoer !== doer)
+          : [...selectedDoers, doer],
+      };
+    });
   };
 
   const getFormattedDate = (date) => {
@@ -349,15 +371,38 @@ useEffect(() => {
     return weekDays ? weekDays[weekDays.length - 1] : monthDays[monthDays.length - 1];
   };
 
+  const getSelectedDoers = () => {
+    return Array.isArray(formData.doer)
+      ? formData.doer.filter(Boolean)
+      : formData.doer
+        ? [formData.doer]
+        : [];
+  };
+
+  const addTaskForSelectedDoers = (tasks, taskDateTimeStr) => {
+    tasks.push({
+      description: formData.description,
+      department: formData.department,
+      givenBy: formData.givenBy,
+      doer: getSelectedDoers().join(","),
+      dueDate: taskDateTimeStr,
+      status: "pending",
+      frequency: formData.frequency,
+      enableReminders: formData.enableReminders,
+      requireAttachment: formData.requireAttachment,
+    });
+  };
+
   const generateTasks = async () => {
+    const selectedDoers = getSelectedDoers();
     if (
       !date ||
       !time ||
-      !formData.doer ||
+      selectedDoers.length === 0 ||
       !formData.description ||
       !formData.frequency
     ) {
-      alert("Please fill in all required fields including date and time.");
+      alert("Please fill in all required fields including date, time, and doer.");
       return;
     }
 
@@ -377,17 +422,7 @@ useEffect(() => {
         time
       );
 
-      tasks.push({
-        description: formData.description,
-        department: formData.department,
-        givenBy: formData.givenBy,
-        doer: formData.doer,
-        dueDate: taskDateTimeStr,
-        status: "pending",
-        frequency: formData.frequency,
-        enableReminders: formData.enableReminders,
-        requireAttachment: formData.requireAttachment,
-      });
+      addTaskForSelectedDoers(tasks, taskDateTimeStr);
     } else {
       // For recurring tasks
       let currentDate = new Date(selectedDate);
@@ -473,17 +508,7 @@ useEffect(() => {
           time
         );
 
-        tasks.push({
-          description: formData.description,
-          department: formData.department,
-          givenBy: formData.givenBy,
-          doer: formData.doer,
-          dueDate: taskDateTimeStr,
-          status: "pending",
-          frequency: formData.frequency,
-          enableReminders: formData.enableReminders,
-          requireAttachment: formData.requireAttachment,
-        });
+        addTaskForSelectedDoers(tasks, taskDateTimeStr);
 
         taskCount++;
       }
@@ -499,15 +524,16 @@ useEffect(() => {
     setIsSubmitting(true);
 
     try {
+      const selectedDoers = getSelectedDoers();
       // Validate required fields
       if (
         !date ||
         !time ||
-        !formData.doer ||
+        selectedDoers.length === 0 ||
         !formData.description ||
         !formData.frequency
       ) {
-        alert("Please fill in all required fields including date and time.");
+        alert("Please fill in all required fields including date, time, and doer.");
         setIsSubmitting(false);
         return;
       }
@@ -530,17 +556,7 @@ useEffect(() => {
           time
         );
 
-        tasks.push({
-          description: formData.description,
-          department: formData.department,
-          givenBy: formData.givenBy,
-          doer: formData.doer,
-          dueDate: taskDateTimeStr,
-          status: "pending",
-          frequency: formData.frequency,
-          enableReminders: formData.enableReminders,
-          requireAttachment: formData.requireAttachment,
-        });
+        addTaskForSelectedDoers(tasks, taskDateTimeStr);
       } else {
         // For recurring tasks
         let currentDate = new Date(selectedDate);
@@ -616,17 +632,7 @@ useEffect(() => {
             time
           );
 
-          tasks.push({
-            description: formData.description,
-            department: formData.department,
-            givenBy: formData.givenBy,
-            doer: formData.doer,
-            dueDate: taskDateTimeStr,
-            status: "pending",
-            frequency: formData.frequency,
-            enableReminders: formData.enableReminders,
-            requireAttachment: formData.requireAttachment,
-          });
+          addTaskForSelectedDoers(tasks, taskDateTimeStr);
 
           taskCount++;
         }
@@ -647,7 +653,7 @@ useEffect(() => {
       setFormData({
         department: "",
         givenBy: "",
-        doer: "",
+        doer: [],
         description: "",
         frequency: taskType === 'delegation' ? 'one-time' : 'daily', // Set based on task type
         enableReminders: true,
@@ -854,21 +860,45 @@ useEffect(() => {
                   >
                     Doer's Name
                   </label>
-                  <select
-                    id="doer"
-                    name="doer"
-                    value={formData.doer}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  >
-                    <option value="">Select Doer</option>
-                    {filteredDoerNames.map((doer, index) => (
-                      <option key={index} value={doer}>
-                        {doer}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      id="doer"
+                      onClick={() => setShowDoerDropdown((prev) => !prev)}
+                      className="w-full rounded-md border border-purple-200 bg-white p-2 text-left text-sm text-gray-700 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    >
+                      {getSelectedDoers().length > 0
+                        ? `${getSelectedDoers().length} doer(s) selected`
+                        : "Select one or more doers"}
+                    </button>
+
+                    {showDoerDropdown && (
+                      <div className="absolute z-20 mt-1 w-full rounded-md border border-purple-200 bg-white shadow-lg">
+                        <div className="max-h-56 overflow-y-auto p-2">
+                          {filteredDoerNames.length > 0 ? (
+                            filteredDoerNames.map((doer, index) => (
+                              <label
+                                key={index}
+                                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-purple-50"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={getSelectedDoers().includes(doer)}
+                                  onChange={() => handleDoerToggle(doer)}
+                                  className="h-4 w-4 rounded border-purple-300 text-purple-600 focus:ring-purple-500"
+                                />
+                                <span>{doer}</span>
+                              </label>
+                            ))
+                          ) : (
+                            <div className="px-2 py-3 text-sm text-gray-500">
+                              No doers available
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Description */}
@@ -1095,7 +1125,7 @@ useEffect(() => {
                                     {task.description}
                                   </div>
                                   <div className="text-xs text-purple-600">
-                                    Due: {formatDateForDisplay(task.dueDate)} | Department: {task.department}
+                                    Due: {formatDateForDisplay(task.dueDate)} | Department: {task.department} | Doer: {task.doer}
                                   </div>
                                   <div className="flex space-x-2 mt-1">
                                     {task.enableReminders && (
@@ -1134,7 +1164,7 @@ useEffect(() => {
                     setFormData({
                       department: "",
                       givenBy: "",
-                      doer: "",
+                      doer: [],
                       description: "",
                       frequency: "daily",
                       enableReminders: true,
