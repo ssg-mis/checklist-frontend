@@ -468,16 +468,18 @@ function DelegationDataPage() {
       if (isChecked) {
         newSelected.add(id);
         setStatusData((prevStatus) => ({ ...prevStatus, [id]: "Done" }));
-        
-        // Pre-fill remark with the latest from history
-        if (delegation_done && Array.isArray(delegation_done)) {
-          const latestTask = delegation_done.find(d => d.task_id === id);
-          if (latestTask && latestTask.reason) {
-            setRemarksData(prevRemarks => ({
-              ...prevRemarks,
-              [id]: latestTask.reason
-            }));
-          }
+
+        const currentTask = delegation?.find((task) => task.task_id === id);
+        const latestTask = Array.isArray(delegation_done)
+          ? delegation_done.find((task) => task.task_id === id)
+          : null;
+        const existingRemark = currentTask?.remarks || latestTask?.reason || "";
+
+        if (existingRemark) {
+          setRemarksData(prevRemarks => ({
+            ...prevRemarks,
+            [id]: prevRemarks[id] ?? existingRemark
+          }));
         }
       } else {
         newSelected.delete(id);
@@ -495,7 +497,7 @@ function DelegationDataPage() {
 
       return newSelected;
     });
-  }, [delegation_done]);
+  }, [delegation, delegation_done]);
 
 
 
@@ -532,6 +534,51 @@ function DelegationDataPage() {
       reader.onerror = (error) => reject(error);
     });
   }, []);
+
+  const compressImageToBase64 = useCallback((file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDimension = 1280;
+          const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            reject(new Error("Unable to compress selected image"));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          let quality = 0.75;
+          let compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+          while (compressedBase64.length > 500 * 1024 && quality > 0.35) {
+            quality -= 0.1;
+            compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+          }
+
+          resolve(compressedBase64);
+        };
+        img.onerror = async () => {
+          try {
+            resolve(await fileToBase64(file));
+          } catch (error) {
+            reject(error);
+          }
+        };
+        img.src = reader.result;
+      };
+
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file);
+    });
+  }, [fileToBase64]);
 
   // Helper to get latest remark for display
   const getLatestRemark = useCallback((taskId) => {
@@ -745,18 +792,24 @@ const handleSubmit = async () => {
   try {
     console.log('🔄 Starting submission process...');
 
-    // Convert to base64 - but check file sizes first
+    // Convert selected images to compressed base64 only when the user submits.
     const selectedData = await Promise.all(
       selectedItemsArray.map(async (id) => {
         const item = delegation.find((x) => x.task_id === id);
         const file = uploadedImages[id];
 
         let base64Image = null;
-       if (file) {
-  base64Image = await fileToBase64(file);   // Always correct base64
-} else if (item.image) {
-  base64Image = null;   // Prevent backend confusion
-}
+        if (file) {
+          base64Image = await compressImageToBase64(file);
+        } else if (item.image) {
+          base64Image = item.image;
+        }
+
+        const finalRemarks =
+          remarksData[id] ??
+          item.remarks ??
+          getLatestRemark(id) ??
+          "";
 
 
         return {
@@ -771,7 +824,7 @@ const handleSubmit = async () => {
                  statusData[id] === "Partial Done" ? "partial_done" : 
                  statusData[id] === "Extend date" ? "extend" : null,
           next_extend_date: statusData[id] === "Extend date" ? nextTargetDate[id] : null,
-          reason: remarksData[id] || "",
+          reason: finalRemarks,
           image_base64: base64Image,
         };
       })
