@@ -744,41 +744,52 @@ function AccountDataPage() {
 
   const [uploadedImages, setUploadedImages] = useState({});
 
-  // Update the handleImageUpload function
-  const handleImageUpload = async (id, e) => {
+  const handleImageUpload = useCallback((id, e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setUploadedImages(prev => ({ ...prev, [id]: file }));
+  }, []);
 
-    // Create a preview URL for the image
-    const previewUrl = URL.createObjectURL(file);
+  const fileToBase64 = useCallback((file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  }, []);
 
-    // Update the uploadedImages state
-    setUploadedImages(prev => ({
-      ...prev,
-      [id]: {
-        file,
-        previewUrl
-      }
-    }));
-
-    // Also update the accountData if needed
-    setAccountData(prev =>
-      prev.map(item =>
-        item.task_id === id
-          ? { ...item, image: file }
-          : item
-      )
-    );
-  };
-
-const fileToBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = (error) => reject(error);
-  });
-};
+  const compressImageToBase64 = useCallback((file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDimension = 1280;
+          const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { reject(new Error("Unable to compress selected image")); return; }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          let quality = 0.75;
+          let compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+          while (compressedBase64.length > 500 * 1024 && quality > 0.35) {
+            quality -= 0.1;
+            compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+          }
+          resolve(compressedBase64);
+        };
+        img.onerror = async () => {
+          try { resolve(await fileToBase64(file)); } catch (error) { reject(error); }
+        };
+        img.src = reader.result;
+      };
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file);
+    });
+  }, [fileToBase64]);
 
 
   const toggleHistory = () => {
@@ -908,26 +919,24 @@ const handleSubmit = async () => {
 
   setIsSubmitting(true);
 
-  // 🔥 FIXED: Convert image to BASE64
-const submissionData = await Promise.all(
-  selectedItemsArray.map(async (id) => {
-    const item = checklist.find((acc) => acc.task_id === id);
-    const imageData = uploadedImages[id];
+  const submissionData = await Promise.all(
+    selectedItemsArray.map(async (id) => {
+      const item = checklist.find((acc) => acc.task_id === id);
+      const file = uploadedImages[id];
 
-    let finalBase64Image = null;
+      let finalBase64Image = null;
+      if (file) {
+        finalBase64Image = await compressImageToBase64(file);
+      }
 
-    if (imageData?.file) {
-      finalBase64Image = await fileToBase64(imageData.file); // <– FileReader se base64
-    }
-
-    return {
-      taskId: item.task_id,
-      status: additionalData[id] || "",
-      remarks: remarksData[id] || "",
-      image: finalBase64Image || item.image || null, // <– yahi backend ko milega
-    };
-  })
-);
+      return {
+        taskId: item.task_id,
+        status: additionalData[id] || "",
+        remarks: remarksData[id] || "",
+        image: finalBase64Image || item.image || null,
+      };
+    })
+  );
 
 
   console.log("Submission Data:", submissionData);
@@ -1624,64 +1633,18 @@ const submissionData = await Promise.all(
                               className="border border-gray-300 rounded-md px-2 py-1 w-full text-xs"
                             />
                             {/* Image Upload for Mobile */}
-                            <div className="space-y-1">
-                              {uploadedImages[account.task_id] || account.image ? (
-                                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
-                                  <img
-                                    src={
-                                      uploadedImages[account.task_id]?.previewUrl ||
-                                      (typeof account.image === 'string' ? account.image : '')
-                                    }
-                                    alt="Receipt"
-                                    className="h-10 w-10 object-cover rounded-md flex-shrink-0"
-                                  />
-                                  <div className="flex flex-col flex-1 min-w-0">
-                                    <span className="text-xs text-gray-600 truncate">
-                                      {uploadedImages[account.task_id]?.file.name ||
-                                        (account.image instanceof File ? account.image.name : "Uploaded")}
-                                    </span>
-                                    {uploadedImages[account.task_id] ? (
-                                      <span className="text-xs text-green-600">Ready to upload</span>
-                                    ) : (
-                                      <button
-                                        className="text-xs text-purple-600 hover:text-purple-800 text-left"
-                                        onClick={() => window.open(account.image, "_blank")}
-                                      >
-                                        View Image
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              ) : (
-                                <label
-                                  className={`flex items-center justify-center gap-2 cursor-pointer ${
-                                    account.require_attachment?.toUpperCase() === "YES" &&
-                                    additionalData[account.task_id] !== "No"
-                                      ? "text-red-600 font-medium bg-red-50"
-                                      : "text-purple-600 bg-purple-50"
-                                  } hover:bg-opacity-80 px-3 py-2 rounded-md border ${
-                                    account.require_attachment?.toUpperCase() === "YES" &&
-                                    additionalData[account.task_id] !== "No"
-                                      ? "border-red-300"
-                                      : "border-purple-300"
-                                  }`}
-                                >
-                                  <Upload className="h-4 w-4 flex-shrink-0" />
-                                  <span className="text-xs">
-                                    {account.require_attachment?.toUpperCase() === "YES" &&
-                                    additionalData[account.task_id] !== "No"
-                                      ? "Upload Image (Required)"
-                                      : "Upload Image"}
-                                  </span>
-                                  <input
-                                    type="file"
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={(e) => handleImageUpload(account.task_id, e)}
-                                  />
-                                </label>
-                              )}
-                            </div>
+                            <label className="cursor-pointer text-purple-600 hover:text-purple-800 flex items-center gap-1">
+                              <Upload className="h-4 w-4 flex-shrink-0" />
+                              <span className="text-xs font-bold uppercase">
+                                {uploadedImages[account.task_id] ? "Done" : "Upload"}
+                              </span>
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={(e) => handleImageUpload(account.task_id, e)}
+                              />
+                            </label>
                           </div>
                         )}
                       </div>
@@ -1920,57 +1883,30 @@ const submissionData = await Promise.all(
                               </div>
                             )}
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-green-50">
-                            {uploadedImages[account.task_id] || account.image ? (
-                              <div className="flex items-center">
-                                <img
-                                  src={
-                                    uploadedImages[account.task_id]?.previewUrl ||
-                                    (typeof account.image === 'string' ? account.image : '')
-                                  }
-                                  alt="Receipt"
-                                  className="h-8 w-8 sm:h-10 sm:w-10 object-cover rounded-md mr-2 flex-shrink-0"
-                                />
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-xs text-gray-500 break-words">
-                                    {uploadedImages[account.task_id]?.file.name ||
-                                      (account.image instanceof File ? account.image.name : "Uploaded")}
-                                  </span>
-                                  {uploadedImages[account.task_id] ? (
-                                    <span className="text-xs text-green-600">Ready</span>
-                                  ) : (
-                                    <button
-                                      className="text-xs text-purple-600 hover:text-purple-800 break-words"
-                                      onClick={() => window.open(account.image, "_blank")}
-                                    >
-                                      View
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <label
-                                className={`flex items-center cursor-pointer ${account.require_attachment?.toUpperCase() === "YES" &&
-                                  additionalData[account.task_id] !== "No" // Only show as required if status is not "No"
-                                  ? "text-red-600 font-medium"
-                                  : "text-purple-600"
-                                  } hover:text-purple-800`}
-                              >
-                                <Upload className="h-4 w-4 mr-1 flex-shrink-0" />
-                                <span className="text-xs break-words">
-                                  {account.require_attachment?.toUpperCase() === "YES" &&
-                                    additionalData[account.task_id] !== "No"
-                                    ? "Required*"
-                                    : "Upload"}
+                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-green-50 text-center">
+                            {isSelected ? (
+                              <label className="cursor-pointer text-purple-600 hover:text-purple-800 flex items-center justify-center gap-1">
+                                <Upload className="h-4 w-4 flex-shrink-0" />
+                                <span className="text-[10px] font-bold uppercase">
+                                  {uploadedImages[account.task_id] ? "Done" : "Upload"}
                                 </span>
                                 <input
                                   type="file"
                                   className="hidden"
                                   accept="image/*"
                                   onChange={(e) => handleImageUpload(account.task_id, e)}
-                                  disabled={!isSelected}
                                 />
                               </label>
+                            ) : (
+                              account.image && (
+                                <button
+                                  onClick={() => window.open(account.image, "_blank")}
+                                  className="text-purple-500 hover:text-purple-700"
+                                  title="View Proof"
+                                >
+                                  <Upload className="h-4 w-4" />
+                                </button>
+                              )
                             )}
                           </td>
                           <td className="px-2 sm:px-3 py-2 sm:py-4">
