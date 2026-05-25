@@ -36,9 +36,9 @@ export const uniqueDelegationTaskData = createAsyncThunk(
 
 export const deleteChecklistTask = createAsyncThunk(
   'delete/checklistTask',
-  async (taskIds, { rejectWithValue }) => {
+  async (deletePayload, { rejectWithValue }) => {
     try {
-      return await deleteChecklistTasksApi(taskIds);
+      return await deleteChecklistTasksApi(deletePayload);
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -153,8 +153,9 @@ const quickTaskSlice = createSlice({
       })
       .addCase(deleteChecklistTask.fulfilled, (state, action) => {
         state.loading = false;
+        const deletedTaskIds = (action.payload?.deletedTaskIds || []).map(String);
         state.quickTask = state.quickTask.filter(
-          task => !action.payload.includes(task.task_id)
+          task => !deletedTaskIds.includes(String(task.task_id))
         );
       })
       .addCase(deleteChecklistTask.rejected, (state, action) => {

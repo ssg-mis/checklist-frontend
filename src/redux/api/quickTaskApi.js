@@ -33,11 +33,11 @@ export const fetchDelegationData = async (page = 0, pageSize = 50, nameFilter = 
 // =========================
 // DELETE CHECKLIST TASKS
 // =========================
-export const deleteChecklistTasksApi = async (tasks) => {
+export const deleteChecklistTasksApi = async ({ tasks, deleteScope }) => {
   const res = await fetch(`${API_BASE}/tasks/delete-checklist`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tasks }),
+    body: JSON.stringify({ tasks, deleteScope }),
   });
 
   return res.json();

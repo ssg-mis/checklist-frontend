@@ -24,6 +24,8 @@ export default function QuickTask() {
   });
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteScope, setDeleteScope] = useState('past');
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
@@ -167,12 +169,27 @@ useEffect(() => {
   // Delete
   const handleDeleteSelected = async () => {
     if (selectedTasks.length === 0) return;
+    setDeleteScope('past');
+    setDeleteDialogOpen(true);
+  };
 
+  const handleCancelDelete = () => {
+    if (isDeleting) return;
+    setDeleteDialogOpen(false);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (selectedTasks.length === 0) return;
     setIsDeleting(true);
     try {
-      console.log("Deleting rows:", selectedTasks);
-      await dispatch(deleteChecklistTask(selectedTasks)).unwrap();
+      await dispatch(deleteChecklistTask({
+        tasks: selectedTasks,
+        deleteScope
+      })).unwrap();
+      dispatch(resetChecklistPagination());
+      dispatch(uniqueChecklistTaskData({ page: 0, pageSize: 50, nameFilter, append: false }));
       setSelectedTasks([]);
+      setDeleteDialogOpen(false);
     } catch (error) {
       console.error("Failed to delete tasks:", error);
       setError("Failed to delete tasks");
@@ -366,6 +383,78 @@ const filteredChecklistTasks = quickTask.filter(task => {
 
   return (
     <AdminLayout>
+      {deleteDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-lg bg-white shadow-xl border border-gray-200">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Delete selected checklist tasks</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {selectedTasks.length} task(s) selected
+                </p>
+              </div>
+              <button
+                onClick={handleCancelDelete}
+                disabled={isDeleting}
+                className="rounded-md p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3 px-5 py-4">
+              <label className="flex cursor-pointer items-start gap-3 rounded-md border border-gray-200 p-3 hover:bg-gray-50">
+                <input
+                  type="radio"
+                  name="deleteScope"
+                  value="past"
+                  checked={deleteScope === 'past'}
+                  onChange={(e) => setDeleteScope(e.target.value)}
+                  className="mt-1 text-purple-600 focus:ring-purple-500"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-gray-900">Today and previous pending tasks</span>
+                  <span className="block text-sm text-gray-500">Deletes matching pending rows up to today's date only.</span>
+                </span>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-md border border-gray-200 p-3 hover:bg-gray-50">
+                <input
+                  type="radio"
+                  name="deleteScope"
+                  value="future"
+                  checked={deleteScope === 'future'}
+                  onChange={(e) => setDeleteScope(e.target.value)}
+                  className="mt-1 text-purple-600 focus:ring-purple-500"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-gray-900">Future pending tasks</span>
+                  <span className="block text-sm text-gray-500">Deletes matching pending rows after today's date only.</span>
+                </span>
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-gray-200 px-5 py-4">
+              <button
+                onClick={handleCancelDelete}
+                disabled={isDeleting}
+                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                <Trash2 size={16} />
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="sticky top-0 z-30 bg-white pb-4 border-b border-gray-200">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
@@ -614,7 +703,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           <div className="flex items-center gap-2">
                             <input
                               type="checkbox"
-                              checked={selectedTasks.includes(task)}
+                              checked={selectedTasks.some(selectedTask => selectedTask.task_id === task.task_id)}
                               onChange={() => handleCheckboxChange(task)}
                               className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                             />
@@ -818,7 +907,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                             <input
                               type="checkbox"
-                              checked={selectedTasks.includes(task)}
+                              checked={selectedTasks.some(selectedTask => selectedTask.task_id === task.task_id)}
                               onChange={() => handleCheckboxChange(task)}
                               className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                             />
