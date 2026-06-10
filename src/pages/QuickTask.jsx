@@ -432,6 +432,21 @@ const filteredChecklistTasks = quickTask.filter(task => {
                   <span className="block text-sm text-gray-500">Deletes matching pending rows after today's date only.</span>
                 </span>
               </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-md border border-gray-200 p-3 hover:bg-gray-50">
+                <input
+                  type="radio"
+                  name="deleteScope"
+                  value="all"
+                  checked={deleteScope === 'all'}
+                  onChange={(e) => setDeleteScope(e.target.value)}
+                  className="mt-1 text-purple-600 focus:ring-purple-500"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-gray-900">Delete entire task</span>
+                  <span className="block text-sm text-gray-500">Permanently deletes all rows for this task (past, future, and completed).</span>
+                </span>
+              </label>
             </div>
 
             <div className="flex justify-end gap-3 border-t border-gray-200 px-5 py-4">
