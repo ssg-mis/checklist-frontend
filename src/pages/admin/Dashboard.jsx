@@ -551,11 +551,11 @@ useEffect(() => {
           uniqueStaff = await getStaffNamesByDepartmentApi(departmentFilter);
         } catch (error) {
           console.error('Error fetching staff by department:', error);
-          uniqueStaff = [...new Set(data.map((task) => task.name).filter((name) => name && name.trim() !== ""))];
+          uniqueStaff = [...new Set(data.flatMap((task) => (task.name || "").split(",").map(n => n.trim()).filter(n => n !== "")))];
         }
       } else {
         // Default behavior - extract from task data
-        uniqueStaff = [...new Set(data.map((task) => task.name).filter((name) => name && name.trim() !== ""))];
+        uniqueStaff = [...new Set(data.flatMap((task) => (task.name || "").split(",").map(n => n.trim()).filter(n => n !== "")))];
       }
 
       // For non-admin users, always ensure current user appears in staff dropdown
@@ -570,7 +570,7 @@ useEffect(() => {
       // SECOND: Apply dashboard staff filter ONLY if not "all"
       if (dashboardStaffFilter !== "all") {
         filteredData = filteredData.filter(
-          (task) => task.name && task.name.toLowerCase() === dashboardStaffFilter.toLowerCase(),
+          (task) => task.name && task.name.split(",").map(n => n.trim().toLowerCase()).includes(dashboardStaffFilter.toLowerCase())
         )
       }
 
@@ -656,22 +656,25 @@ useEffect(() => {
           const taskDate = parseTaskStartDate(task.originalTaskStartDate)
           // Only include tasks up to today for staff calculations
           if (taskDate && taskDate <= today) {
-            const assignedTo = task.assignedTo || "Unassigned"
-            if (!staffMap.has(assignedTo)) {
-              staffMap.set(assignedTo, {
-                name: assignedTo,
-                totalTasks: 0,
-                completedTasks: 0,
-                pendingTasks: 0,
-              })
-            }
-            const staff = staffMap.get(assignedTo)
-            staff.totalTasks++
-            if (task.status === "completed") {
-              staff.completedTasks++
-            } else {
-              staff.pendingTasks++
-            }
+            const names = (task.assignedTo || "Unassigned").split(",").map(n => n.trim()).filter(n => n !== "")
+            const staffNames = names.length > 0 ? names : ["Unassigned"]
+            staffNames.forEach((name) => {
+              if (!staffMap.has(name)) {
+                staffMap.set(name, {
+                  name,
+                  totalTasks: 0,
+                  completedTasks: 0,
+                  pendingTasks: 0,
+                })
+              }
+              const staff = staffMap.get(name)
+              staff.totalTasks++
+              if (task.status === "completed") {
+                staff.completedTasks++
+              } else {
+                staff.pendingTasks++
+              }
+            })
           }
         })
       }
@@ -766,7 +769,7 @@ useEffect(() => {
   // Update available staff when department filter changes
   useEffect(() => {
     const updateStaffList = async () => {
-      if (dashboardType === 'checklist' && departmentFilter !== 'all') {
+      if (dashboardType === 'checklist') {
         try {
           const staffNames = await getStaffNamesByDepartmentApi(departmentFilter);
           setAvailableStaff(staffNames || []);
@@ -774,9 +777,6 @@ useEffect(() => {
           console.error('Error fetching staff by department:', error);
           setAvailableStaff([]);
         }
-      } else if (dashboardType === 'checklist' && departmentFilter === 'all') {
-        // When "all" is selected, reset to empty and let fetchDepartmentData populate it
-        // Don't clear it here as it will be populated by fetchDepartmentData
       }
     };
 

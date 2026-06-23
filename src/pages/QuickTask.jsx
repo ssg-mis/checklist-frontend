@@ -298,6 +298,10 @@ const allNames = [
 ].filter(name => name && typeof name === 'string' && name.trim() !== '')
  .sort();
 
+const allDepartments = [
+  ...new Set(quickTask.map(t => t.department).filter(d => d && d.trim() !== ''))
+].sort();
+
   // Keep allFrequencies as is (or modify if you want to fetch frequencies from elsewhere)
   const allFrequencies = [
     ...new Set([
@@ -779,42 +783,63 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           <div>
                             <span className="text-gray-500">Name:</span>{' '}
                             {editingTaskId === task.task_id ? (
-                              <input
-                                type="text"
+                              <select
                                 value={editFormData.name}
                                 onChange={(e) => handleInputChange('name', e.target.value)}
                                 className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs mt-1"
-                              />
+                              >
+                                <option value="">Select name</option>
+                                {editFormData.name && !allNames.includes(editFormData.name) && (
+                                  <option value={editFormData.name}>{editFormData.name}</option>
+                                )}
+                                {allNames.map(name => (
+                                  <option key={name} value={name}>{name}</option>
+                                ))}
+                              </select>
                             ) : (
                               <span className="font-medium">{task.name || "—"}</span>
                             )}
                           </div>
-                          
+
                           {/* Department */}
                           <div>
                             <span className="text-gray-500">Dept:</span>{' '}
                             {editingTaskId === task.task_id ? (
-                              <input
-                                type="text"
+                              <select
                                 value={editFormData.department}
                                 onChange={(e) => handleInputChange('department', e.target.value)}
                                 className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs mt-1"
-                              />
+                              >
+                                <option value="">Select department</option>
+                                {editFormData.department && !allDepartments.includes(editFormData.department) && (
+                                  <option value={editFormData.department}>{editFormData.department}</option>
+                                )}
+                                {allDepartments.map(dept => (
+                                  <option key={dept} value={dept}>{dept}</option>
+                                ))}
+                              </select>
                             ) : (
                               <span className="font-medium">{task.department || "—"}</span>
                             )}
                           </div>
-                          
+
                           {/* Given By */}
                           <div>
                             <span className="text-gray-500">Given By:</span>{' '}
                             {editingTaskId === task.task_id ? (
-                              <input
-                                type="text"
+                              <select
                                 value={editFormData.given_by}
                                 onChange={(e) => handleInputChange('given_by', e.target.value)}
                                 className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs mt-1"
-                              />
+                              >
+                                <option value="">Select person</option>
+                                {editFormData.given_by && !allNames.includes(editFormData.given_by) && (
+                                  <option value={editFormData.given_by}>{editFormData.given_by}</option>
+                                )}
+                                {allNames.map(name => (
+                                  <option key={name} value={name}>{name}</option>
+                                ))}
+                              </select>
                             ) : (
                               <span className="font-medium">{task.given_by || "—"}</span>
                             )}
@@ -931,12 +956,19 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           {/* Department */}
                           <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {editingTaskId === task.task_id ? (
-                              <input
-                                type="text"
+                              <select
                                 value={editFormData.department}
                                 onChange={(e) => handleInputChange('department', e.target.value)}
                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                              />
+                              >
+                                <option value="">Select department</option>
+                                {editFormData.department && !allDepartments.includes(editFormData.department) && (
+                                  <option value={editFormData.department}>{editFormData.department}</option>
+                                )}
+                                {allDepartments.map(dept => (
+                                  <option key={dept} value={dept}>{dept}</option>
+                                ))}
+                              </select>
                             ) : (
                               task.department
                             )}
@@ -945,12 +977,19 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           {/* Given By */}
                           <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm text-gray-500">
                             {editingTaskId === task.task_id ? (
-                              <input
-                                type="text"
+                              <select
                                 value={editFormData.given_by}
                                 onChange={(e) => handleInputChange('given_by', e.target.value)}
                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                              />
+                              >
+                                <option value="">Select person</option>
+                                {editFormData.given_by && !allNames.includes(editFormData.given_by) && (
+                                  <option value={editFormData.given_by}>{editFormData.given_by}</option>
+                                )}
+                                {allNames.map(name => (
+                                  <option key={name} value={name}>{name}</option>
+                                ))}
+                              </select>
                             ) : (
                               task.given_by
                             )}
@@ -959,12 +998,19 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           {/* Name */}
                           <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm text-gray-500">
                             {editingTaskId === task.task_id ? (
-                              <input
-                                type="text"
+                              <select
                                 value={editFormData.name}
                                 onChange={(e) => handleInputChange('name', e.target.value)}
                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                              />
+                              >
+                                <option value="">Select name</option>
+                                {editFormData.name && !allNames.includes(editFormData.name) && (
+                                  <option value={editFormData.name}>{editFormData.name}</option>
+                                )}
+                                {allNames.map(name => (
+                                  <option key={name} value={name}>{name}</option>
+                                ))}
+                              </select>
                             ) : (
                               task.name
                             )}

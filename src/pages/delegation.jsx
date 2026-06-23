@@ -1188,10 +1188,10 @@ const handleSubmit = async () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6 p-2 sm:p-4 pb-20">
+      <div className="space-y-2 p-2 pb-20">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-purple-700">
+            <h1 className="text-base sm:text-lg font-bold tracking-tight text-purple-700">
               {CONFIG.PAGE_CONFIG.title}
             </h1>
             <p className="text-gray-500 text-sm italic">Unified view for tasks and approvals</p>
@@ -1368,9 +1368,9 @@ const handleSubmit = async () => {
               <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Seq No.</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin Remarks</th>
-                    <th className="px-6 py-3 text-left">
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Seq No.</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin Remarks</th>
+                    <th className="px-3 py-2 text-left">
                       <input
                         type="checkbox"
                         disabled={normalizedRole === 'pc role'}
@@ -1384,14 +1384,14 @@ const handleSubmit = async () => {
                         }
                       />
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Remarks</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Target Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Submit Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Task ID</th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Proof</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Remarks</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Target Date</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Submit Date</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Task ID</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Proof</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -1405,8 +1405,8 @@ const handleSubmit = async () => {
                       
                       return (
                         <tr key={item.unifiedId} className={`${isSelected ? (isApproval ? "bg-green-50" : "bg-purple-50") : isAlreadyApproved ? "bg-gray-50 opacity-60" : "hover:bg-gray-50"} ${rowColorClass} transition-colors`}>
-                          <td className="px-6 py-4 text-xs text-gray-500">{index + 1}</td>
-                          <td className="px-6 py-4 min-w-[180px]">
+                          <td className="px-3 py-2 text-xs text-gray-500">{index + 1}</td>
+                          <td className="px-3 py-2 min-w-[180px]">
                               {isApproval ? (
                                 <div className="text-xs text-gray-500 italic">
                                   {item.adminremarks || "—"}
@@ -1465,7 +1465,7 @@ const handleSubmit = async () => {
                                 </div>
                               )}
                             </td>
-                          <td className="px-6 py-4">
+                          <td className="px-3 py-2">
                             {!isAlreadyApproved && (
                               <input
                                 type="checkbox"
@@ -1476,10 +1476,10 @@ const handleSubmit = async () => {
                               />
                             )}
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-3 py-2">
                             <StatusBadge status={isApproval ? item.status : 'pending'} adminDone={isApproval ? item.admin_done : null} type={item.unifiedType} />
                           </td>
-                          <td className="px-6 py-4 min-w-[200px]">
+                          <td className="px-3 py-2 min-w-[200px]">
                             {isSelected && normalizedRole !== 'pc role' ? (
                               <div className="space-y-2">
                                 {item.unifiedType === 'pending' && (
@@ -1567,21 +1567,21 @@ const handleSubmit = async () => {
                                </div>
                              )}
                           </td>
-                          <td className="px-6 py-4 text-xs text-gray-700">
+                          <td className="px-3 py-2 text-xs text-gray-700">
                             <div>{item.name}</div>
                             <div className="text-[10px] text-gray-400 capitalize">{item.department || item.given_by}</div>
                           </td>
-                          <td className="px-6 py-4 text-xs text-gray-800 min-w-[200px] max-w-[300px] wrap-break-word">
+                          <td className="px-3 py-2 text-xs text-gray-800 min-w-[200px] max-w-[300px] wrap-break-word">
                             {item.task_description}
                           </td>
-                          <td className="px-6 py-4 text-xs text-gray-600 whitespace-nowrap">
+                          <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
                             {formatDateTimeForDisplay(isApproval ? item.next_extend_date || item.planned_date : item.planned_date)}
                           </td>
-                          <td className="px-6 py-4 text-xs text-blue-600 font-medium whitespace-nowrap">
+                          <td className="px-3 py-2 text-xs text-blue-600 font-medium whitespace-nowrap">
                             {item.submission_date ? formatDateTimeForDisplay(item.submission_date) : "—"}
                           </td>
-                          <td className="px-6 py-4 text-xs font-medium text-gray-700">{item.task_id}</td>
-                          <td className="px-6 py-4 text-center">
+                          <td className="px-3 py-2 text-xs font-medium text-gray-700">{item.task_id}</td>
+                          <td className="px-3 py-2 text-center">
                             {isSelected && item.unifiedType === 'pending' ? (
                               <label className="cursor-pointer text-purple-600 hover:text-purple-800 flex items-center justify-center gap-1">
                                 <Upload size={14} />

@@ -557,10 +557,9 @@ function AccountDataPage() {
     return 'upcoming';
   };
 
-  // Check if checkbox should be enabled (only for today and overdue tasks)
   const isCheckboxEnabled = (taskStartDate) => {
     const status = getTaskStatus(taskStartDate);
-    return status === 'today' || status === 'overdue';
+    return status === 'today' || status === 'overdue' || status === 'upcoming';
   };
 
   const filteredHistoryData = useMemo(() => {
@@ -1283,51 +1282,51 @@ const handleSubmit = async () => {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             Task ID
                           </th>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             Department
                           </th>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             Given By
                           </th>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             Name
                           </th>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
                             Task Description
                           </th>
                           {userRole === "admin" && (
-                            <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 whitespace-nowrap">
+                            <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 whitespace-nowrap">
                               Admin Remarks
                             </th>
                           )}
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50 whitespace-nowrap">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50 whitespace-nowrap">
                             Task End Date
                           </th>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             Freq
                           </th>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             Reminders
                           </th>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             Attachment
                           </th>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-green-50 whitespace-nowrap">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-green-50 whitespace-nowrap">
                             Actual Date
                           </th>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50 whitespace-nowrap">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50 whitespace-nowrap">
                             Status
                           </th>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[120px]">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[120px]">
                             Remarks
                           </th>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-teal-50 min-w-[120px]">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-teal-50 min-w-[120px]">
                             Admin Reply
                           </th>
-                          <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             File
                           </th>
 
@@ -1337,27 +1336,27 @@ const handleSubmit = async () => {
                         {filteredHistoryData.length > 0 ? (
                           filteredHistoryData.map((history, index) => (
                             <tr key={index} className="hover:bg-gray-50">
-                              <td className="px-2 sm:px-3 py-2 sm:py-4">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2">
                                 <div className="text-xs sm:text-sm font-medium text-gray-900 break-words">
                                   {history.task_id || "—"}
                                 </div>
                               </td>
-                              <td className="px-2 sm:px-3 py-2 sm:py-4">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words">{history.department || "—"}</div>
                               </td>
-                              <td className="px-2 sm:px-3 py-2 sm:py-4">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words">{history.given_by || "—"}</div>
                               </td>
-                              <td className="px-2 sm:px-3 py-2 sm:py-4">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words">{history.name || "—"}</div>
                               </td>
-                              <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[150px]">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2 min-w-[150px]">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words" title={history.task_description}>
                                   {history.task_description || "—"}
                                 </div>
                               </td>
                               {userRole === "admin" && (
-                                <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50">
+                                <td className="px-2 sm:px-3 py-1 sm:py-2 bg-purple-50">
                                   {history.admin_done !== 'Done' ? (
                                     <input
                                       type="text"
@@ -1374,21 +1373,21 @@ const handleSubmit = async () => {
                                   )}
                                 </td>
                               )}
-                             <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
+                             <td className="px-2 sm:px-3 py-1 sm:py-2 bg-yellow-50">
   <div className="text-xs sm:text-sm text-gray-900 break-words">
     {account.task_start_date || "—"}
   </div>
 </td>
-                              <td className="px-2 sm:px-3 py-2 sm:py-4">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words">{history.frequency || "—"}</div>
                               </td>
-                              <td className="px-2 sm:px-3 py-2 sm:py-4">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words">{history.enable_reminder || "—"}</div>
                               </td>
-                              <td className="px-2 sm:px-3 py-2 sm:py-4">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words">{history.require_attachment || "—"}</div>
                               </td>
-                              <td className="px-2 sm:px-3 py-2 sm:py-4 bg-green-50">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2 bg-green-50">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words">
                                   {history.submission_date ? (() => {
                                     const dateObj = new Date(history.submission_date);
@@ -1412,7 +1411,7 @@ const handleSubmit = async () => {
                                   })() : "—"}
                                 </div>
                               </td>
-                              <td className="px-2 sm:px-3 py-2 sm:py-4 bg-blue-50">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2 bg-blue-50">
                                 <span
                                   className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full break-words ${history.status === "Yes"
                                     ? "bg-green-100 text-green-800"
@@ -1424,17 +1423,17 @@ const handleSubmit = async () => {
                                   {history.status || "—"}
                                 </span>
                               </td>
-                              <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[120px]">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2 bg-purple-50 min-w-[120px]">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words" title={history.remark}>
                                   {history.remark || "—"}
                                 </div>
                               </td>
-                              <td className="px-2 sm:px-3 py-2 sm:py-4 bg-teal-50 min-w-[120px]">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2 bg-teal-50 min-w-[120px]">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words">
                                   {history.admin_reply || "—"}
                                 </div>
                               </td>
-                              <td className="px-2 sm:px-3 py-2 sm:py-4">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2">
                                 {history.image ? (
                                   <a
                                     href={history.image}
@@ -1494,14 +1493,14 @@ const handleSubmit = async () => {
               style={{ maxHeight: 'calc(100vh - 280px)' }}
             >
               {/* Mobile Card View */}
-              <div className="sm:hidden space-y-3 p-3">
+              <div className="sm:hidden space-y-2 p-2">
                 {filteredAccountData.length > 0 ? (
                   filteredAccountData.map((account, index) => {
                     const isSelected = selectedItems.has(account.task_id);
                     const taskStatus = getTaskStatus(account.task_start_date);
                     const checkboxEnabled = isCheckboxEnabled(account.task_start_date);
                     return (
-                      <div key={index} className={`bg-white border rounded-lg p-3 shadow-sm ${taskStatus === 'upcoming' ? "border-blue-300 bg-blue-50" : taskStatus === 'overdue' ? "border-red-300 bg-red-50" : "border-gray-200"}`}>
+                      <div key={index} className={`bg-white border rounded-lg p-2 shadow-sm ${taskStatus === 'upcoming' ? "border-blue-300 bg-blue-50" : taskStatus === 'overdue' ? "border-red-300 bg-red-50" : "border-gray-200"}`}>
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex items-center gap-2">
                             {(userRole === "user" || userRole === "admin" || userRole === "super_admin") && (
@@ -1661,17 +1660,17 @@ const handleSubmit = async () => {
               <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-16">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-16">
                       Seq. No.
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                       Admin Reply
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Task Status
                     </th>
                     {(userRole === "user" || userRole === "admin" || userRole === "super_admin") && (
-                      <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                      <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
                         <input
                           type="checkbox"
                           className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
@@ -1688,40 +1687,40 @@ const handleSubmit = async () => {
                         />
                       </th>
                     )}
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Status
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                       Remarks
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Upload Image
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Task ID
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Department
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Given By
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Name
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
                       Task Description
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50 whitespace-nowrap">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50 whitespace-nowrap">
                       Task End Date
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Freq
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Reminders
                     </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Attachment
                     </th>
                   </tr>
@@ -1735,12 +1734,12 @@ const handleSubmit = async () => {
                       const checkboxEnabled = isCheckboxEnabled(account.task_start_date);
                       return (
                         <tr key={index} className={`${isSelected ? "bg-purple-50" : taskStatus === 'upcoming' ? "bg-blue-50" : taskStatus === 'overdue' ? "bg-red-50" : ""} hover:bg-gray-50`}>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4 w-16">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2 w-16">
                             <div className="text-xs sm:text-sm font-medium text-gray-900 text-center">
                               {sequenceNumber}
                             </div>
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-teal-50 min-w-[120px]">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2 bg-teal-50 min-w-[120px]">
                             <div className="space-y-1">
                               {userRole === "super_admin" ? (
                                 adminRemarksInput[account.task_id] !== undefined ? (
@@ -1787,7 +1786,7 @@ const handleSubmit = async () => {
                               )}
                             </div>
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                               taskStatus === 'today' 
                                 ? "bg-green-100 text-green-800" 
@@ -1801,7 +1800,7 @@ const handleSubmit = async () => {
                             </span>
                           </td>
                           {(userRole === "user" || userRole === "admin" || userRole === "super_admin") && (
-                            <td className="px-2 sm:px-3 py-2 sm:py-4 w-12">
+                            <td className="px-2 sm:px-3 py-1 sm:py-2 w-12">
                               <input
                                 type="checkbox"
                                 className={`h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 ${!checkboxEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1812,7 +1811,7 @@ const handleSubmit = async () => {
                               />
                             </td>
                           )}
-                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2 bg-yellow-50">
                             <select
                               disabled={!isSelected}
                               value={additionalData[account.task_id] || ""}
@@ -1833,7 +1832,7 @@ const handleSubmit = async () => {
                               <option value="No">No</option>
                             </select>
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-orange-50 min-w-[120px]">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2 bg-orange-50 min-w-[120px]">
                             {isSelected ? (
                               <input
                                 type="text"
@@ -1883,7 +1882,7 @@ const handleSubmit = async () => {
                               </div>
                             )}
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-green-50 text-center">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2 bg-green-50 text-center">
                             {isSelected ? (
                               <label className="cursor-pointer text-purple-600 hover:text-purple-800 flex items-center justify-center gap-1">
                                 <Upload className="h-4 w-4 flex-shrink-0" />
@@ -1909,35 +1908,35 @@ const handleSubmit = async () => {
                               )
                             )}
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2">
                             <div className="text-xs sm:text-sm text-gray-900 break-words">{account.task_id || "—"}</div>
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2">
                             <div className="text-xs sm:text-sm text-gray-900 break-words">{account.department || "—"}</div>
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2">
                             <div className="text-xs sm:text-sm text-gray-900 break-words">{account.given_by || "—"}</div>
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2">
                             <div className="text-xs sm:text-sm text-gray-900 break-words">{account.name || "—"}</div>
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[150px]">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2 min-w-[150px]">
                             <div className="text-xs sm:text-sm text-gray-900 break-words" title={account.task_description}>
                               {account.task_description || "—"}
                             </div>
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2 bg-yellow-50">
                             <div className="text-xs sm:text-sm text-gray-900 break-words">
                               {account.task_start_date || "—"}
                             </div>
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2">
                             <div className="text-xs sm:text-sm text-gray-900 break-words">{account.frequency || "—"}</div>
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2">
                             <div className="text-xs sm:text-sm text-gray-900 break-words">{account.enable_reminder || "—"}</div>
                           </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2">
                             <div className="text-xs sm:text-sm text-gray-900 break-words">{account.require_attachment || "—"}</div>
                           </td>
                         </tr>

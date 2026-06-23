@@ -1,0 +1,70 @@
+# Checklist Task Scheduling — Anchor Day Update
+
+## What Changed
+
+When an admin assigns a recurring task (monthly, quarterly, half-yearly, or yearly),
+the system now always remembers the original day the task was set for — called the "anchor day".
+
+Previously, if a task date fell on a holiday and was pushed forward, the next occurrence
+would start from the shifted date instead of the original one. Over time, the task date
+would keep drifting later and later in the month.
+
+Now, each occurrence always starts fresh from the anchor day. The shift only ever
+affects the current month — never the next one.
+
+
+## How It Works
+
+1. The admin picks a date, say the 1st of March. The anchor day is 1.
+
+2. Every month, the system checks if the anchor day is a working day.
+
+3. If it is — task is scheduled on that day. Done.
+
+4. If it is a holiday or Sunday — the system looks one day back, then two days back,
+   and so on, as long as it stays within the same month.
+
+5. If going back would cross into the previous month (this only happens when the
+   anchor is the 1st), the system goes forward instead — 2nd, 3rd, and so on —
+   until it finds a working day.
+
+6. The next month always resets back to the anchor day. The shift never carries over.
+
+
+## Example — Anchor Day is 1st
+
+  January 1  → Working day              → Task on 1st Jan
+  February 1 → Sunday                   → Goes forward → Task on 2nd Feb
+  March 1    → Working day              → Task on 1st Mar  (resets, not 2nd)
+  April 1    → Holiday, 2nd also off    → Goes forward → Task on 3rd Apr
+  May 1      → Working day              → Task on 1st May  (resets again)
+
+
+## Example — Anchor Day is 15th
+
+  August 15  → Independence Day         → Goes back → Task on 14th Aug
+  September 15 → Working day            → Task on 15th Sep  (resets, not 14th)
+  October 15 → Holiday, 14th also off   → Goes back → Task on 13th Oct
+  November 15 → Working day             → Task on 15th Nov  (resets)
+
+
+## Frequencies Covered
+
+  - Monthly
+  - Quarterly
+  - Half-Yearly
+  - Yearly
+
+Daily, weekly, and fortnightly tasks are not affected — they advance by a fixed
+number of days and do not need an anchor.
+
+
+## Where the Change Was Made
+
+  File: src/pages/admin/AssignTask.jsx
+
+  - New function: getAnchoredMonthlyDate()
+    Handles the back-then-forward logic for a given month.
+
+  - Updated: generateTasks() and handleSubmit()
+    Both the preview and the actual submit now use the new logic consistently.

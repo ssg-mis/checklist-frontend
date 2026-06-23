@@ -1,10 +1,10 @@
 "use client"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import { Search, CheckCircle2 } from "lucide-react"
+import { Search, CheckCircle2, RotateCcw } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
 import { useDispatch, useSelector } from "react-redux"
 import { checklistHistoryData } from "../../redux/slice/checklistSlice"
-import { postChecklistAdminDoneAPI } from "../../redux/api/checkListApi"
+import { postChecklistAdminDoneAPI, revertChecklistAdminDoneAPI } from "../../redux/api/checkListApi"
 import { postDelegationAdminDoneAPI } from "../../redux/api/delegationApi"
 import { uniqueDoerNameData } from "../../redux/slice/assignTaskSlice"
 import { delegationDoneData } from "../../redux/slice/delegationSlice"
@@ -22,7 +22,7 @@ function HistoryPage() {
   const [hasMoreHistory, setHasMoreHistory] = useState(true)
   const [initialHistoryLoading, setInitialHistoryLoading] = useState(false)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
-  const [approvalStatusFilter, setApprovalStatusFilter] = useState("pending") // 'all', 'pending', 'completed'
+  const [approvalStatusFilter, setApprovalStatusFilter] = useState("all") // 'all', 'pending', 'completed'
 
   // Admin approval states
   const [selectedHistoryItems, setSelectedHistoryItems] = useState([])
@@ -36,6 +36,7 @@ function HistoryPage() {
   })
   const [adminRemarks, setAdminRemarks] = useState({}) // New state for admin remarks
   const [adminReplyData, setAdminReplyData] = useState({}) // New state for admin reply
+  const [revertingTaskId, setRevertingTaskId] = useState(null)
 
   const { history } = useSelector((state) => state.checkList)
   const { delegation_done } = useSelector((state) => state.delegation)
@@ -129,7 +130,7 @@ function HistoryPage() {
     setSelectedMembers([])
     setStartDate("")
     setEndDate("")
-    setApprovalStatusFilter("pending") // Reset to pending
+    setApprovalStatusFilter("all")
   }
 
   // Handle checkbox selection for checklist admin approval
@@ -150,13 +151,13 @@ function HistoryPage() {
     }
   }
 
-  // Handle select all for checklist items without admin_done = 'Done'
   const handleSelectAll = (isChecked) => {
     if (isChecked) {
-      const pendingItems = filteredHistoryData
-        .filter(item => item.admin_done !== 'Done')
-        .map(item => ({ task_id: item.task_id }))
-      setSelectedHistoryItems(pendingItems)
+      setSelectedHistoryItems(
+        filteredHistoryData
+          .filter(item => item.admin_done !== 'Done')
+          .map(item => ({ task_id: item.task_id }))
+      )
     } else {
       setSelectedHistoryItems([])
     }
@@ -233,6 +234,24 @@ function HistoryPage() {
       setSuccessMessage(`Failed to mark tasks as done: ${error.message}`)
     } finally {
       setMarkingAsDone(false)
+    }
+  }
+
+  const handleRevert = async () => {
+    if (selectedHistoryItems.length === 0) return
+    if (!window.confirm(`Revert ${selectedHistoryItems.length} task(s) back to checklist?`)) return
+    setRevertingTaskId("bulk")
+    try {
+      const result = await revertChecklistAdminDoneAPI(selectedHistoryItems.map(i => i.task_id))
+      if (result.error) throw new Error(result.error.message || "Revert failed")
+      setSuccessMessage(`Successfully reverted ${selectedHistoryItems.length} task(s) to checklist!`)
+      setSelectedHistoryItems([])
+      dispatch(checklistHistoryData(1))
+      setTimeout(() => setSuccessMessage(""), 3000)
+    } catch (err) {
+      setSuccessMessage(`Failed to revert: ${err.message}`)
+    } finally {
+      setRevertingTaskId(null)
     }
   }
 
@@ -575,16 +594,26 @@ function HistoryPage() {
               </span>
             </div>
 
-            {/* Admin Approval Button */}
+            {/* Admin Approval + Revert Buttons */}
             {isSuperAdmin && activeTab === "checklist" && selectedHistoryItems.length > 0 && (
-              <button
-                onClick={() => handleMarkDone("checklist")}
-                disabled={markingAsDone}
-                className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
-              >
-                <CheckCircle2 className="h-3 w-3" />
-                {markingAsDone ? "..." : `Approve (${selectedHistoryItems.length})`}
-              </button>
+              <>
+                <button
+                  onClick={() => handleMarkDone("checklist")}
+                  disabled={markingAsDone}
+                  className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  {markingAsDone ? "..." : `Approve (${selectedHistoryItems.length})`}
+                </button>
+                <button
+                  onClick={handleRevert}
+                  disabled={revertingTaskId === "bulk"}
+                  className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50 flex items-center gap-1"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  {revertingTaskId === "bulk" ? "..." : `Revert (${selectedHistoryItems.length})`}
+                </button>
+              </>
             )}
 
             {isSuperAdmin && activeTab === "delegation" && selectedDelegationItems.length > 0 && (

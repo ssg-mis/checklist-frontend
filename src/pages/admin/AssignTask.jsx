@@ -219,10 +219,12 @@ export default function AssignTask() {
   const [workingDays, setWorkingDays] = useState([]);
   const [showImportModal, setShowImportModal] = useState(false);
   const [taskType, setTaskType] = useState(null); // 'checklist' or 'delegation'
+  const [alternateDayInterval, setAlternateDayInterval] = useState(2);
 
   const frequencies = [
     { value: "one-time", label: "One Time (No Recurrence)" },
     { value: "daily", label: "Daily" },
+    { value: "alternate-day", label: "Alternate Day" },
     { value: "weekly", label: "Weekly" },
     { value: "fortnightly", label: "Fortnightly" },
     { value: "monthly", label: "Monthly" },
@@ -340,6 +342,71 @@ useEffect(() => {
     return nextWorkingDay || null;
   };
 
+  const getAnchoredMonthlyDate = (anchorDay, year, month) => {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const clampedAnchor = Math.min(anchorDay, daysInMonth);
+
+    // Try anchor day, then go back (N-1, N-2...) staying in same month
+    for (let d = clampedAnchor; d >= 1; d--) {
+      const candidateStr = formatDateToDDMMYYYY(new Date(year, month, d));
+      if (workingDays.includes(candidateStr)) return candidateStr;
+    }
+
+    // All days from anchor back to 1st are holidays — go forward from anchor+1
+    for (let d = clampedAnchor + 1; d <= daysInMonth; d++) {
+      const candidateStr = formatDateToDDMMYYYY(new Date(year, month, d));
+      if (workingDays.includes(candidateStr)) return candidateStr;
+    }
+
+    return null; // no working day in this month
+  };
+
+  const getAnchoredWeeklyDate = (anchorDate) => {
+    // Try anchor day, then go back up to 6 days (within same 7-day window)
+    for (let d = 0; d <= 6; d++) {
+      const candidateStr = formatDateToDDMMYYYY(addDays(anchorDate, -d));
+      if (workingDays.includes(candidateStr)) return candidateStr;
+    }
+
+    // All days going back are holidays — go forward from anchor+1
+    for (let d = 1; d <= 6; d++) {
+      const candidateStr = formatDateToDDMMYYYY(addDays(anchorDate, d));
+      if (workingDays.includes(candidateStr)) return candidateStr;
+    }
+
+    return null;
+  };
+
+  const getAnchoredFortnightlyDate = (anchorDate) => {
+    // Try anchor day, then go back up to 13 days (within same 14-day window)
+    for (let d = 0; d <= 13; d++) {
+      const candidateStr = formatDateToDDMMYYYY(addDays(anchorDate, -d));
+      if (workingDays.includes(candidateStr)) return candidateStr;
+    }
+
+    // All days going back are holidays — go forward from anchor+1
+    for (let d = 1; d <= 13; d++) {
+      const candidateStr = formatDateToDDMMYYYY(addDays(anchorDate, d));
+      if (workingDays.includes(candidateStr)) return candidateStr;
+    }
+
+    return null;
+  };
+
+  const getAnchoredAlternateDayDate = (anchorDate, intervalDays) => {
+    // Try anchor, go back up to intervalDays-1 within the same window
+    for (let d = 0; d <= intervalDays - 1; d++) {
+      const candidateStr = formatDateToDDMMYYYY(addDays(anchorDate, -d));
+      if (workingDays.includes(candidateStr)) return candidateStr;
+    }
+    // All going back are holidays — go forward from anchor+1
+    for (let d = 1; d <= intervalDays - 1; d++) {
+      const candidateStr = formatDateToDDMMYYYY(addDays(anchorDate, d));
+      if (workingDays.includes(candidateStr)) return candidateStr;
+    }
+    return null;
+  };
+
   const findEndOfWeekDate = (date, weekNumber) => {
     const [targetDay, targetMonth, targetYear] = formatDateToDDMMYYYY(date)
       .split("/")
@@ -380,6 +447,9 @@ useEffect(() => {
   };
 
   const addTaskForSelectedDoers = (tasks, taskDateTimeStr) => {
+    const storedFrequency = formData.frequency === "alternate-day"
+      ? `alternate-day-${alternateDayInterval}`
+      : formData.frequency;
     tasks.push({
       description: formData.description,
       department: formData.department,
@@ -387,7 +457,7 @@ useEffect(() => {
       doer: getSelectedDoers().join(","),
       dueDate: taskDateTimeStr,
       status: "pending",
-      frequency: formData.frequency,
+      frequency: storedFrequency,
       enableReminders: formData.enableReminders,
       requireAttachment: formData.requireAttachment,
     });
@@ -429,6 +499,7 @@ useEffect(() => {
       const endDate = addYears(currentDate, 2); // Generate up to 2 years ahead
       let taskCount = 0;
       const maxTasks = 365; // Safety limit
+      const anchorDay = selectedDate.getDate();
 
       while (currentDate <= endDate && taskCount < maxTasks) {
         let taskDate;
@@ -440,41 +511,55 @@ useEffect(() => {
             currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 1);
             break;
 
-          case "weekly":
-            taskDate = findNextWorkingDay(currentDate);
-            if (!taskDate) break; // No more working days available
-            currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 7);
+          case "weekly": {
+            taskDate = getAnchoredWeeklyDate(currentDate);
+            if (!taskDate) break;
+            currentDate = addDays(currentDate, 7);
             break;
+          }
 
-          case "fortnightly":
-            taskDate = findNextWorkingDay(currentDate);
-            if (!taskDate) break; // No more working days available
-            currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 14);
+          case "fortnightly": {
+            taskDate = getAnchoredFortnightlyDate(currentDate);
+            if (!taskDate) break;
+            currentDate = addDays(currentDate, 14);
             break;
+          }
 
-          case "monthly":
-            taskDate = findNextWorkingDay(currentDate);
-            if (!taskDate) break; // No more working days available
-            currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
+          case "monthly": {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            taskDate = getAnchoredMonthlyDate(anchorDay, year, month);
+            if (!taskDate) break;
+            currentDate = new Date(year, month + 1, 1); // advance to 1st of next month
             break;
+          }
 
-          case "quarterly":
-            taskDate = findNextWorkingDay(currentDate);
-            if (!taskDate) break; // No more working days available
-            currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 3);
+          case "quarterly": {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            taskDate = getAnchoredMonthlyDate(anchorDay, year, month);
+            if (!taskDate) break;
+            currentDate = new Date(year, month + 3, 1);
             break;
+          }
 
-          case "half-yearly":
-            taskDate = findNextWorkingDay(currentDate);
-            if (!taskDate) break; // No more working days available
-            currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 6);
+          case "half-yearly": {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            taskDate = getAnchoredMonthlyDate(anchorDay, year, month);
+            if (!taskDate) break;
+            currentDate = new Date(year, month + 6, 1);
             break;
+          }
 
-          case "yearly":
-            taskDate = findNextWorkingDay(currentDate);
-            if (!taskDate) break; // No more working days available
-            currentDate = addYears(new Date(taskDate.split("/").reverse().join("-")), 1);
+          case "yearly": {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            taskDate = getAnchoredMonthlyDate(anchorDay, year, month);
+            if (!taskDate) break;
+            currentDate = new Date(year + 1, month, 1);
             break;
+          }
 
           case "end-of-1st-week":
           case "end-of-2nd-week":
@@ -492,6 +577,13 @@ useEffect(() => {
             if (!taskDate) break; // No more working days available
             currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
             break;
+
+          case "alternate-day": {
+            taskDate = getAnchoredAlternateDayDate(currentDate, alternateDayInterval);
+            if (!taskDate) break;
+            currentDate = addDays(currentDate, alternateDayInterval);
+            break;
+          }
 
           default:
             currentDate = endDate; // Exit loop for unknown frequencies
@@ -563,6 +655,7 @@ useEffect(() => {
         const endDate = addYears(currentDate, 2);
         let taskCount = 0;
         const maxTasks = 365;
+        const anchorDay = selectedDate.getDate();
 
         while (currentDate <= endDate && taskCount < maxTasks) {
           let taskDate;
@@ -573,36 +666,50 @@ useEffect(() => {
               if (!taskDate) break;
               currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 1);
               break;
-            case "weekly":
-              taskDate = findNextWorkingDay(currentDate);
+            case "weekly": {
+              taskDate = getAnchoredWeeklyDate(currentDate);
               if (!taskDate) break;
-              currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 7);
+              currentDate = addDays(currentDate, 7);
               break;
-            case "fortnightly":
-              taskDate = findNextWorkingDay(currentDate);
+            }
+            case "fortnightly": {
+              taskDate = getAnchoredFortnightlyDate(currentDate);
               if (!taskDate) break;
-              currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 14);
+              currentDate = addDays(currentDate, 14);
               break;
-            case "monthly":
-              taskDate = findNextWorkingDay(currentDate);
+            }
+            case "monthly": {
+              const year = currentDate.getFullYear();
+              const month = currentDate.getMonth();
+              taskDate = getAnchoredMonthlyDate(anchorDay, year, month);
               if (!taskDate) break;
-              currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
+              currentDate = new Date(year, month + 1, 1);
               break;
-            case "quarterly":
-              taskDate = findNextWorkingDay(currentDate);
+            }
+            case "quarterly": {
+              const year = currentDate.getFullYear();
+              const month = currentDate.getMonth();
+              taskDate = getAnchoredMonthlyDate(anchorDay, year, month);
               if (!taskDate) break;
-              currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 3);
+              currentDate = new Date(year, month + 3, 1);
               break;
-            case "half-yearly":
-              taskDate = findNextWorkingDay(currentDate);
+            }
+            case "half-yearly": {
+              const year = currentDate.getFullYear();
+              const month = currentDate.getMonth();
+              taskDate = getAnchoredMonthlyDate(anchorDay, year, month);
               if (!taskDate) break;
-              currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 6);
+              currentDate = new Date(year, month + 6, 1);
               break;
-            case "yearly":
-              taskDate = findNextWorkingDay(currentDate);
+            }
+            case "yearly": {
+              const year = currentDate.getFullYear();
+              const month = currentDate.getMonth();
+              taskDate = getAnchoredMonthlyDate(anchorDay, year, month);
               if (!taskDate) break;
-              currentDate = addYears(new Date(taskDate.split("/").reverse().join("-")), 1);
+              currentDate = new Date(year + 1, month, 1);
               break;
+            }
             case "end-of-1st-week":
             case "end-of-2nd-week":
             case "end-of-3rd-week":
@@ -618,6 +725,12 @@ useEffect(() => {
               if (!taskDate) break;
               currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
               break;
+            case "alternate-day": {
+              taskDate = getAnchoredAlternateDayDate(currentDate, alternateDayInterval);
+              if (!taskDate) break;
+              currentDate = addDays(currentDate, alternateDayInterval);
+              break;
+            }
             default:
               currentDate = endDate;
               break;
@@ -947,6 +1060,17 @@ useEffect(() => {
                         </div>
                       )}
                     </div>
+                    {(() => {
+                      if (!date || workingDays.length === 0) return null;
+                      const selectedStr = formatDateToDDMMYYYY(date);
+                      if (workingDays.includes(selectedStr)) return null;
+                      const resolved = getAnchoredMonthlyDate(date.getDate(), date.getFullYear(), date.getMonth());
+                      return (
+                        <p className="mt-1 text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">
+                          ⚠ This date is a holiday or non-working day. The first task will be scheduled on <strong>{resolved || "the nearest working day"}</strong> instead.
+                        </p>
+                      );
+                    })()}
                   </div>
 
                   {/* NEW: Time Picker */}
@@ -998,6 +1122,30 @@ useEffect(() => {
                             </option>
                           ))}
                       </select>
+                    )}
+
+                    {/* Alternate Day interval input */}
+                    {formData.frequency === "alternate-day" && (
+                      <div className="mt-2 space-y-1">
+                        <label className="text-xs font-medium text-purple-700">
+                          Every how many days?
+                        </label>
+                        <input
+                          type="number"
+                          min={2}
+                          max={30}
+                          value={alternateDayInterval}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 2;
+                            setAlternateDayInterval(Math.max(2, Math.min(30, val)));
+                          }}
+                          className="w-full rounded-md border border-purple-300 p-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                          placeholder="e.g. 2, 3, 4..."
+                        />
+                        <p className="text-xs text-gray-500">
+                          Task will repeat every {alternateDayInterval} day{alternateDayInterval > 1 ? "s" : ""} (nearest working day)
+                        </p>
+                      </div>
                     )}
                   </div>
                 </div>

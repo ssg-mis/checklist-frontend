@@ -75,6 +75,25 @@ export const postChecklistAdminDoneAPI = async (selectedItems) => {
 };
 
 // =======================================================
+// 4b️⃣ Revert Admin Done API (AWS Backend)
+// =======================================================
+export const revertChecklistAdminDoneAPI = async (task_id) => {
+  try {
+    const response = await fetch(`${BASE_URL}/admin-done-revert`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ task_id }),
+    });
+
+    const json = await response.json();
+    return json;
+  } catch (error) {
+    console.error("❌ Error Reverting Admin Done:", error);
+    return { error };
+  }
+};
+
+// =======================================================
 // 5️⃣ Send WhatsApp Notification API (Admin Only)
 // =======================================================
 export const sendChecklistWhatsAppAPI = async (selectedItems) => {
