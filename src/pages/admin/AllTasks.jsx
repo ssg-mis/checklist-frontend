@@ -518,6 +518,33 @@ const AllTasks = () => {
 
   return (
     <div className="space-y-6">
+      <style>{`
+        /* Desktop Compression to prevent horizontal scroll */
+        @media (min-width: 769px) {
+          table th {
+            padding: 0.25rem 0.35rem !important;
+            font-size: 0.7rem !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+          }
+          table td {
+            padding: 0.25rem 0.35rem !important;
+            font-size: 0.75rem !important;
+          }
+          table td > div, table td > span {
+            font-size: 0.75rem !important;
+          }
+          table th.min-w-\\[150px\\], table td.min-w-\\[150px\\],
+          table th.min-w-\\[120px\\], table td.min-w-\\[120px\\] {
+            min-width: 80px !important;
+            max-width: 150px !important;
+          }
+          table input[type="text"] {
+            font-size: 0.7rem !important;
+            padding: 0.25rem !important;
+          }
+        }
+      `}</style>
       {/* Existing header and logout button */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-purple-700">

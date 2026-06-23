@@ -25,8 +25,8 @@ export const checklistData = createAsyncThunk(
 export const checklistHistoryData = createAsyncThunk(
   "fetch/history",
   async (page = 1) => {
-    const historyData = await fetchChechListDataForHistory(page);
-    return { data: historyData, page };
+    const { data, totalCount } = await fetchChechListDataForHistory(page);
+    return { data, totalCount, page };
   }
 );
 
@@ -67,6 +67,8 @@ const checkListSlice = createSlice({
     error: null,
     hasMore: true,
     currentPage: 1,
+    totalCount: 0,
+    historyTotalCount: 0,
   },
 
   reducers: {},
@@ -83,17 +85,11 @@ const checkListSlice = createSlice({
 
       .addCase(checklistData.fulfilled, (state, action) => {
         state.loading = false;
-
-        if (action.payload.page === 1) {
-          state.checklist = action.payload.data;
-        } else {
-          state.checklist = [...state.checklist, ...action.payload.data];
-        }
-
+        // Always replace – frontend handles pagination by requesting specific pages
+        state.checklist = action.payload.data;
         state.currentPage = action.payload.page;
-
-        // Determine pagination
-        state.hasMore = state.checklist.length < action.payload.totalCount;
+        state.totalCount = action.payload.totalCount;
+        state.hasMore = action.payload.data.length === 50; // 50 = backend page size
       })
 
       .addCase(checklistData.rejected, (state, action) => {
@@ -112,12 +108,8 @@ const checkListSlice = createSlice({
 
       .addCase(checklistHistoryData.fulfilled, (state, action) => {
         state.loading = false;
-
-        if (action.payload.page === 1) {
-          state.history = action.payload.data;
-        } else {
-          state.history = [...state.history, ...action.payload.data];
-        }
+        state.history = action.payload.data;
+        state.historyTotalCount = action.payload.totalCount;
       })
 
       .addCase(checklistHistoryData.rejected, (state, action) => {

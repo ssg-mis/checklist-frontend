@@ -41,16 +41,14 @@ function AccountDataPage() {
   const [username, setUsername] = useState("")
   const [currentPagePending, setCurrentPagePending] = useState(1);
   const [currentPageHistory, setCurrentPageHistory] = useState(1);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMoreHistory, setHasMoreHistory] = useState(true);
-  const [initialHistoryLoading, setInitialHistoryLoading] = useState(false)
   const [isMobile, setIsMobile] = useState(false);
 
-  const { checklist, loading, history, hasMore, currentPage } = useSelector((state) => state.checkList);
+  const ITEMS_PER_PAGE = 50;
+
+  const { checklist, loading, history, hasMore, currentPage, totalCount, historyTotalCount } = useSelector((state) => state.checkList);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const tableContainerRef = useRef(null);
   const historyTableContainerRef = useRef(null);
 
@@ -59,12 +57,11 @@ function AccountDataPage() {
   // Track search for API calls
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
-  // Initial data load
+  // Initial data load - fetch all data at once
   useEffect(() => {
     dispatch(checklistData({ page: 1, search: '' }))
     dispatch(checklistHistoryData(1))
     dispatch(uniqueDoerNameData());
-
   }, [dispatch])
 
   // Debounce search term and re-fetch data
@@ -79,6 +76,7 @@ function AccountDataPage() {
   // Re-fetch data when debounced search changes
   useEffect(() => {
     dispatch(checklistData({ page: 1, search: debouncedSearch }));
+    setCurrentPagePending(1);
   }, [debouncedSearch, dispatch]);
 
   useEffect(() => {
@@ -91,59 +89,6 @@ function AccountDataPage() {
 
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  const handleScrollPending = useCallback(() => {
-    if (!tableContainerRef.current || loading || isFetchingMore || !hasMore || checklist.length === 0) return
-
-    const { scrollTop, scrollHeight, clientHeight } = tableContainerRef.current
-    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100
-
-    if (isNearBottom) {
-      setIsFetchingMore(true)
-      dispatch(checklistData({ page: currentPage + 1, search: debouncedSearch }))
-        .finally(() => setIsFetchingMore(false))
-    }
-  }, [loading, isFetchingMore, hasMore, currentPage, dispatch, checklist.length, debouncedSearch])
-
-  // Handle scroll for history
-  const handleScrollHistory = useCallback(() => {
-    if (!historyTableContainerRef.current || isLoadingMoreHistory || !hasMoreHistory || history.length === 0) return
-
-    const { scrollTop, scrollHeight, clientHeight } = historyTableContainerRef.current
-    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100
-
-    if (isNearBottom) {
-      setIsLoadingMoreHistory(true)
-      dispatch(checklistHistoryData(currentPageHistory + 1))
-        .then((result) => {
-          if (result.payload && result.payload.length < 50) {
-            setHasMoreHistory(false)
-          }
-          setCurrentPageHistory(prev => prev + 1)
-        })
-        .finally(() => setIsLoadingMoreHistory(false))
-    }
-  }, [isLoadingMoreHistory, hasMoreHistory, currentPageHistory, dispatch, history.length])
-
-  // Add scroll event listener
-  useEffect(() => {
-    const tableElement = tableContainerRef.current
-    if (tableElement && !showHistory) {
-      tableElement.addEventListener('scroll', handleScrollPending)
-      return () => tableElement.removeEventListener('scroll', handleScrollPending)
-    }
-  }, [handleScrollPending, showHistory])
-
-  useEffect(() => {
-    const historyTableElement = historyTableContainerRef.current
-    if (historyTableElement && showHistory) {
-      historyTableElement.addEventListener('scroll', handleScrollHistory)
-      return () => historyTableElement.removeEventListener('scroll', handleScrollHistory)
-    }
-  }, [handleScrollHistory, showHistory])
-
-
-  const ITEMS_PER_PAGE = 100;
 
   // NEW: Admin history selection states
   const [selectedHistoryItems, setSelectedHistoryItems] = useState([])
@@ -559,7 +504,21 @@ function AccountDataPage() {
 
   const isCheckboxEnabled = (taskStartDate) => {
     const status = getTaskStatus(taskStartDate);
-    return status === 'today' || status === 'overdue' || status === 'upcoming';
+    if (status === 'upcoming') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const taskDate = new Date(taskStartDate);
+      taskDate.setHours(0, 0, 0, 0);
+      
+      if (isNaN(taskDate.getTime())) return false;
+      
+      const diffTime = taskDate.getTime() - today.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      return diffDays <= 7;
+    }
+    return status === 'today' || status === 'overdue';
   };
 
   const filteredHistoryData = useMemo(() => {
@@ -618,9 +577,9 @@ function AccountDataPage() {
         return dateB - dateA // Sort newest first
       })
 
-    // Return only the items for current page
-    return filtered.slice(0, currentPageHistory * 50) // 50 items per page
-  }, [history, searchTerm, selectedMembers, startDate, endDate, currentPageHistory])
+    // Return all filtered items (pagination handled by Pagination component)
+    return filtered;
+  }, [history, searchTerm, selectedMembers, startDate, endDate])
 
 
   const getTaskStatistics = () => {
@@ -799,73 +758,79 @@ function AccountDataPage() {
   useEffect(() => {
     setCurrentPagePending(1);
     setCurrentPageHistory(1);
-  }, [searchTerm, selectedMembers, startDate, endDate, showHistory]);
+  }, [searchTerm, selectedMembers, startDate, endDate, showHistory, statusFilter, frequencyFilter]);
 
-  const LoadingIndicator = () => (
-    <div className="text-center py-4 bg-gray-50">
-      {isLoadingMore ? (
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500 mr-2"></div>
-          <span className="text-purple-600 text-sm">Loading more items...</span>
-        </div>
-      ) : null}
-    </div>
-  );
+  // Page change handlers for server-side pagination (pending tasks)
+  const handlePendingPageChange = (newPage) => {
+    setCurrentPagePending(newPage);
+    dispatch(checklistData({ page: newPage, search: debouncedSearch }));
+    // Scroll table to top
+    if (tableContainerRef.current) tableContainerRef.current.scrollTop = 0;
+  };
 
+  // Page change handler for history (server-side pagination)
+  const handleHistoryPageChange = (newPage) => {
+    setCurrentPageHistory(newPage);
+    dispatch(checklistHistoryData(newPage));
+    if (historyTableContainerRef.current) historyTableContainerRef.current.scrollTop = 0;
+  };
 
-  const hasMoreItems = () => {
-    if (showHistory) {
-      const totalFilteredItems = history.filter((item) => {
-        // Apply same filters as in filteredHistoryData
-        const matchesSearch = searchTerm
-          ? Object.entries(item).some(([key, value]) => {
-            if (['image', 'admin_done'].includes(key)) return false;
-            return value && value.toString().toLowerCase().includes(searchTerm.toLowerCase());
-          })
-          : true;
-
-        const matchesMember = selectedMembers.length > 0
-          ? selectedMembers.includes(item.name)
-          : true;
-
-        let matchesDateRange = true;
-        if (startDate || endDate) {
-          const itemDate = parseSupabaseDate(item.task_start_date);
-          if (!itemDate || isNaN(itemDate.getTime())) return false;
-
-          const itemDateOnly = new Date(
-            itemDate.getFullYear(),
-            itemDate.getMonth(),
-            itemDate.getDate()
-          );
-
-          const start = startDate ? new Date(startDate) : null;
-          if (start) start.setHours(0, 0, 0, 0);
-
-          const end = endDate ? new Date(endDate) : null;
-          if (end) end.setHours(23, 59, 59, 999);
-
-          if (start && itemDateOnly < start) matchesDateRange = false;
-          if (end && itemDateOnly > end) matchesDateRange = false;
-        }
-
-        return matchesSearch && matchesMember && matchesDateRange;
-      }).length;
-
-      return currentPageHistory * ITEMS_PER_PAGE < totalFilteredItems;
-    } else {
-      const totalFilteredItems = checklist.filter((account) =>
-        searchTerm
-          ? Object.values(account).some(
-            (value) =>
-              value &&
-              value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-          )
-          : true
-      ).length;
-
-      return currentPagePending * ITEMS_PER_PAGE < totalFilteredItems;
+  // Reusable Pagination bar
+  const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+    if (totalPages <= 1) return null;
+    const pages = [];
+    const delta = 2;
+    for (let i = Math.max(1, currentPage - delta); i <= Math.min(totalPages, currentPage + delta); i++) {
+      pages.push(i);
     }
+    return (
+      <div className="flex items-center justify-center gap-1 py-3 border-t border-gray-200 bg-white">
+        <button
+          onClick={() => onPageChange(1)}
+          disabled={currentPage === 1}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+        >
+          «
+        </button>
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+        >
+          ‹
+        </button>
+        {pages[0] > 1 && <span className="px-1 text-xs text-gray-400">…</span>}
+        {pages.map((p) => (
+          <button
+            key={p}
+            onClick={() => onPageChange(p)}
+            className={`px-2.5 py-1 text-xs rounded border transition-colors ${
+              p === currentPage
+                ? 'bg-purple-600 text-white border-purple-600'
+                : 'border-gray-300 hover:bg-purple-50 hover:border-purple-300'
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+        {pages[pages.length - 1] < totalPages && <span className="px-1 text-xs text-gray-400">…</span>}
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+        >
+          ›
+        </button>
+        <button
+          onClick={() => onPageChange(totalPages)}
+          disabled={currentPage === totalPages}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+        >
+          »
+        </button>
+        <span className="ml-2 text-xs text-gray-500">Page {currentPage} of {totalPages}</span>
+      </div>
+    );
   };
 
 
@@ -1020,6 +985,33 @@ const handleSubmit = async () => {
 
   return (
     <AdminLayout>
+      <style>{`
+        /* Desktop Compression to prevent horizontal scroll */
+        @media (min-width: 769px) {
+          table th {
+            padding: 0.25rem 0.35rem !important;
+            font-size: 0.7rem !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+          }
+          table td {
+            padding: 0.25rem 0.35rem !important;
+            font-size: 0.75rem !important;
+          }
+          table td > div, table td > span {
+            font-size: 0.75rem !important;
+          }
+          table th.min-w-\\[150px\\], table td.min-w-\\[150px\\],
+          table th.min-w-\\[120px\\], table td.min-w-\\[120px\\] {
+            min-width: 80px !important;
+            max-width: 150px !important;
+          }
+          table input[type="text"] {
+            font-size: 0.7rem !important;
+            padding: 0.25rem !important;
+          }
+        }
+      `}</style>
       <div className="space-y-4 sm:space-y-6 p-2 sm:p-0">
         <div className="flex flex-col gap-3 sm:gap-4">
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-purple-700">
@@ -1413,7 +1405,7 @@ const handleSubmit = async () => {
                               </td>
                               <td className="px-2 sm:px-3 py-1 sm:py-2 bg-blue-50">
                                 <span
-                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full break-words ${history.status === "Yes"
+                                  className={`inline-flex px-1.5 py-0.5 text-[9px] leading-none whitespace-nowrap font-bold uppercase rounded-full break-words ${history.status === "Yes"
                                     ? "bg-green-100 text-green-800"
                                     : history.status === "No"
                                       ? "bg-red-100 text-red-800"
@@ -1467,20 +1459,11 @@ const handleSubmit = async () => {
                       </tbody>
                     </table>
 
-                    {isLoadingMoreHistory && (
-                      <div className="sticky bottom-0 left-0 right-0 bg-gray-50 border-t border-gray-200">
-                        <div className="flex justify-center items-center py-3">
-                          <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-purple-500 mr-2"></div>
-                          <span className="text-purple-600 text-xs sm:text-sm">Loading more history...</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {!hasMoreHistory && history.length > 0 && (
-                      <div className="text-center py-4 text-gray-500 text-xs sm:text-sm">
-                        No more history to load
-                      </div>
-                    )}
+                    <Pagination
+                      currentPage={currentPageHistory}
+                      totalPages={Math.ceil((historyTotalCount || 0) / ITEMS_PER_PAGE)}
+                      onPageChange={handleHistoryPageChange}
+                    />
                   </>
                 )}
               </div>
@@ -1506,10 +1489,11 @@ const handleSubmit = async () => {
                             {(userRole === "user" || userRole === "admin" || userRole === "super_admin") && (
                               <input
                                 type="checkbox"
-                                className={`h-4 w-4 rounded border-gray-300 text-purple-600 ${!checkboxEnabled ? 'opacity-50' : ''}`}
+                                className={`h-4 w-4 rounded border-gray-300 text-purple-600 ${!checkboxEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 checked={isSelected}
                                 disabled={!checkboxEnabled}
                                 onChange={(e) => handleCheckboxClick(e, account.task_id)}
+                                title={!checkboxEnabled ? 'Cannot select upcoming tasks beyond 7 days' : ''}
                               />
                             )}
                             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
@@ -1729,7 +1713,7 @@ const handleSubmit = async () => {
                   {filteredAccountData.length > 0 ? (
                     filteredAccountData.map((account, index) => {
                       const isSelected = selectedItems.has(account.task_id);
-                      const sequenceNumber = index + 1;
+                      const sequenceNumber = (currentPagePending - 1) * ITEMS_PER_PAGE + index + 1;
                       const taskStatus = getTaskStatus(account.task_start_date);
                       const checkboxEnabled = isCheckboxEnabled(account.task_start_date);
                       return (
@@ -1787,7 +1771,7 @@ const handleSubmit = async () => {
                             </div>
                           </td>
                           <td className="px-2 sm:px-3 py-1 sm:py-2">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            <span className={`inline-flex px-1.5 py-0.5 text-[9px] leading-none whitespace-nowrap font-bold uppercase rounded-full ${
                               taskStatus === 'today' 
                                 ? "bg-green-100 text-green-800" 
                                 : taskStatus === 'upcoming' 
@@ -1807,7 +1791,7 @@ const handleSubmit = async () => {
                                 checked={isSelected}
                                 disabled={!checkboxEnabled}
                                 onChange={(e) => handleCheckboxClick(e, account.task_id)}
-                                title={!checkboxEnabled ? 'Cannot select upcoming tasks' : ''}
+                                title={!checkboxEnabled ? 'Cannot select upcoming tasks beyond 7 days' : ''}
                               />
                             </td>
                           )}
@@ -1954,20 +1938,11 @@ const handleSubmit = async () => {
                 </tbody>
               </table>
 
-              {isFetchingMore && (
-                <div className="sticky bottom-0 left-0 right-0 bg-gray-50 border-t border-gray-200">
-                  <div className="flex justify-center items-center py-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-purple-500 mr-2"></div>
-                    <span className="text-purple-600 text-xs sm:text-sm">Loading more tasks...</span>
-                  </div>
-                </div>
-              )}
-
-              {!hasMore && checklist.length > 0 && (
-                <div className="text-center py-4 text-gray-500 text-xs sm:text-sm">
-                  No more tasks to load
-                </div>
-              )}
+              <Pagination
+                currentPage={currentPagePending}
+                totalPages={Math.ceil((totalCount || 0) / ITEMS_PER_PAGE)}
+                onPageChange={handlePendingPageChange}
+              />
             </div>
           )}
         </div>

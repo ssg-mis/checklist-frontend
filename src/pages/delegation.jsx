@@ -82,6 +82,9 @@ function DelegationDataPage() {
     type: "delegation"
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
   const filterOptions = [
     { value: "all", label: "All Tasks" },
     { value: "overdue", label: "Overdue" },
@@ -406,7 +409,7 @@ function DelegationDataPage() {
     // If it's an approval item and admin has marked it Done
     if (type === 'approval' && adminDone === 'Done') {
       return (
-        <span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase shadow-sm bg-green-100 text-green-700 border border-green-200">
+        <span className="px-1.5 py-0.5 rounded-full text-[9px] leading-none font-bold uppercase shadow-sm bg-green-100 text-green-700 border border-green-200 whitespace-nowrap inline-block">
           Done
         </span>
       );
@@ -415,8 +418,8 @@ function DelegationDataPage() {
     // If it's an approval item and NOT yet marked Done by admin
     if (type === 'approval') {
       return (
-        <span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase shadow-sm bg-orange-100 text-orange-700 border border-orange-200">
-          Pending Approval
+        <span className="px-1.5 py-0.5 rounded-full text-[9px] leading-none font-bold uppercase shadow-sm bg-orange-100 text-orange-700 border border-orange-200 whitespace-nowrap inline-block">
+          Pending Appr.
         </span>
       );
     }
@@ -427,34 +430,34 @@ function DelegationDataPage() {
     switch (lowerStatus) {
       case 'pending':
         return (
-          <span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase shadow-sm bg-yellow-100 text-yellow-700 border border-yellow-200">
+          <span className="px-1.5 py-0.5 rounded-full text-[9px] leading-none font-bold uppercase shadow-sm bg-yellow-100 text-yellow-700 border border-yellow-200 whitespace-nowrap inline-block">
             Pending
           </span>
         );
       case 'partial done':
       case 'partial_done':
         return (
-          <span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase shadow-sm bg-blue-100 text-blue-700 border border-blue-200">
+          <span className="px-1.5 py-0.5 rounded-full text-[9px] leading-none font-bold uppercase shadow-sm bg-blue-100 text-blue-700 border border-blue-200 whitespace-nowrap inline-block">
             Partial Done
           </span>
         );
       case 'completed':
       case 'done':
         return (
-          <span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase shadow-sm bg-green-100 text-green-700 border border-green-200">
+          <span className="px-1.5 py-0.5 rounded-full text-[9px] leading-none font-bold uppercase shadow-sm bg-green-100 text-green-700 border border-green-200 whitespace-nowrap inline-block">
             Done
           </span>
         );
       case 'extend date':
       case 'extend':
         return (
-          <span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase shadow-sm bg-purple-100 text-purple-700 border border-purple-200">
+          <span className="px-1.5 py-0.5 rounded-full text-[9px] leading-none font-bold uppercase shadow-sm bg-purple-100 text-purple-700 border border-purple-200 whitespace-nowrap inline-block">
             Extended
           </span>
         );
       default:
         return (
-          <span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase shadow-sm bg-gray-100 text-gray-500 border border-gray-200">
+          <span className="px-1.5 py-0.5 rounded-full text-[9px] leading-none font-bold uppercase shadow-sm bg-gray-100 text-gray-500 border border-gray-200 whitespace-nowrap inline-block">
             {status || "Pending"}
           </span>
         );
@@ -1185,9 +1188,66 @@ const handleSubmit = async () => {
     }
   };
 
+  const handlePageChange = (p) => {
+    setCurrentPage(p);
+  };
+
+  const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+    if (totalPages <= 1) return null;
+    const pages = [];
+    const delta = 2;
+    for (let i = Math.max(1, currentPage - delta); i <= Math.min(totalPages, currentPage + delta); i++) {
+      pages.push(i);
+    }
+    return (
+      <div className="flex items-center justify-center gap-1 py-3 border-t border-gray-200 bg-white">
+        <button onClick={() => onPageChange(1)} disabled={currentPage === 1} className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors">«</button>
+        <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors">‹</button>
+        {pages[0] > 1 && <span className="px-1 text-xs text-gray-400">…</span>}
+        {pages.map((p) => (
+          <button key={p} onClick={() => onPageChange(p)} className={`px-2.5 py-1 text-xs rounded border transition-colors ${p === currentPage ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-300 hover:bg-purple-50 hover:border-purple-300'}`}>{p}</button>
+        ))}
+        {pages[pages.length - 1] < totalPages && <span className="px-1 text-xs text-gray-400">…</span>}
+        <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors">›</button>
+        <button onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages} className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors">»</button>
+        <span className="ml-2 text-xs text-gray-500">Page {currentPage} of {totalPages}</span>
+      </div>
+    );
+  };
+
+  const totalPages = Math.ceil((unifiedData?.length || 0) / ITEMS_PER_PAGE);
+  const currentPaginatedData = unifiedData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
 
   return (
     <AdminLayout>
+      <style>{`
+        /* Desktop Compression to prevent horizontal scroll */
+        @media (min-width: 769px) {
+          table th {
+            padding: 0.25rem 0.35rem !important;
+            font-size: 0.7rem !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+          }
+          table td {
+            padding: 0.25rem 0.35rem !important;
+            font-size: 0.75rem !important;
+          }
+          table td > div, table td > span {
+            font-size: 0.75rem !important;
+          }
+          table th.min-w-\\[150px\\], table td.min-w-\\[150px\\],
+          table th.min-w-\\[120px\\], table td.min-w-\\[120px\\] {
+            min-width: 80px !important;
+            max-width: 150px !important;
+          }
+          table input[type="text"] {
+            font-size: 0.7rem !important;
+            padding: 0.25rem !important;
+          }
+        }
+      `}</style>
       <div className="space-y-2 p-2 pb-20">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -1395,8 +1455,8 @@ const handleSubmit = async () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {unifiedData.length > 0 ? (
-                    unifiedData.map((item, index) => {
+                  {currentPaginatedData.length > 0 ? (
+                    currentPaginatedData.map((item, index) => {
                       const isSelected = isRowSelected(item);
                       const isApproval = item.unifiedType === 'approval';
                       const isAlreadyApproved = isApproval && item.admin_done === "Done";
@@ -1405,8 +1465,8 @@ const handleSubmit = async () => {
                       
                       return (
                         <tr key={item.unifiedId} className={`${isSelected ? (isApproval ? "bg-green-50" : "bg-purple-50") : isAlreadyApproved ? "bg-gray-50 opacity-60" : "hover:bg-gray-50"} ${rowColorClass} transition-colors`}>
-                          <td className="px-3 py-2 text-xs text-gray-500">{index + 1}</td>
-                          <td className="px-3 py-2 min-w-[180px]">
+                          <td className="px-3 py-2 text-xs text-gray-500">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
+                          <td className="px-3 py-2 min-w-[120px] max-w-[180px] wrap-break-word">
                               {isApproval ? (
                                 <div className="text-xs text-gray-500 italic">
                                   {item.adminremarks || "—"}
@@ -1479,7 +1539,7 @@ const handleSubmit = async () => {
                           <td className="px-3 py-2">
                             <StatusBadge status={isApproval ? item.status : 'pending'} adminDone={isApproval ? item.admin_done : null} type={item.unifiedType} />
                           </td>
-                          <td className="px-3 py-2 min-w-[200px]">
+                          <td className="px-3 py-2 min-w-[120px] max-w-[180px] wrap-break-word">
                             {isSelected && normalizedRole !== 'pc role' ? (
                               <div className="space-y-2">
                                 {item.unifiedType === 'pending' && (
@@ -1618,7 +1678,7 @@ const handleSubmit = async () => {
 
               {/* Mobile Card View (Simplified) */}
               <div className="sm:hidden space-y-3 p-3">
-                {unifiedData.map((item, index) => {
+                {currentPaginatedData.map((item, index) => {
                   const isSelected = isRowSelected(item);
                   const isApproval = item.unifiedType === 'approval';
                   return (
@@ -1740,6 +1800,7 @@ const handleSubmit = async () => {
                   );
                 })}
               </div>
+              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
             </div>
           )}
         </div>

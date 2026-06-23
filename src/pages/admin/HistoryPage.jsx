@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { Search, CheckCircle2, RotateCcw } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
 import { useDispatch, useSelector } from "react-redux"
@@ -18,9 +18,8 @@ function HistoryPage() {
   const [userRole, setUserRole] = useState("")
   const [username, setUsername] = useState("")
   const [currentPageHistory, setCurrentPageHistory] = useState(1)
-  const [isLoadingMoreHistory, setIsLoadingMoreHistory] = useState(false)
-  const [hasMoreHistory, setHasMoreHistory] = useState(true)
-  const [initialHistoryLoading, setInitialHistoryLoading] = useState(false)
+  const [currentPageDelegation, setCurrentPageDelegation] = useState(1)
+  const ITEMS_PER_PAGE = 50
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [approvalStatusFilter, setApprovalStatusFilter] = useState("all") // 'all', 'pending', 'completed'
 
@@ -38,14 +37,13 @@ function HistoryPage() {
   const [adminReplyData, setAdminReplyData] = useState({}) // New state for admin reply
   const [revertingTaskId, setRevertingTaskId] = useState(null)
 
-  const { history } = useSelector((state) => state.checkList)
+  const { history, historyTotalCount } = useSelector((state) => state.checkList)
   const { delegation_done } = useSelector((state) => state.delegation)
   const { doerName } = useSelector((state) => state.assignTask)
   const dispatch = useDispatch()
 
   const historyTableContainerRef = useRef(null)
-  const scrollTimeout = useRef(null)
-  const lastScrollTop = useRef(0)
+  const delegationTableContainerRef = useRef(null)
 
   useEffect(() => {
     dispatch(checklistHistoryData(1))
@@ -61,58 +59,75 @@ function HistoryPage() {
     setIsSuperAdmin(role === "super_admin" || role === "admin" || role === "pc role")
   }, [])
 
-  // Handle scroll for history
-  const handleScrollHistory = useCallback(() => {
-    if (!historyTableContainerRef.current || isLoadingMoreHistory || !hasMoreHistory || history.length === 0) return
+  // Page change handlers
+  const handleHistoryPageChange = (newPage) => {
+    setCurrentPageHistory(newPage);
+    dispatch(checklistHistoryData(newPage));
+    if (historyTableContainerRef.current) historyTableContainerRef.current.scrollTop = 0;
+  };
 
-    if (scrollTimeout.current) return
+  const handleDelegationPageChange = (newPage) => {
+    setCurrentPageDelegation(newPage);
+    if (delegationTableContainerRef.current) delegationTableContainerRef.current.scrollTop = 0;
+  };
 
-    scrollTimeout.current = setTimeout(() => {
-      if (!historyTableContainerRef.current) return
-      const { scrollTop, scrollHeight, clientHeight } = historyTableContainerRef.current
-      
-      // If scrollTop hasn't changed (or is 0 due to initial render), it might be horizontal scroll
-      if (scrollTop === lastScrollTop.current) return
-      lastScrollTop.current = scrollTop
-
-      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 50
-
-      if (isNearBottom) {
-        setIsLoadingMoreHistory(true)
-        dispatch(checklistHistoryData(currentPageHistory + 1))
-          .then((result) => {
-            if (result.payload && result.payload.length < 50) {
-              setHasMoreHistory(false)
-            }
-            setCurrentPageHistory(prev => prev + 1)
-          })
-          .finally(() => setIsLoadingMoreHistory(false))
-      }
-      scrollTimeout.current = null
-    }, 200)
-  }, [isLoadingMoreHistory, hasMoreHistory, currentPageHistory, dispatch, history.length])
-
-  useEffect(() => {
-    const historyTableElement = historyTableContainerRef.current
-    if (historyTableElement) {
-      historyTableElement.addEventListener('scroll', handleScrollHistory)
-      return () => historyTableElement.removeEventListener('scroll', handleScrollHistory)
+  // Reusable Pagination bar
+  const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+    if (totalPages <= 1) return null;
+    const pages = [];
+    const delta = 2;
+    for (let i = Math.max(1, currentPage - delta); i <= Math.min(totalPages, currentPage + delta); i++) {
+      pages.push(i);
     }
-  }, [handleScrollHistory])
-
-  // Load initial history data
-  useEffect(() => {
-    if (history.length === 0) {
-      setInitialHistoryLoading(true)
-      dispatch(checklistHistoryData(1))
-        .then((result) => {
-          if (result.payload && result.payload.length < 50) {
-            setHasMoreHistory(false)
-          }
-        })
-        .finally(() => setInitialHistoryLoading(false))
-    }
-  }, [history.length, dispatch])
+    return (
+      <div className="flex items-center justify-center gap-1 py-3 border-t border-gray-200 bg-white">
+        <button
+          onClick={() => onPageChange(1)}
+          disabled={currentPage === 1}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+        >
+          «
+        </button>
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+        >
+          ‹
+        </button>
+        {pages[0] > 1 && <span className="px-1 text-xs text-gray-400">…</span>}
+        {pages.map((p) => (
+          <button
+            key={p}
+            onClick={() => onPageChange(p)}
+            className={`px-2.5 py-1 text-xs rounded border transition-colors ${
+              p === currentPage
+                ? 'bg-purple-600 text-white border-purple-600'
+                : 'border-gray-300 hover:bg-purple-50 hover:border-purple-300'
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+        {pages[pages.length - 1] < totalPages && <span className="px-1 text-xs text-gray-400">…</span>}
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+        >
+          ›
+        </button>
+        <button
+          onClick={() => onPageChange(totalPages)}
+          disabled={currentPage === totalPages}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+        >
+          »
+        </button>
+        <span className="ml-2 text-xs text-gray-500">Page {currentPage} of {totalPages}</span>
+      </div>
+    );
+  };
 
   const parseSupabaseDate = (dateStr) => {
     if (!dateStr) return null
@@ -191,7 +206,7 @@ function HistoryPage() {
     setConfirmationModal({ isOpen: false, itemCount: 0, type: "checklist" })
     setMarkingAsDone(true)
     try {
-      let data, error
+      let error
       if (type === "checklist") {
         const payload = selectedHistoryItems.map(item => ({
           task_id: item.task_id,
@@ -199,7 +214,6 @@ function HistoryPage() {
           admin_reply: adminReplyData[item.task_id] || ""
         }))
         const result = await postChecklistAdminDoneAPI(payload)
-        data = result.data
         error = result.error
       } else {
         const payload = selectedDelegationItems.map(item => ({
@@ -207,7 +221,6 @@ function HistoryPage() {
           remarks: adminRemarks[item.id] || ""
         }))
         const result = await postDelegationAdminDoneAPI(payload)
-        data = result.data
         error = result.error
       }
 
@@ -312,8 +325,8 @@ function HistoryPage() {
         return dateB - dateA
       })
 
-    return filtered.slice(0, currentPageHistory * 50)
-  }, [history, searchTerm, selectedMembers, startDate, endDate, currentPageHistory, approvalStatusFilter])
+    return filtered
+  }, [history, searchTerm, selectedMembers, startDate, endDate, approvalStatusFilter])
 
   // Filtered delegation data
   const filteredDelegationData = useMemo(() => {
@@ -374,15 +387,6 @@ function HistoryPage() {
       })
   }, [delegation_done, searchTerm, startDate, endDate, userRole, username, approvalStatusFilter])
 
-  const handleMemberSelection = (member) => {
-    setSelectedMembers((prev) => {
-      if (prev.includes(member)) {
-        return prev.filter((item) => item !== member)
-      } else {
-        return [...prev, member]
-      }
-    })
-  }
 
   const getFilteredMembersList = () => {
     if (userRole === "admin") {
@@ -684,17 +688,39 @@ function HistoryPage() {
                 margin-bottom: 0;
               }
             }
+            
+            /* Desktop Compression to prevent horizontal scroll */
+            @media (min-width: 769px) {
+              .mobile-card-table th {
+                padding: 0.25rem 0.35rem !important;
+                font-size: 0.7rem !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+              }
+              .mobile-card-table td {
+                padding: 0.25rem 0.35rem !important;
+                font-size: 0.75rem !important;
+              }
+              .mobile-card-table td > div, .mobile-card-table td > span {
+                font-size: 0.75rem !important;
+              }
+              .mobile-card-table th.min-w-\\[150px\\], .mobile-card-table td.min-w-\\[150px\\],
+              .mobile-card-table th.min-w-\\[120px\\], .mobile-card-table td.min-w-\\[120px\\] {
+                min-width: 80px !important;
+                max-width: 150px !important;
+              }
+              .mobile-card-table input[type="text"] {
+                font-size: 0.7rem !important;
+                padding: 0.25rem !important;
+              }
+            }
           `}</style>
           <div ref={historyTableContainerRef} className="overflow-x-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-            {initialHistoryLoading ? (
-              <div className="text-center py-10">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-4"></div>
-                <p className="text-purple-600 text-sm sm:text-base">Loading data...</p>
-              </div>
-            ) : activeTab === "checklist" ? (
+            {activeTab === "checklist" ? (
               /* Checklist Table */
-              <table className="min-w-full divide-y divide-gray-200 mobile-card-table">
-                <thead className="bg-gray-50 sticky top-0 z-10">
+              <>
+                <table className="min-w-full divide-y divide-gray-200 mobile-card-table">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     {isSuperAdmin && userRole !== "pc role" && (
                       <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -706,6 +732,7 @@ function HistoryPage() {
                         />
                       </th>
                     )}
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seq. No.</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Status</th>
                     {isSuperAdmin && (
                       <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th>
@@ -745,8 +772,13 @@ function HistoryPage() {
                             )}
                           </td>
                         )}
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Seq. No.">
+                          <div className="text-xs sm:text-sm text-gray-900 font-medium">
+                            {(currentPageHistory - 1) * ITEMS_PER_PAGE + index + 1}
+                          </div>
+                        </td>
                         <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Admin Status">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          <span className={`inline-flex px-1.5 py-0.5 text-[9px] leading-none whitespace-nowrap font-bold uppercase rounded-full ${
                             historyItem.admin_done === 'Done'
                               ? "bg-green-100 text-green-800"
                               : "bg-orange-100 text-orange-800"
@@ -845,7 +877,7 @@ function HistoryPage() {
                           </div>
                         </td>
                         <td className="px-2 sm:px-3 py-2 sm:py-4 bg-blue-50" data-label="Status">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          <span className={`inline-flex px-1.5 py-0.5 text-[9px] leading-none whitespace-nowrap font-bold uppercase rounded-full ${
                             historyItem.status === "yes"
                               ? "bg-green-100 text-green-800"
                               : historyItem.status === "no"
@@ -902,10 +934,17 @@ function HistoryPage() {
                   )}
                 </tbody>
               </table>
+              <Pagination
+                currentPage={currentPageHistory}
+                totalPages={Math.ceil((historyTotalCount || 0) / ITEMS_PER_PAGE)}
+                onPageChange={handleHistoryPageChange}
+              />
+              </>
             ) : (
               /* Delegation Table */
-              <table className="min-w-full divide-y divide-gray-200 mobile-card-table">
-                <thead className="bg-gray-50 sticky top-0 z-10">
+              <>
+                <table className="min-w-full divide-y divide-gray-200 mobile-card-table">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     {isSuperAdmin && userRole !== "pc role" && (
                       <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -917,6 +956,7 @@ function HistoryPage() {
                         />
                       </th>
                     )}
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seq. No.</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Status</th>
                     {isSuperAdmin && (
                       <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th>
@@ -934,7 +974,7 @@ function HistoryPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredDelegationData.length > 0 ? (
-                    filteredDelegationData.map((item, index) => (
+                    filteredDelegationData.slice((currentPageDelegation - 1) * ITEMS_PER_PAGE, currentPageDelegation * ITEMS_PER_PAGE).map((item, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         {isSuperAdmin && userRole !== "pc role" && (
                           <td className="px-2 sm:px-3 py-2 sm:py-4 mobile-checkbox-cell" data-label="Select">
@@ -953,8 +993,13 @@ function HistoryPage() {
                             )}
                           </td>
                         )}
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Seq. No.">
+                          <div className="text-xs sm:text-sm text-gray-900 font-medium">
+                            {(currentPageDelegation - 1) * ITEMS_PER_PAGE + index + 1}
+                          </div>
+                        </td>
                         <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Admin Status">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          <span className={`inline-flex px-1.5 py-0.5 text-[9px] leading-none whitespace-nowrap font-bold uppercase rounded-full ${
                             item.admin_done === 'Done'
                               ? "bg-green-100 text-green-800"
                               : "bg-orange-100 text-orange-800"
@@ -1004,7 +1049,7 @@ function HistoryPage() {
                           </div>
                         </td>
                         <td className="px-2 sm:px-3 py-2 sm:py-4 bg-blue-50" data-label="Status">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          <span className={`inline-flex px-1.5 py-0.5 text-[9px] leading-none whitespace-nowrap font-bold uppercase rounded-full ${
                             item.status === "completed"
                               ? "bg-green-100 text-green-800"
                               : item.status === "extend"
@@ -1056,15 +1101,12 @@ function HistoryPage() {
                   )}
                 </tbody>
               </table>
-            )}
-
-            {isLoadingMoreHistory && (
-              <div className="sticky bottom-0 left-0 right-0 bg-gray-50 border-t border-gray-200 py-3">
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500 mr-2"></div>
-                  <span className="text-purple-600 text-sm">Loading more...</span>
-                </div>
-              </div>
+              <Pagination
+                currentPage={currentPageDelegation}
+                totalPages={Math.ceil((filteredDelegationData?.length || 0) / ITEMS_PER_PAGE)}
+                onPageChange={handleDelegationPageChange}
+              />
+              </>
             )}
           </div>
         </div>

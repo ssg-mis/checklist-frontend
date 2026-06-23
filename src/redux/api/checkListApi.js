@@ -28,7 +28,7 @@ export const fetchChechListDataForHistory = async (page = 1) => {
     `${BASE_URL}/history?page=${page}&username=${username}&role=${role}`
   );
 
-  return (await response.json()).data || [];
+  return await response.json();
 };
 
 
