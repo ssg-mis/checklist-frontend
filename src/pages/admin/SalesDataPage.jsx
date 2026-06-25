@@ -4,7 +4,7 @@ import { CheckCircle2, Upload, X, Search, History, ArrowLeft } from "lucide-reac
 import AdminLayout from "../../components/layout/AdminLayout"
 import SearchBar from "../../components/SearchBar"
 import { useDispatch, useSelector } from "react-redux"
-import { checklistData, checklistHistoryData, updateChecklist } from "../../redux/slice/checklistSlice"
+import { checklistData, fetchAllChecklistData, checklistHistoryData, updateChecklist } from "../../redux/slice/checklistSlice"
 import { postChecklistAdminDoneAPI, sendChecklistWhatsAppAPI } from "../../redux/api/checkListApi"
 import { uniqueDoerNameData } from "../../redux/slice/assignTaskSlice";
 import { useNavigate } from "react-router-dom"
@@ -60,7 +60,7 @@ function AccountDataPage() {
 
   // Initial data load - fetch all data at once
   useEffect(() => {
-    dispatch(checklistData({ page: 1, search: '' }))
+    dispatch(fetchAllChecklistData({ search: '' }))
     dispatch(checklistHistoryData(1))
     dispatch(uniqueDoerNameData());
   }, [dispatch])
@@ -76,7 +76,7 @@ function AccountDataPage() {
 
   // Re-fetch data when debounced search changes
   useEffect(() => {
-    dispatch(checklistData({ page: 1, search: debouncedSearch }));
+    dispatch(fetchAllChecklistData({ search: debouncedSearch }));
     setCurrentPagePending(1);
   }, [debouncedSearch, dispatch]);
 
@@ -483,6 +483,11 @@ function AccountDataPage() {
     });
   }, [checklist, searchTerm, statusFilter, frequencyFilter]);
 
+  const paginatedPendingData = useMemo(() => {
+    const startIndex = (currentPagePending - 1) * ITEMS_PER_PAGE;
+    return filteredAccountData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredAccountData, currentPagePending, ITEMS_PER_PAGE]);
+
   // Helper function to determine task status (Today, Upcoming, Overdue)
   const getTaskStatus = (taskStartDate) => {
     if (!taskStartDate) return 'unknown';
@@ -764,8 +769,8 @@ function AccountDataPage() {
   // Page change handlers for server-side pagination (pending tasks)
   const handlePendingPageChange = (newPage) => {
     setCurrentPagePending(newPage);
-    dispatch(checklistData({ page: newPage, search: debouncedSearch }));
-    // Scroll table to top
+    // Since we fetch all data locally now, we just update the page state.
+    // No need to dispatch a new backend fetch.
     if (tableContainerRef.current) tableContainerRef.current.scrollTop = 0;
   };
 
@@ -1482,8 +1487,8 @@ const handleSubmit = async () => {
             >
               {/* Mobile Card View */}
               <div className="sm:hidden space-y-2 p-2">
-                {filteredAccountData.length > 0 ? (
-                  filteredAccountData.map((account, index) => {
+                {paginatedPendingData.length > 0 ? (
+                  paginatedPendingData.map((account, index) => {
                     const isSelected = selectedItems.has(account.task_id);
                     const taskStatus = getTaskStatus(account.task_start_date);
                     const checkboxEnabled = isCheckboxEnabled(account.task_start_date);
@@ -1663,11 +1668,11 @@ const handleSubmit = async () => {
                         <input
                           type="checkbox"
                           className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                          checked={filteredAccountData.length > 0 && selectedItems.size === filteredAccountData.filter(item => isCheckboxEnabled(item.task_start_date)).length && filteredAccountData.filter(item => isCheckboxEnabled(item.task_start_date)).length > 0}
+                          checked={paginatedPendingData.length > 0 && selectedItems.size === paginatedPendingData.filter(item => isCheckboxEnabled(item.task_start_date)).length && paginatedPendingData.filter(item => isCheckboxEnabled(item.task_start_date)).length > 0}
                           onChange={(e) => {
                             if (e.target.checked) {
                               // Only select items with enabled checkboxes (today and overdue)
-                              const enabledItems = filteredAccountData.filter(item => isCheckboxEnabled(item.task_start_date));
+                              const enabledItems = paginatedPendingData.filter(item => isCheckboxEnabled(item.task_start_date));
                               setSelectedItems(new Set(enabledItems.map(item => item.task_id)));
                             } else {
                               setSelectedItems(new Set());
@@ -1715,8 +1720,8 @@ const handleSubmit = async () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredAccountData.length > 0 ? (
-                    filteredAccountData.map((account, index) => {
+                  {paginatedPendingData.length > 0 ? (
+                    paginatedPendingData.map((account, index) => {
                       const isSelected = selectedItems.has(account.task_id);
                       const sequenceNumber = (currentPagePending - 1) * ITEMS_PER_PAGE + index + 1;
                       const taskStatus = getTaskStatus(account.task_start_date);
@@ -1945,7 +1950,7 @@ const handleSubmit = async () => {
 
               <Pagination
                 currentPage={currentPagePending}
-                totalPages={Math.ceil((totalCount || 0) / ITEMS_PER_PAGE)}
+                totalPages={Math.ceil((filteredAccountData.length || 0) / ITEMS_PER_PAGE)}
                 onPageChange={handlePendingPageChange}
               />
             </div>

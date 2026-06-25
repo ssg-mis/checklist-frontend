@@ -18,6 +18,31 @@ export const checklistData = createAsyncThunk(
   }
 );
 
+export const fetchAllChecklistData = createAsyncThunk(
+  "fetch/allChecklist",
+  async ({ search = '' } = {}) => {
+    // Fetch first page to get totalCount
+    const firstPage = await fetchChechListDataSortByDate(1, search);
+    let allData = [...firstPage.data];
+    const totalCount = firstPage.totalCount;
+    const totalPages = Math.ceil(totalCount / 50); // Assuming 50 is page size
+    
+    // If more pages exist, fetch them concurrently
+    if (totalPages > 1) {
+      const promises = [];
+      for (let i = 2; i <= totalPages; i++) {
+        promises.push(fetchChechListDataSortByDate(i, search));
+      }
+      const results = await Promise.all(promises);
+      results.forEach(res => {
+        allData = [...allData, ...res.data];
+      });
+    }
+    
+    return { data: allData, totalCount, search };
+  }
+);
+
 
 // ============================================================
 // 2️⃣ FETCH HISTORY CHECKLIST
@@ -101,6 +126,24 @@ const checkListSlice = createSlice({
         state.error = action.error?.message || "Failed fetching checklist";
       })
 
+      // -----------------------------
+      // FETCH ALL PENDING CHECKLIST
+      // -----------------------------
+      .addCase(fetchAllChecklistData.pending, (state) => {
+        state.loading = true;
+      })
+
+      .addCase(fetchAllChecklistData.fulfilled, (state, action) => {
+        state.loading = false;
+        state.checklist = action.payload.data;
+        state.totalCount = action.payload.totalCount;
+        state.hasMore = false; // We fetched everything
+      })
+
+      .addCase(fetchAllChecklistData.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error?.message || "Failed fetching all checklists";
+      })
 
 
       // -----------------------------
