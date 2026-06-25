@@ -1,6 +1,7 @@
 "use client"
 
 import { Filter, ChevronDown, ChevronUp } from "lucide-react"
+import SearchBar from "../../../components/SearchBar"
 import { useState, useEffect, useCallback } from "react"
 import { useDispatch } from "react-redux"
 import { fetchDashboardDataApi, getDashboardDataCount } from "../../../redux/api/dashboardApi"
@@ -347,12 +348,11 @@ export default function TaskNavigationTabs({
                   <label htmlFor="search" className="block text-sm font-medium text-gray-700">
                     Search Tasks
                   </label>
-                  <input
+                  <SearchBar
                     id="search"
                     placeholder="Search by task title or ID"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
                   />
                 </div>
 

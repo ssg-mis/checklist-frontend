@@ -186,7 +186,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       className={`flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50`}
     >
       {/* Sidebar for desktop */}
-      <aside className="hidden w-64 flex-shrink-0 border-r border-blue-200 bg-white md:flex md:flex-col">
+      <aside className="hidden w-56 flex-shrink-0 border-r border-blue-200 bg-white md:flex md:flex-col">
         <div className="flex h-14 items-center border-b border-blue-200 px-4 bg-gradient-to-r from-blue-100 to-purple-100">
           <Link
             to="/dashboard/admin"
@@ -196,7 +196,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
             <span>Checklist & Delegation </span>
           </Link>
         </div>
-        <nav className="flex-1 overflow-y-auto p-2">
+        <nav className="flex-1 overflow-y-auto p-2 slim-scrollbar">
           <ul className="space-y-1">
             {accessibleRoutes.map((route) => (
               <li key={route.label}>
@@ -220,9 +220,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
         <div className="border-t border-blue-200 p-4 bg-gradient-to-r from-blue-50 to-purple-50">
           <div className="flex flex-col">
             {/* User info section */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full gradient-bg flex items-center justify-center">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="h-8 w-8 shrink-0 rounded-full gradient-bg flex items-center justify-center">
                   <span className="text-sm font-medium text-black">
                     {username ? username.charAt(0).toUpperCase() : "U"}
                   </span>
@@ -238,7 +238,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                       ? "(PC Role)"
                       : ""}
                   </p>
-                  <p className="text-xs text-blue-600 truncate">
+                  <p className="text-xs text-blue-600 break-all">
                     {userEmail || "user@example.com"}
                   </p>
                 </div>
@@ -473,7 +473,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
           {children}
 
           {/* Clean Minimal Footer Navigation */}
-          <div className="fixed md:left-64 left-0 right-0 bottom-0 z-10">
+          <div className="fixed md:left-56 left-0 right-0 bottom-0 z-10">
             {/* Mobile Bottom Navigation */}
             <div className="sm:hidden">
               {/* Navigation Bar */}

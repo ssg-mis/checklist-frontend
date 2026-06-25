@@ -20,12 +20,12 @@ export const fetchChechListDataSortByDate = async (page = 1, search = '') => {
 // =======================================================
 // 2️⃣ Fetch Checklist History (AWS Backend)
 // =======================================================
-export const fetchChechListDataForHistory = async (page = 1) => {
+export const fetchChechListDataForHistory = async (page = 1, search = "", approvalStatus = "all") => {
   const username = localStorage.getItem("user-name");
   const role = localStorage.getItem("role");
 
   const response = await fetch(
-    `${BASE_URL}/history?page=${page}&username=${username}&role=${role}`
+    `${BASE_URL}/history?page=${page}&username=${username}&role=${role}&search=${encodeURIComponent(search)}&approvalStatus=${encodeURIComponent(approvalStatus)}`
   );
 
   return await response.json();

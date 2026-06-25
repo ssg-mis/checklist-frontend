@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import SearchBar from "../../components/SearchBar"
 
 const UserTasks = () => {
   const [filterStatus, setFilterStatus] = useState("all")
@@ -208,12 +209,11 @@ const UserTasks = () => {
                 <i className="fas fa-search h-4 w-4 mr-2"></i>
                 Search Tasks
               </label>
-              <input
+              <SearchBar
                 id="search"
                 placeholder="Search by task title or description"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="input border-green-200 dark:border-green-800"
               />
             </div>
             <div className="space-y-2 md:w-[180px]">

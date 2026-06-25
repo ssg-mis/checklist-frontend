@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { CheckCircle2, Upload, X, Search, History, ArrowLeft, Calendar, Check } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
+import SearchBar from "../../components/SearchBar"
 import ReactDOM from 'react-dom';
 
 // Google Apps Script URL
@@ -656,16 +657,11 @@ const confirmMarkDone = async () => {
           </h1>
 
           <div className="flex space-x-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder={showHistory ? "Search history..." : "Search transactions..."}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
+            <SearchBar
+              placeholder={showHistory ? "Search history..." : "Search transactions..."}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
             
             {/* History Toggle Button */}
             {userRole === 'admin' && (

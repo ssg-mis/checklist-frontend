@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import SearchBar from "../components/SearchBar";
 import {
   CheckCircle2,
   Upload,
@@ -105,6 +106,13 @@ function DelegationDataPage() {
     // dispatch(delegation_DoneData());
     dispatch(delegationDoneData());
   }, [dispatch]);
+
+  // Reset to the first page whenever a search/filter narrows the list, otherwise
+  // a stale page number can land past the end of the filtered results and show an
+  // empty table (making the search look like it isn't working).
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, mainStatusFilter, unifiedTypeFilter, dateFilter, activeNameTab, startDate, endDate]);
 
   const formatDateTimeToDDMMYYYY = useCallback((date) => {
     const day = date.getDate().toString().padStart(2, "0");
@@ -1222,25 +1230,33 @@ const handleSubmit = async () => {
   return (
     <AdminLayout>
       <style>{`
-        /* Desktop Compression to prevent horizontal scroll */
+        /* Desktop: readable columns with horizontal scroll instead of crushing */
         @media (min-width: 769px) {
           table th {
-            padding: 0.25rem 0.35rem !important;
+            padding: 0.4rem 0.6rem !important;
             font-size: 0.7rem !important;
-            white-space: normal !important;
-            word-break: break-word !important;
+            white-space: nowrap !important;   /* keep headers on a single line */
           }
           table td {
-            padding: 0.25rem 0.35rem !important;
+            padding: 0.4rem 0.6rem !important;
             font-size: 0.75rem !important;
+            vertical-align: top;
           }
           table td > div, table td > span {
             font-size: 0.75rem !important;
           }
-          table th.min-w-\\[150px\\], table td.min-w-\\[150px\\],
+          /* Long free-text columns: cap width and wrap on words */
+          table th.min-w-\\[150px\\], table td.min-w-\\[150px\\] {
+            min-width: 170px !important;
+            max-width: 240px !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere;
+          }
           table th.min-w-\\[120px\\], table td.min-w-\\[120px\\] {
-            min-width: 80px !important;
-            max-width: 150px !important;
+            min-width: 130px !important;
+            max-width: 190px !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere;
           }
           table input[type="text"] {
             font-size: 0.7rem !important;
@@ -1258,16 +1274,12 @@ const handleSubmit = async () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder="Search everything..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-purple-200 rounded-md focus:ring-2 focus:ring-purple-500 text-sm"
-              />
-            </div>
+            <SearchBar
+              className="flex-1 min-w-[200px]"
+              placeholder="Search everything..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
             
             <select
               value={unifiedTypeFilter}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import SearchBar from "../../components/SearchBar"
 
 const AllTasks = () => {
   // Google Sheets configuration
@@ -519,25 +520,33 @@ const AllTasks = () => {
   return (
     <div className="space-y-6">
       <style>{`
-        /* Desktop Compression to prevent horizontal scroll */
+        /* Desktop: readable columns with horizontal scroll instead of crushing */
         @media (min-width: 769px) {
           table th {
-            padding: 0.25rem 0.35rem !important;
+            padding: 0.4rem 0.6rem !important;
             font-size: 0.7rem !important;
-            white-space: normal !important;
-            word-break: break-word !important;
+            white-space: nowrap !important;   /* keep headers on a single line */
           }
           table td {
-            padding: 0.25rem 0.35rem !important;
+            padding: 0.4rem 0.6rem !important;
             font-size: 0.75rem !important;
+            vertical-align: top;
           }
           table td > div, table td > span {
             font-size: 0.75rem !important;
           }
-          table th.min-w-\\[150px\\], table td.min-w-\\[150px\\],
+          /* Long free-text columns: cap width and wrap on words */
+          table th.min-w-\\[150px\\], table td.min-w-\\[150px\\] {
+            min-width: 170px !important;
+            max-width: 240px !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere;
+          }
           table th.min-w-\\[120px\\], table td.min-w-\\[120px\\] {
-            min-width: 80px !important;
-            max-width: 150px !important;
+            min-width: 130px !important;
+            max-width: 190px !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere;
           }
           table input[type="text"] {
             font-size: 0.7rem !important;
@@ -576,15 +585,12 @@ const AllTasks = () => {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {/* Existing filter inputs */}
         <div className="flex flex-col md:flex-row gap-4 p-4 border-b">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
+          <SearchBar
+            className="flex-1"
+            placeholder="Search tasks..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}

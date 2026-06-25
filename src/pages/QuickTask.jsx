@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback, useRef } from "react";
+import SearchBar from "../components/SearchBar";
 import { format } from 'date-fns';
 import { Search, ChevronDown, Filter, Trash2, Edit, Save, X } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
@@ -29,14 +30,17 @@ export default function QuickTask() {
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [checklistPageNum, setChecklistPageNum] = useState(1);
+  const PAGE_SIZE = 50;
 
   // const { quickTask, loading, delegationTasks, users } = useSelector((state) => state.quickTask);
   const { 
-    quickTask, 
-    loading, 
-    delegationTasks, 
+    quickTask,
+    loading,
+    delegationTasks,
     users,                    // Add this
     checklistPage,            // Add this
+    checklistTotal,           // total count for numbered pagination
     checklistHasMore,         // Add this
     delegationPage,           // Add this
     delegationHasMore         // Add this
@@ -50,40 +54,18 @@ useEffect(() => {
 }, [dispatch]);
 
 
-// Add this new function
-const handleScroll = useCallback(() => {
-  if (!tableContainerRef.current || loading) return;
-
-  const { scrollTop, scrollHeight, clientHeight } = tableContainerRef.current;
-  
-  // Check if scrolled near bottom (within 100px)
-  if (scrollHeight - scrollTop - clientHeight < 100) {
-    if (activeTab === 'checklist' && checklistHasMore) {
-      dispatch(uniqueChecklistTaskData({ 
-        page: checklistPage, 
-        pageSize: 50, 
-        nameFilter,
-        append: true 
-      }));
-    } else if (activeTab === 'delegation' && delegationHasMore) {
-      dispatch(uniqueDelegationTaskData({ 
-        page: delegationPage, 
-        pageSize: 50, 
-        nameFilter,
-        append: true 
-      }));
-    }
-  }
-}, [loading, activeTab, checklistHasMore, delegationHasMore, checklistPage, delegationPage, nameFilter, dispatch]);
-
-// Add scroll listener
-useEffect(() => {
-  const container = tableContainerRef.current;
-  if (container) {
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }
-}, [handleScroll]);
+// Numbered pagination — fetch a specific page (replaces current page data)
+const handleChecklistPageChange = useCallback((newPage) => {
+  setChecklistPageNum(newPage);
+  setSelectedTasks([]);
+  dispatch(uniqueChecklistTaskData({
+    page: newPage - 1,   // backend pages are 0-based
+    pageSize: PAGE_SIZE,
+    nameFilter,
+    append: false,
+  }));
+  if (tableContainerRef.current) tableContainerRef.current.scrollTop = 0;
+}, [nameFilter, dispatch]);
 
   const userRole = localStorage.getItem("role");
 
@@ -130,8 +112,8 @@ useEffect(() => {
       setEditingTaskId(null);
       setEditFormData({});
 
-      // Refresh the data to show all updated rows
-      dispatch(uniqueChecklistTaskData());
+      // Refresh the current page to show updated rows
+      dispatch(uniqueChecklistTaskData({ page: checklistPageNum - 1, pageSize: PAGE_SIZE, nameFilter, append: false }));
 
     } catch (error) {
       console.error("Failed to update task:", error);
@@ -187,7 +169,8 @@ useEffect(() => {
         deleteScope
       })).unwrap();
       dispatch(resetChecklistPagination());
-      dispatch(uniqueChecklistTaskData({ page: 0, pageSize: 50, nameFilter, append: false }));
+      setChecklistPageNum(1);
+      dispatch(uniqueChecklistTaskData({ page: 0, pageSize: PAGE_SIZE, nameFilter, append: false }));
       setSelectedTasks([]);
       setDeleteDialogOpen(false);
     } catch (error) {
@@ -236,7 +219,8 @@ useEffect(() => {
 
 const handleNameFilterSelect = (name) => {
   setNameFilter(name);
-  
+  setChecklistPageNum(1);
+
   if (activeTab === 'checklist') {
     dispatch(resetChecklistPagination());
     dispatch(uniqueChecklistTaskData({ 
@@ -265,7 +249,8 @@ const handleNameFilterSelect = (name) => {
 
 const clearNameFilter = () => {
   setNameFilter('');
-  
+  setChecklistPageNum(1);
+
   if (activeTab === 'checklist') {
     dispatch(resetChecklistPagination());
     dispatch(uniqueChecklistTaskData({ 
@@ -384,6 +369,66 @@ const filteredChecklistTasks = quickTask.filter(task => {
     // from all tasks with same description, name, and department
     return "—";
   }
+
+  // Reusable numbered pagination bar (matches Admin Approval / other pages)
+  const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+    if (totalPages <= 1) return null;
+    const pages = [];
+    const delta = 2;
+    for (let i = Math.max(1, currentPage - delta); i <= Math.min(totalPages, currentPage + delta); i++) {
+      pages.push(i);
+    }
+    return (
+      <div className="flex items-center justify-center gap-1 py-3 border-t border-gray-200 bg-white">
+        <button
+          onClick={() => onPageChange(1)}
+          disabled={currentPage === 1}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+        >
+          «
+        </button>
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+        >
+          ‹
+        </button>
+        {pages[0] > 1 && <span className="px-1 text-xs text-gray-400">…</span>}
+        {pages.map((p) => (
+          <button
+            key={p}
+            onClick={() => onPageChange(p)}
+            className={`px-2.5 py-1 text-xs rounded border transition-colors ${
+              p === currentPage
+                ? 'bg-purple-600 text-white border-purple-600'
+                : 'border-gray-300 hover:bg-purple-50 hover:border-purple-300'
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+        {pages[pages.length - 1] < totalPages && <span className="px-1 text-xs text-gray-400">…</span>}
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+        >
+          ›
+        </button>
+        <button
+          onClick={() => onPageChange(totalPages)}
+          disabled={currentPage === totalPages}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+        >
+          »
+        </button>
+        <span className="ml-2 text-xs text-gray-500">Page {currentPage} of {totalPages}</span>
+      </div>
+    );
+  };
+
+  const checklistTotalPages = Math.ceil((checklistTotal || 0) / PAGE_SIZE);
 
   return (
     <AdminLayout>
@@ -511,17 +556,13 @@ const filteredChecklistTasks = quickTask.filter(task => {
               </button>
             </div>
 
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder="Search tasks..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
-                disabled={loading || delegationLoading}
-              />
-            </div>
+            <SearchBar
+              className="flex-1 min-w-[200px]"
+              placeholder="Search tasks..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              disabled={loading || delegationLoading}
+            />
 
             <div className="flex gap-2">
               <div className="relative">
@@ -1140,13 +1181,17 @@ const filteredChecklistTasks = quickTask.filter(task => {
                     )}
                   </tbody>
                 </table>
-                {loading && checklistHasMore && (
-                <div className="text-center py-4">
-                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div>
-                  <p className="text-purple-600 text-sm mt-2">Loading more tasks...</p>
+              </div>
+              {loading && (
+                <div className="text-center py-3 border-t border-gray-100">
+                  <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-purple-500"></div>
                 </div>
               )}
-              </div>
+              <Pagination
+                currentPage={checklistPageNum}
+                totalPages={checklistTotalPages}
+                onPageChange={handleChecklistPageChange}
+              />
             </div>
           ) : (
             <DelegationPage

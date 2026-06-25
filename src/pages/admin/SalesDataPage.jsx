@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { CheckCircle2, Upload, X, Search, History, ArrowLeft } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
+import SearchBar from "../../components/SearchBar"
 import { useDispatch, useSelector } from "react-redux"
 import { checklistData, checklistHistoryData, updateChecklist } from "../../redux/slice/checklistSlice"
 import { postChecklistAdminDoneAPI, sendChecklistWhatsAppAPI } from "../../redux/api/checkListApi"
@@ -986,25 +987,33 @@ const handleSubmit = async () => {
   return (
     <AdminLayout>
       <style>{`
-        /* Desktop Compression to prevent horizontal scroll */
+        /* Desktop: readable columns with horizontal scroll instead of crushing */
         @media (min-width: 769px) {
           table th {
-            padding: 0.25rem 0.35rem !important;
+            padding: 0.4rem 0.6rem !important;
             font-size: 0.7rem !important;
-            white-space: normal !important;
-            word-break: break-word !important;
+            white-space: nowrap !important;   /* keep headers on a single line */
           }
           table td {
-            padding: 0.25rem 0.35rem !important;
+            padding: 0.4rem 0.6rem !important;
             font-size: 0.75rem !important;
+            vertical-align: top;
           }
           table td > div, table td > span {
             font-size: 0.75rem !important;
           }
-          table th.min-w-\\[150px\\], table td.min-w-\\[150px\\],
+          /* Long free-text columns: cap width and wrap on words */
+          table th.min-w-\\[150px\\], table td.min-w-\\[150px\\] {
+            min-width: 170px !important;
+            max-width: 240px !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere;
+          }
           table th.min-w-\\[120px\\], table td.min-w-\\[120px\\] {
-            min-width: 80px !important;
-            max-width: 150px !important;
+            min-width: 130px !important;
+            max-width: 190px !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere;
           }
           table input[type="text"] {
             font-size: 0.7rem !important;
@@ -1018,16 +1027,12 @@ const handleSubmit = async () => {
             {showHistory ? CONFIG.PAGE_CONFIG.historyTitle : CONFIG.PAGE_CONFIG.title}
           </h1>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder={showHistory ? "Search history..." : "Search tasks..."}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
-              />
-            </div>
+            <SearchBar
+              className="flex-1"
+              placeholder={showHistory ? "Search history..." : "Search tasks..."}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
             {!showHistory && (
               <>
                 <select
@@ -1795,7 +1800,7 @@ const handleSubmit = async () => {
                               />
                             </td>
                           )}
-                          <td className="px-2 sm:px-3 py-1 sm:py-2 bg-yellow-50">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2 bg-yellow-50 min-w-[110px]">
                             <select
                               disabled={!isSelected}
                               value={additionalData[account.task_id] || ""}

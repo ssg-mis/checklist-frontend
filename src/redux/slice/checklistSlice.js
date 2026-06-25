@@ -24,8 +24,12 @@ export const checklistData = createAsyncThunk(
 // ============================================================
 export const checklistHistoryData = createAsyncThunk(
   "fetch/history",
-  async (page = 1) => {
-    const { data, totalCount } = await fetchChechListDataForHistory(page);
+  async (arg = 1) => {
+    // Backward compatible: accepts a page number or { page, search, approvalStatus }
+    const page = typeof arg === "object" ? arg.page ?? 1 : arg;
+    const search = typeof arg === "object" ? arg.search ?? "" : "";
+    const approvalStatus = typeof arg === "object" ? arg.approvalStatus ?? "all" : "all";
+    const { data, totalCount } = await fetchChechListDataForHistory(page, search, approvalStatus);
     return { data, totalCount, page };
   }
 );

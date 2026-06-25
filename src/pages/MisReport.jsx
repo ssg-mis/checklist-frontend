@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import SearchBar from "../components/SearchBar"
 import { fetchStaffTasksDataApi, getStaffTasksCountApi, getTotalUsersCountApi } from "../redux/api/dashboardApi"
 import AdminLayout from '../components/layout/AdminLayout';
 
@@ -227,15 +228,12 @@ function StaffTasksPage() {
                             {/* Filters Section */}
                             <div className="flex flex-col sm:flex-row gap-3">
                                 {/* Search Bar */}
-                                <div className="w-full sm:w-64">
-                                    <input
-                                        type="text"
-                                        placeholder="Search staff..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm"
-                                    />
-                                </div>
+                                <SearchBar
+                                    className="flex-1 min-w-[200px]"
+                                    placeholder="Search staff..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
 
                                 {/* Staff Filter */}
                                 <div className="w-full sm:w-48">

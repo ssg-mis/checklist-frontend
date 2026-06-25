@@ -1,11 +1,12 @@
 "use client"
 import { useState, useEffect, useMemo, useRef } from "react"
+import SearchBar from "../../components/SearchBar"
 import { Search, CheckCircle2, RotateCcw } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
 import { useDispatch, useSelector } from "react-redux"
 import { checklistHistoryData } from "../../redux/slice/checklistSlice"
 import { postChecklistAdminDoneAPI, revertChecklistAdminDoneAPI } from "../../redux/api/checkListApi"
-import { postDelegationAdminDoneAPI } from "../../redux/api/delegationApi"
+import { postDelegationAdminDoneAPI, revertDelegationTaskAPI } from "../../redux/api/delegationApi"
 import { uniqueDoerNameData } from "../../redux/slice/assignTaskSlice"
 import { delegationDoneData } from "../../redux/slice/delegationSlice"
 
@@ -21,7 +22,7 @@ function HistoryPage() {
   const [currentPageDelegation, setCurrentPageDelegation] = useState(1)
   const ITEMS_PER_PAGE = 50
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
-  const [approvalStatusFilter, setApprovalStatusFilter] = useState("all") // 'all', 'pending', 'completed'
+  const [approvalStatusFilter, setApprovalStatusFilter] = useState("pending") // 'all', 'pending', 'completed'
 
   // Admin approval states
   const [selectedHistoryItems, setSelectedHistoryItems] = useState([])
@@ -46,10 +47,25 @@ function HistoryPage() {
   const delegationTableContainerRef = useRef(null)
 
   useEffect(() => {
-    dispatch(checklistHistoryData(1))
     dispatch(delegationDoneData())
     dispatch(uniqueDoerNameData())
   }, [dispatch])
+
+  // Fetch checklist history from the server, searching the WHOLE table
+  // (not just the current page). Debounced so typing doesn't spam the API.
+  const isFirstHistoryFetch = useRef(true)
+  useEffect(() => {
+    if (isFirstHistoryFetch.current) {
+      isFirstHistoryFetch.current = false
+      dispatch(checklistHistoryData({ page: 1, search: "", approvalStatus: approvalStatusFilter }))
+      return
+    }
+    const timer = setTimeout(() => {
+      setCurrentPageHistory(1)
+      dispatch(checklistHistoryData({ page: 1, search: searchTerm, approvalStatus: approvalStatusFilter }))
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchTerm, approvalStatusFilter, dispatch])
 
   useEffect(() => {
     const role = localStorage.getItem("role")
@@ -62,7 +78,7 @@ function HistoryPage() {
   // Page change handlers
   const handleHistoryPageChange = (newPage) => {
     setCurrentPageHistory(newPage);
-    dispatch(checklistHistoryData(newPage));
+    dispatch(checklistHistoryData({ page: newPage, search: searchTerm, approvalStatus: approvalStatusFilter }));
     if (historyTableContainerRef.current) historyTableContainerRef.current.scrollTop = 0;
   };
 
@@ -145,7 +161,7 @@ function HistoryPage() {
     setSelectedMembers([])
     setStartDate("")
     setEndDate("")
-    setApprovalStatusFilter("all")
+    setApprovalStatusFilter("pending")
   }
 
   // Handle checkbox selection for checklist admin approval
@@ -158,9 +174,9 @@ function HistoryPage() {
   }
 
   // Handle checkbox selection for delegation admin approval
-  const handleDelegationItemSelect = (id, isChecked) => {
+  const handleDelegationItemSelect = (id, taskId, isChecked) => {
     if (isChecked) {
-      setSelectedDelegationItems(prev => [...prev, { id: id }])
+      setSelectedDelegationItems(prev => [...prev, { id: id, task_id: taskId }])
     } else {
       setSelectedDelegationItems(prev => prev.filter(item => item.id !== id))
     }
@@ -183,7 +199,7 @@ function HistoryPage() {
     if (isChecked) {
       const pendingItems = filteredDelegationData
         .filter(item => item.admin_done !== 'Done' && item.status === 'completed')
-        .map(item => ({ id: item.id }))
+        .map(item => ({ id: item.id, task_id: item.task_id }))
       setSelectedDelegationItems(pendingItems)
     } else {
       setSelectedDelegationItems([])
@@ -232,7 +248,8 @@ function HistoryPage() {
         setSelectedHistoryItems([])
         setAdminRemarks({})
         setAdminReplyData({})
-        dispatch(checklistHistoryData(1))
+        setCurrentPageHistory(1)
+        dispatch(checklistHistoryData({ page: 1, search: searchTerm, approvalStatus: approvalStatusFilter }))
       } else {
         setSelectedDelegationItems([])
         dispatch(delegationDoneData())
@@ -259,7 +276,28 @@ function HistoryPage() {
       if (result.error) throw new Error(result.error.message || "Revert failed")
       setSuccessMessage(`Successfully reverted ${selectedHistoryItems.length} task(s) to checklist!`)
       setSelectedHistoryItems([])
-      dispatch(checklistHistoryData(1))
+      setCurrentPageHistory(1)
+      dispatch(checklistHistoryData({ page: 1, search: searchTerm, approvalStatus: approvalStatusFilter }))
+      setTimeout(() => setSuccessMessage(""), 3000)
+    } catch (err) {
+      setSuccessMessage(`Failed to revert: ${err.message}`)
+    } finally {
+      setRevertingTaskId(null)
+    }
+  }
+
+  const handleDelegationRevert = async () => {
+    if (selectedDelegationItems.length === 0) return
+    if (!window.confirm(`Revert ${selectedDelegationItems.length} task(s) back to pending?`)) return
+    setRevertingTaskId("delegation-bulk")
+    try {
+      const result = await revertDelegationTaskAPI(
+        selectedDelegationItems.map(i => ({ id: i.id, task_id: i.task_id }))
+      )
+      if (result.error) throw new Error(result.error.message || "Revert failed")
+      setSuccessMessage(`Successfully reverted ${selectedDelegationItems.length} task(s) to pending!`)
+      setSelectedDelegationItems([])
+      dispatch(delegationDoneData())
       setTimeout(() => setSuccessMessage(""), 3000)
     } catch (err) {
       setSuccessMessage(`Failed to revert: ${err.message}`)
@@ -515,16 +553,12 @@ function HistoryPage() {
         <div className="bg-white rounded-md shadow-sm p-2">
           <div className="flex flex-wrap gap-2 items-center">
             {/* Search */}
-            <div className="relative flex-1 min-w-[120px] max-w-[200px]">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-3 w-3" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-7 pr-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
+            <SearchBar
+              className="flex-1 min-w-[120px]"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
 
             {/* Date Range */}
             <div className="flex gap-1 items-center">
@@ -621,14 +655,24 @@ function HistoryPage() {
             )}
 
             {isSuperAdmin && activeTab === "delegation" && selectedDelegationItems.length > 0 && (
-              <button
-                onClick={() => handleMarkDone("delegation")}
-                disabled={markingAsDone}
-                className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
-              >
-                <CheckCircle2 className="h-3 w-3" />
-                {markingAsDone ? "..." : `Approve (${selectedDelegationItems.length})`}
-              </button>
+              <>
+                <button
+                  onClick={() => handleMarkDone("delegation")}
+                  disabled={markingAsDone}
+                  className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  {markingAsDone ? "..." : `Approve (${selectedDelegationItems.length})`}
+                </button>
+                <button
+                  onClick={handleDelegationRevert}
+                  disabled={revertingTaskId === "delegation-bulk"}
+                  className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50 flex items-center gap-1"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  {revertingTaskId === "delegation-bulk" ? "..." : `Revert (${selectedDelegationItems.length})`}
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -689,25 +733,33 @@ function HistoryPage() {
               }
             }
             
-            /* Desktop Compression to prevent horizontal scroll */
+            /* Desktop: readable columns with horizontal scroll instead of crushing */
             @media (min-width: 769px) {
               .mobile-card-table th {
-                padding: 0.25rem 0.35rem !important;
+                padding: 0.4rem 0.6rem !important;
                 font-size: 0.7rem !important;
-                white-space: normal !important;
-                word-break: break-word !important;
+                white-space: nowrap !important;   /* keep headers on a single line */
               }
               .mobile-card-table td {
-                padding: 0.25rem 0.35rem !important;
+                padding: 0.4rem 0.6rem !important;
                 font-size: 0.75rem !important;
+                vertical-align: top;
               }
               .mobile-card-table td > div, .mobile-card-table td > span {
                 font-size: 0.75rem !important;
               }
-              .mobile-card-table th.min-w-\\[150px\\], .mobile-card-table td.min-w-\\[150px\\],
+              /* Long free-text columns: cap width and wrap on words */
+              .mobile-card-table th.min-w-\\[150px\\], .mobile-card-table td.min-w-\\[150px\\] {
+                min-width: 170px !important;
+                max-width: 240px !important;
+                white-space: normal !important;
+                overflow-wrap: anywhere;
+              }
               .mobile-card-table th.min-w-\\[120px\\], .mobile-card-table td.min-w-\\[120px\\] {
-                min-width: 80px !important;
-                max-width: 150px !important;
+                min-width: 130px !important;
+                max-width: 190px !important;
+                white-space: normal !important;
+                overflow-wrap: anywhere;
               }
               .mobile-card-table input[type="text"] {
                 font-size: 0.7rem !important;
@@ -982,7 +1034,7 @@ function HistoryPage() {
                               <input
                                 type="checkbox"
                                 checked={isDelegationItemSelected(item.id)}
-                                onChange={(e) => handleDelegationItemSelect(item.id, e.target.checked)}
+                                onChange={(e) => handleDelegationItemSelect(item.id, item.task_id, e.target.checked)}
                                 disabled={item.status !== "completed"}
                                 className={`h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded ${
                                   item.status !== "completed" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"

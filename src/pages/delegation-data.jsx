@@ -25,11 +25,13 @@ function DelegationPage({ searchTerm, nameFilter, freqFilter, setNameFilter, set
   const [isInitialized, setIsInitialized] = useState(false)
   const [selectedTasks, setSelectedTasks] = useState([])
   const [isDeleting, setIsDeleting] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 50
 
-  const { delegationTasks, loading } = useSelector((state) => state.quickTask)
+  const { delegationTasks, delegationTotal, loading } = useSelector((state) => state.quickTask)
   const dispatch = useDispatch()
 useEffect(()=>{
-  dispatch(uniqueDelegationTaskData())
+  dispatch(uniqueDelegationTaskData({}))
 },[dispatch])
 
  // Handle checkbox selection
@@ -61,8 +63,9 @@ useEffect(()=>{
       await dispatch(deleteDelegationTask(selectedTasks)).unwrap()
       setSelectedTasks([])
       setSuccessMessage("Tasks deleted successfully")
-      // Refresh the task list
-      dispatch(uniqueDelegationTaskData())
+      // Refresh the task list (back to first page)
+      setCurrentPage(1)
+      dispatch(uniqueDelegationTaskData({ page: 0, pageSize: ITEMS_PER_PAGE, nameFilter: nameFilter || '', append: false }))
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(""), 3000)
@@ -138,7 +141,7 @@ useEffect(()=>{
   useEffect(() => {
     if (isInitialized) {
      // fetchData()
-     dispatch(uniqueDelegationTaskData())
+     dispatch(uniqueDelegationTaskData({}))
     }
   }, [dispatch, isInitialized])
 
@@ -160,6 +163,57 @@ useEffect(()=>{
     
     return filtered
   }, [delegationTasks, searchTerm, nameFilter, freqFilter])
+
+  // Parent refetches page 0 when the name filter changes — keep our page in sync
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [nameFilter])
+
+  const totalPages = Math.ceil((delegationTotal || 0) / ITEMS_PER_PAGE)
+
+  // Server-side page navigation (data is paginated by the backend)
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage)
+    setSelectedTasks([])
+    dispatch(uniqueDelegationTaskData({
+      page: newPage - 1,   // backend pages are 0-based
+      pageSize: ITEMS_PER_PAGE,
+      nameFilter: nameFilter || '',
+      append: false,
+    }))
+  }
+
+  // Reusable numbered pagination bar (matches other pages)
+  const Pagination = () => {
+    if (totalPages <= 1) return null
+    const pages = []
+    const delta = 2
+    for (let i = Math.max(1, currentPage - delta); i <= Math.min(totalPages, currentPage + delta); i++) {
+      pages.push(i)
+    }
+    const goTo = (p) => handlePageChange(p)
+    return (
+      <div className="flex items-center justify-center gap-1 py-3 border-t border-gray-200 bg-white">
+        <button onClick={() => goTo(1)} disabled={currentPage === 1}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors">«</button>
+        <button onClick={() => goTo(currentPage - 1)} disabled={currentPage === 1}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors">‹</button>
+        {pages[0] > 1 && <span className="px-1 text-xs text-gray-400">…</span>}
+        {pages.map((p) => (
+          <button key={p} onClick={() => goTo(p)}
+            className={`px-2.5 py-1 text-xs rounded border transition-colors ${
+              p === currentPage ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-300 hover:bg-purple-50 hover:border-purple-300'
+            }`}>{p}</button>
+        ))}
+        {pages[pages.length - 1] < totalPages && <span className="px-1 text-xs text-gray-400">…</span>}
+        <button onClick={() => goTo(currentPage + 1)} disabled={currentPage === totalPages}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors">›</button>
+        <button onClick={() => goTo(totalPages)} disabled={currentPage === totalPages}
+          className="px-2 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-purple-50 hover:border-purple-300 transition-colors">»</button>
+        <span className="ml-2 text-xs text-gray-500">Page {currentPage} of {totalPages}</span>
+      </div>
+    )
+  }
 
   
 
@@ -340,6 +394,7 @@ useEffect(()=>{
               </tbody>
             </table>
           </div>
+          <Pagination />
         </div>
       )}
     </>

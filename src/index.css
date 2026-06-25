@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+/* Global slim scrollbars — thin but still visible everywhere */
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #cbd5e1 transparent; /* thumb / track */
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1; /* Slate-300 */
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8; /* Slate-400 */
+}
+
 .gradient-bg {
   background: linear-gradient(to right, #9333ea, #db2777);
 }
@@ -9,6 +33,29 @@
 
 .gradient-bg:hover {
   background: linear-gradient(to right, #7e22ce, #be185d);
+}
+
+/* Slim, subtle scrollbar for the sidebar nav */
+.slim-scrollbar {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #d1d5db transparent; /* thumb / track */
+}
+
+.slim-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.slim-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.slim-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #d1d5db; /* Gray-300 */
+  border-radius: 9999px;
+}
+
+.slim-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af; /* Gray-400 */
 }
 
 /* Improve scrolling performance for large tables */
