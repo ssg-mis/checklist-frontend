@@ -554,7 +554,7 @@ function HistoryPage() {
           <div className="flex flex-wrap gap-2 items-center">
             {/* Search */}
             <SearchBar
-              className="flex-1 min-w-[120px]"
+              className="flex-1 min-w-[160px]"
               placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -771,7 +771,7 @@ function HistoryPage() {
             {activeTab === "checklist" ? (
               /* Checklist Table */
               <>
-                <table className="min-w-full divide-y divide-gray-200 mobile-card-table">
+                <table className="min-w-max divide-y divide-gray-200 mobile-card-table">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     {isSuperAdmin && userRole !== "pc role" && (
@@ -793,16 +793,16 @@ function HistoryPage() {
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Given By</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Task Description</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[250px]">Task Description</th>
                     {/* <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th> */}
                     {/* <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th> */}
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">Task Start Date</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frequency</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-green-50">Submission Date</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Status</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[120px]">Remarks</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-indigo-50 min-w-[120px]">User Reply</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-teal-50 min-w-[120px]">Admin Reply</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[160px]">Remarks</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-indigo-50 min-w-[160px]">User Reply</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-teal-50 min-w-[160px]">Admin Reply</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
                   </tr>
                 </thead>
@@ -889,7 +889,7 @@ function HistoryPage() {
                         <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Name">
                           <div className="text-xs sm:text-sm text-gray-900">{historyItem.name || "—"}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[150px]" data-label="Task Description">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[250px]" data-label="Task Description">
                           <div className="text-xs sm:text-sm text-gray-900" title={historyItem.task_description}>
                             {historyItem.task_description || "—"}
                           </div>
@@ -939,17 +939,17 @@ function HistoryPage() {
                             {historyItem.status || "—"}
                           </span>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[120px]" data-label="Remarks">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[160px]" data-label="Remarks">
                           <div className="text-xs sm:text-sm text-gray-900" title={historyItem.remark}>
                             {historyItem.remark || "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-indigo-50 min-w-[120px]" data-label="User Reply">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-indigo-50 min-w-[160px]" data-label="User Reply">
                           <div className="text-xs sm:text-sm text-gray-900">
                             {historyItem.user_reply || "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-teal-50 min-w-[120px]" data-label="Admin Reply">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-teal-50 min-w-[160px]" data-label="Admin Reply">
                           <div className="text-xs sm:text-sm text-gray-900">
                             {historyItem.admin_reply || "—"}
                           </div>
@@ -995,7 +995,7 @@ function HistoryPage() {
             ) : (
               /* Delegation Table */
               <>
-                <table className="min-w-full divide-y divide-gray-200 mobile-card-table">
+                <table className="min-w-max divide-y divide-gray-200 mobile-card-table">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     {isSuperAdmin && userRole !== "pc role" && (
@@ -1016,11 +1016,11 @@ function HistoryPage() {
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Given By</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Task Description</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[250px]">Task Description</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">Created At</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Status</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Extend Date</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[120px]">Reason</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[160px]">Reason</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
                   </tr>
                 </thead>
@@ -1089,7 +1089,7 @@ function HistoryPage() {
                         <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Name">
                           <div className="text-xs sm:text-sm text-gray-900">{item.name || "—"}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[150px]" data-label="Task Description">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[250px]" data-label="Task Description">
                           <div className="text-xs sm:text-sm text-gray-900" title={item.task_description}>
                             {item.task_description || "—"}
                           </div>
@@ -1116,7 +1116,7 @@ function HistoryPage() {
                             {item.next_extend_date ? formatDateForDisplay(item.next_extend_date) : "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[120px]" data-label="Reason">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[160px]" data-label="Reason">
                           <div className="text-xs sm:text-sm text-gray-900" title={item.reason}>
                             {item.reason || "—"}
                           </div>

@@ -279,7 +279,7 @@ useEffect(()=>{
 
 
           <div className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-max divide-y divide-gray-200">
               <thead className="bg-gray-50 sticky top-0 z-20">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">

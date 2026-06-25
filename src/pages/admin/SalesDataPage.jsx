@@ -1276,7 +1276,7 @@ const handleSubmit = async () => {
                   </div>
                 ) : (
                   <>
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="min-w-max divide-y divide-gray-200">
                       <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
                           <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -1291,7 +1291,7 @@ const handleSubmit = async () => {
                           <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             Name
                           </th>
-                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[250px]">
                             Task Description
                           </th>
                           {userRole === "admin" && (
@@ -1317,10 +1317,10 @@ const handleSubmit = async () => {
                           <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50 whitespace-nowrap">
                             Status
                           </th>
-                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[120px]">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[160px]">
                             Remarks
                           </th>
-                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-teal-50 min-w-[120px]">
+                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-teal-50 min-w-[160px]">
                             Admin Reply
                           </th>
                           <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -1347,7 +1347,7 @@ const handleSubmit = async () => {
                               <td className="px-2 sm:px-3 py-1 sm:py-2">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words">{history.name || "—"}</div>
                               </td>
-                              <td className="px-2 sm:px-3 py-1 sm:py-2 min-w-[150px]">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2 min-w-[250px]">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words" title={history.task_description}>
                                   {history.task_description || "—"}
                                 </div>
@@ -1420,12 +1420,12 @@ const handleSubmit = async () => {
                                   {history.status || "—"}
                                 </span>
                               </td>
-                              <td className="px-2 sm:px-3 py-1 sm:py-2 bg-purple-50 min-w-[120px]">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2 bg-purple-50 min-w-[160px]">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words" title={history.remark}>
                                   {history.remark || "—"}
                                 </div>
                               </td>
-                              <td className="px-2 sm:px-3 py-1 sm:py-2 bg-teal-50 min-w-[120px]">
+                              <td className="px-2 sm:px-3 py-1 sm:py-2 bg-teal-50 min-w-[160px]">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words">
                                   {history.admin_reply || "—"}
                                 </div>
@@ -1646,13 +1646,13 @@ const handleSubmit = async () => {
               </div>
 
               {/* Desktop Table View */}
-              <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
+              <table className="min-w-max divide-y divide-gray-200 hidden sm:table">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-16">
                       Seq. No.
                     </th>
-                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[160px]">
                       Admin Reply
                     </th>
                     <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -1679,7 +1679,7 @@ const handleSubmit = async () => {
                     <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Status
                     </th>
-                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[160px]">
                       Remarks
                     </th>
                     <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -1697,7 +1697,7 @@ const handleSubmit = async () => {
                     <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Name
                     </th>
-                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[250px]">
                       Task Description
                     </th>
                     <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50 whitespace-nowrap">
@@ -1728,7 +1728,7 @@ const handleSubmit = async () => {
                               {sequenceNumber}
                             </div>
                           </td>
-                          <td className="px-2 sm:px-3 py-1 sm:py-2 bg-teal-50 min-w-[120px]">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2 bg-teal-50 min-w-[160px]">
                             <div className="space-y-1">
                               {userRole === "super_admin" ? (
                                 adminRemarksInput[account.task_id] !== undefined ? (
@@ -1821,7 +1821,7 @@ const handleSubmit = async () => {
                               <option value="No">No</option>
                             </select>
                           </td>
-                          <td className="px-2 sm:px-3 py-1 sm:py-2 bg-orange-50 min-w-[120px]">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2 bg-orange-50 min-w-[160px]">
                             {isSelected ? (
                               <input
                                 type="text"
@@ -1909,7 +1909,7 @@ const handleSubmit = async () => {
                           <td className="px-2 sm:px-3 py-1 sm:py-2">
                             <div className="text-xs sm:text-sm text-gray-900 break-words">{account.name || "—"}</div>
                           </td>
-                          <td className="px-2 sm:px-3 py-1 sm:py-2 min-w-[150px]">
+                          <td className="px-2 sm:px-3 py-1 sm:py-2 min-w-[250px]">
                             <div className="text-xs sm:text-sm text-gray-900 break-words" title={account.task_description}>
                               {account.task_description || "—"}
                             </div>

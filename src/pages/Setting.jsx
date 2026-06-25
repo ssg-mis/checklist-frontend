@@ -1046,7 +1046,7 @@ const resetUserForm = () => {
             {/* Users List for Leave Selection - Updated with filter */}
             {/* Users List for Leave Selection */}
 <div className="h-[calc(100vh-400px)] overflow-auto">
-  <table className="min-w-full divide-y divide-gray-200">
+  <table className="min-w-max divide-y divide-gray-200">
     <thead className="bg-gray-50">
       <tr>
         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1246,7 +1246,7 @@ const resetUserForm = () => {
       </div>
 
       {/* Desktop Table View */}
-      <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
+      <table className="min-w-max divide-y divide-gray-200 hidden sm:table">
         <thead className="bg-gray-50">
           <tr>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1416,7 +1416,7 @@ const resetUserForm = () => {
     {/* Departments Sub-tab - Show only department names */}
     {activeDeptSubTab === 'departments' && !loading && (
       <div className="h-[calc(100vh-275px)] overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="min-w-max divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1468,7 +1468,7 @@ const resetUserForm = () => {
     {/* Given By Sub-tab - Show only given_by values */}
     {activeDeptSubTab === 'givenBy' && !loading && (
       <div className="h-[calc(100vh-275px)] overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="min-w-max divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1562,7 +1562,7 @@ const resetUserForm = () => {
 
             {/* Users List for Extend Task Selection */}
             <div className="h-[calc(100vh-400px)] overflow-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-max divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1651,7 +1651,7 @@ const resetUserForm = () => {
                   ) : extendUserTasks.length === 0 ? (
                     <div className="text-center py-4 text-gray-500">No tasks found for selected date range.</div>
                   ) : (
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="min-w-max divide-y divide-gray-200">
                       <thead className="bg-gray-50 sticky top-0">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
@@ -2255,7 +2255,7 @@ const resetUserForm = () => {
                               </h4>
                               <div className="border border-gray-300 rounded-md overflow-hidden">
                                 <div className="max-h-64 overflow-y-auto">
-                                  <table className="min-w-full divide-y divide-gray-200">
+                                  <table className="min-w-max divide-y divide-gray-200">
                                     <thead className="bg-gray-50 sticky top-0">
                                       <tr>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>

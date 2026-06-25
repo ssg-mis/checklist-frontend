@@ -1437,7 +1437,7 @@ const handleSubmit = async () => {
           ) : (
             <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
               {/* Desktop Unified Table */}
-              <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
+              <table className="min-w-max divide-y divide-gray-200 hidden sm:table">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Seq No.</th>
@@ -1478,7 +1478,7 @@ const handleSubmit = async () => {
                       return (
                         <tr key={item.unifiedId} className={`${isSelected ? (isApproval ? "bg-green-50" : "bg-purple-50") : isAlreadyApproved ? "bg-gray-50 opacity-60" : "hover:bg-gray-50"} ${rowColorClass} transition-colors`}>
                           <td className="px-3 py-2 text-xs text-gray-500">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
-                          <td className="px-3 py-2 min-w-[120px] max-w-[180px] wrap-break-word">
+                          <td className="px-3 py-2 min-w-[160px] max-w-[180px] wrap-break-word">
                               {isApproval ? (
                                 <div className="text-xs text-gray-500 italic">
                                   {item.adminremarks || "—"}
@@ -1551,7 +1551,7 @@ const handleSubmit = async () => {
                           <td className="px-3 py-2">
                             <StatusBadge status={isApproval ? item.status : 'pending'} adminDone={isApproval ? item.admin_done : null} type={item.unifiedType} />
                           </td>
-                          <td className="px-3 py-2 min-w-[120px] max-w-[180px] wrap-break-word">
+                          <td className="px-3 py-2 min-w-[160px] max-w-[180px] wrap-break-word">
                             {isSelected && normalizedRole !== 'pc role' ? (
                               <div className="space-y-2">
                                 {item.unifiedType === 'pending' && (
@@ -1584,7 +1584,7 @@ const handleSubmit = async () => {
                                 />
                               </div>
                             ) : (
-                              <div className="text-xs text-gray-500 italic max-h-20 overflow-y-auto w-full wrap-break-word min-w-[150px]">
+                              <div className="text-xs text-gray-500 italic max-h-20 overflow-y-auto w-full wrap-break-word min-w-[250px]">
                                 {isApproval ? (
                                   <>
                                     {item.reason && <div className="mb-1"><span className="font-semibold text-gray-400 not-italic">Doer:</span> {item.reason}</div>}
