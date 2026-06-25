@@ -393,6 +393,17 @@ useEffect(() => {
     return null;
   };
 
+  // Advance by N days, skipping Sundays in the count
+  const addNonSundayDays = (date, n) => {
+    let result = new Date(date);
+    let counted = 0;
+    while (counted < n) {
+      result = addDays(result, 1);
+      if (result.getDay() !== 0) counted++; // 0 = Sunday
+    }
+    return result;
+  };
+
   const getAnchoredAlternateDayDate = (anchorDate, intervalDays) => {
     // Try anchor, go back up to intervalDays-1 within the same window
     for (let d = 0; d <= intervalDays - 1; d++) {
@@ -581,7 +592,7 @@ useEffect(() => {
           case "alternate-day": {
             taskDate = getAnchoredAlternateDayDate(currentDate, alternateDayInterval);
             if (!taskDate) break;
-            currentDate = addDays(currentDate, alternateDayInterval);
+            currentDate = addNonSundayDays(currentDate, alternateDayInterval);
             break;
           }
 
@@ -728,7 +739,7 @@ useEffect(() => {
             case "alternate-day": {
               taskDate = getAnchoredAlternateDayDate(currentDate, alternateDayInterval);
               if (!taskDate) break;
-              currentDate = addDays(currentDate, alternateDayInterval);
+              currentDate = addNonSundayDays(currentDate, alternateDayInterval);
               break;
             }
             default:
@@ -1143,7 +1154,7 @@ useEffect(() => {
                           placeholder="e.g. 2, 3, 4..."
                         />
                         <p className="text-xs text-gray-500">
-                          Task will repeat every {alternateDayInterval} day{alternateDayInterval > 1 ? "s" : ""} (nearest working day)
+                          Task will repeat every {alternateDayInterval} day{alternateDayInterval > 1 ? "s" : ""}, excluding Sundays (nearest working day)
                         </p>
                       </div>
                     )}
