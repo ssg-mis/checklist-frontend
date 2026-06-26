@@ -1584,7 +1584,7 @@ const handleSubmit = async () => {
                                 />
                               </div>
                             ) : (
-                              <div className="text-xs text-gray-500 italic max-h-20 overflow-y-auto w-full wrap-break-word min-w-[250px]">
+                              <div className="text-xs text-gray-500 italic max-h-20 overflow-y-auto w-full wrap-break-word">
                                 {isApproval ? (
                                   <>
                                     {item.reason && <div className="mb-1"><span className="font-semibold text-gray-400 not-italic">Doer:</span> {item.reason}</div>}
