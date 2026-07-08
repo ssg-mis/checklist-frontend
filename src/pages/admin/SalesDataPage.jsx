@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import { CheckCircle2, Upload, X, Search, History, ArrowLeft } from "lucide-react"
+import { CheckCircle2, Upload, X, Search, History, ArrowLeft, FileText } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
 import SearchBar from "../../components/SearchBar"
 import { useDispatch, useSelector } from "react-redux"
@@ -724,6 +724,10 @@ function AccountDataPage() {
   }, []);
 
   const compressImageToBase64 = useCallback((file) => {
+    if (!file.type.startsWith("image/")) {
+      // Non-image files (e.g. PDFs) can't be canvas-compressed — send as-is
+      return fileToBase64(file);
+    }
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -1443,11 +1447,15 @@ const handleSubmit = async () => {
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:text-blue-800 underline flex items-center break-words text-xs sm:text-sm"
                                   >
-                                    <img
-                                      src={history.image || "/placeholder.svg?height=32&width=32"}
-                                      alt="Attachment"
-                                      className="h-6 w-6 sm:h-8 sm:w-8 object-cover rounded-md mr-2 flex-shrink-0"
-                                    />
+                                    {history.image.toLowerCase().endsWith(".pdf") ? (
+                                      <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-red-500 mr-2 flex-shrink-0" />
+                                    ) : (
+                                      <img
+                                        src={history.image || "/placeholder.svg?height=32&width=32"}
+                                        alt="Attachment"
+                                        className="h-6 w-6 sm:h-8 sm:w-8 object-cover rounded-md mr-2 flex-shrink-0"
+                                      />
+                                    )}
                                     <span className="break-words">View</span>
                                   </a>
                                 ) : (
@@ -1634,7 +1642,7 @@ const handleSubmit = async () => {
                               <input
                                 type="file"
                                 className="hidden"
-                                accept="image/*"
+                                accept="image/*,application/pdf"
                                 onChange={(e) => handleImageUpload(account.task_id, e)}
                               />
                             </label>
@@ -1886,7 +1894,7 @@ const handleSubmit = async () => {
                                 <input
                                   type="file"
                                   className="hidden"
-                                  accept="image/*"
+                                  accept="image/*,application/pdf"
                                   onChange={(e) => handleImageUpload(account.task_id, e)}
                                 />
                               </label>
