@@ -78,28 +78,34 @@ export const insertDelegationDoneAndUpdate = createAsyncThunk(
 );
 
 // FETCH PENDING
-export const fetchDelegationDataSortByDate = async () => {
+export const fetchDelegationDataSortByDate = async (filters = {}) => {
   const role = localStorage.getItem("role");
   const username = localStorage.getItem("user-name");
   const userAccess = localStorage.getItem("user_access");
 
   const { data } = await axios.get(`${API}/delegation`, {
-    params: { role, username, user_access: userAccess },
+    params: { role, username, user_access: userAccess, ...filters },
   });
 
   return data;
 };
 
 // FETCH DONE
-export const fetchDelegation_DoneDataSortByDate = async () => {
+export const fetchDelegation_DoneDataSortByDate = async (filters = {}) => {
   const role = localStorage.getItem("role");
   const username = localStorage.getItem("user-name");
   const userAccess = localStorage.getItem("user_access");
 
   const { data } = await axios.get(`${API}/delegation-done`, {
-    params: { role, username, user_access: userAccess },
+    params: { role, username, user_access: userAccess, ...filters },
   });
 
+  return data;
+};
+
+// FETCH FILTER OPTIONS
+export const fetchDelegationFilterOptions = async () => {
+  const { data } = await axios.get(`${API}/filter-options`);
   return data;
 };
 

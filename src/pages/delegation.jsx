@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   delegationDoneData,
   delegationData,
+  getDelegationFilterOptionsThunk,
 } from "../redux/slice/delegationSlice";
 
 import { insertDelegationDoneAndUpdate, sendDelegationWhatsAppAPI, postDelegationAdminDoneAPI, revertDelegationTaskAPI } from "../redux/api/delegationApi";
@@ -96,23 +97,133 @@ function DelegationDataPage() {
   // Debounced search term for better performance
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  const { loading, delegation, delegation_done } = useSelector(
+  const { loading, delegation, delegation_done, filterOptions: dbFilterOptions } = useSelector(
     (state) => state.delegation
   );
+
+  const doerOptions = dbFilterOptions?.doers || [];
+  const creatorOptions = dbFilterOptions?.creators || [];
+
+  const [nameFilter, setNameFilter] = useState("all");
+  const [givenByFilter, setGivenByFilter] = useState("all");
+  const [dateShortcut, setDateShortcut] = useState("all");
+  const [delegationStatusFilter, setDelegationStatusFilter] = useState("all");
+  const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
+
+  const resolveShortcutRange = (shortcut) => {
+    if (!shortcut || shortcut === "all") {
+      return { startDate: "", endDate: "" };
+    }
+    const now = new Date();
+    const getLocalDateString = (date) => {
+      const offset = date.getTimezoneOffset();
+      const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+      return localDate.toISOString().split("T")[0];
+    };
+
+    switch (shortcut) {
+      case "today": {
+        const d = getLocalDateString(now);
+        return { startDate: d, endDate: d };
+      }
+      case "yesterday": {
+        const prev = new Date();
+        prev.setDate(now.getDate() - 1);
+        const d = getLocalDateString(prev);
+        return { startDate: d, endDate: d };
+      }
+      case "this week": {
+        const currentDay = now.getDay();
+        const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + distanceToMonday);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        return {
+          startDate: getLocalDateString(monday),
+          endDate: getLocalDateString(sunday),
+        };
+      }
+      case "last week": {
+        const currentDay = now.getDay();
+        const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const mondayThisWeek = new Date(now);
+        mondayThisWeek.setDate(now.getDate() + distanceToMonday);
+        const mondayLastWeek = new Date(mondayThisWeek);
+        mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
+        const sundayLastWeek = new Date(mondayLastWeek);
+        sundayLastWeek.setDate(mondayLastWeek.getDate() + 6);
+        return {
+          startDate: getLocalDateString(mondayLastWeek),
+          endDate: getLocalDateString(sundayLastWeek),
+        };
+      }
+      case "this month": {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return {
+          startDate: getLocalDateString(startOfMonth),
+          endDate: getLocalDateString(endOfMonth),
+        };
+      }
+      case "last month": {
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        return {
+          startDate: getLocalDateString(startOfLastMonth),
+          endDate: getLocalDateString(endOfLastMonth),
+        };
+      }
+      default:
+        return { startDate: "", endDate: "" };
+    }
+  };
+
   const dispatch = useDispatch();
 
+  const fetchFilteredData = (customFilters = {}) => {
+    const filters = {
+      name: customFilters.hasOwnProperty('name') ? customFilters.name : nameFilter,
+      givenBy: customFilters.hasOwnProperty('givenBy') ? customFilters.givenBy : givenByFilter,
+      startDate: customFilters.hasOwnProperty('startDate') ? customFilters.startDate : dateRange.startDate,
+      endDate: customFilters.hasOwnProperty('endDate') ? customFilters.endDate : dateRange.endDate,
+      search: customFilters.hasOwnProperty('search') ? customFilters.search : debouncedSearchTerm,
+      status: customFilters.hasOwnProperty('status') ? customFilters.status : delegationStatusFilter
+    };
+
+    // Convert "all" values to empty string for backend APIs
+    const queryParams = {};
+    Object.entries(filters).forEach(([key, val]) => {
+      if (val !== "all" && val !== undefined) {
+        queryParams[key] = val;
+      }
+    });
+
+    dispatch(delegationData(queryParams));
+    dispatch(delegationDoneData(queryParams));
+  };
+
+  const handleDateShortcutSelect = (shortcut) => {
+    setDateShortcut(shortcut);
+    const range = resolveShortcutRange(shortcut);
+    setDateRange(range);
+    fetchFilteredData({ startDate: range.startDate, endDate: range.endDate });
+  };
+
   useEffect(() => {
-    dispatch(delegationData());
-    // dispatch(delegation_DoneData());
-    dispatch(delegationDoneData());
+    dispatch(getDelegationFilterOptionsThunk());
   }, [dispatch]);
+
+  useEffect(() => {
+    fetchFilteredData();
+  }, [debouncedSearchTerm, nameFilter, givenByFilter, dateShortcut, delegationStatusFilter]);
 
   // Reset to the first page whenever a search/filter narrows the list, otherwise
   // a stale page number can land past the end of the filtered results and show an
   // empty table (making the search look like it isn't working).
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchTerm, mainStatusFilter, unifiedTypeFilter, dateFilter, activeNameTab, startDate, endDate]);
+  }, [debouncedSearchTerm, mainStatusFilter, unifiedTypeFilter, dateFilter, activeNameTab, startDate, endDate, nameFilter, givenByFilter, dateShortcut, delegationStatusFilter]);
 
   const formatDateTimeToDDMMYYYY = useCallback((date) => {
     const day = date.getDate().toString().padStart(2, "0");
@@ -1230,38 +1341,42 @@ const handleSubmit = async () => {
   return (
     <AdminLayout>
       <style>{`
-        /* Desktop: readable columns with horizontal scroll instead of crushing */
-        @media (min-width: 769px) {
-          table th {
-            padding: 0.4rem 0.6rem !important;
-            font-size: 0.7rem !important;
-            white-space: nowrap !important;   /* keep headers on a single line */
-          }
-          table td {
-            padding: 0.4rem 0.6rem !important;
-            font-size: 0.75rem !important;
-            vertical-align: top;
-          }
-          table td > div, table td > span {
-            font-size: 0.75rem !important;
-          }
-          /* Long free-text columns: cap width and wrap on words */
-          table th.min-w-\\[150px\\], table td.min-w-\\[150px\\] {
-            min-width: 170px !important;
-            max-width: 240px !important;
-            white-space: normal !important;
-            overflow-wrap: anywhere;
-          }
-          table th.min-w-\\[120px\\], table td.min-w-\\[120px\\] {
-            min-width: 130px !important;
-            max-width: 190px !important;
-            white-space: normal !important;
-            overflow-wrap: anywhere;
-          }
-          table input[type="text"] {
-            font-size: 0.7rem !important;
-            padding: 0.25rem !important;
-          }
+        .compact-table {
+          table-layout: fixed !important;
+          width: 100% !important;
+          border-collapse: collapse !important;
+        }
+        .compact-table th {
+          padding: 0.35rem 0.2rem !important;
+          font-size: 0.68rem !important;
+          line-height: 1.15 !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+          text-align: center !important;
+          vertical-align: middle !important;
+          border: 1px solid #d1d5db !important;
+        }
+        .compact-table td {
+          padding: 0.3rem 0.2rem !important;
+          font-size: 0.68rem !important;
+          line-height: 1.15 !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+          text-align: center !important;
+          vertical-align: middle !important;
+          border: 1px solid #e5e7eb !important;
+        }
+        .compact-table td > div, .compact-table td > span {
+          font-size: 0.68rem !important;
+          line-height: 1.15 !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+        }
+        .compact-table input[type="text"], .compact-table select, .compact-table textarea {
+          font-size: 0.65rem !important;
+          padding: 0.15rem !important;
         }
       `}</style>
       <div className="space-y-2 p-2 pb-20">
@@ -1437,8 +1552,83 @@ const handleSubmit = async () => {
           ) : (
             <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
               {/* Desktop Unified Table */}
-              <table className="min-w-max divide-y divide-gray-200 hidden sm:table">
+              <table className="w-full divide-y divide-gray-200 hidden sm:table compact-table">
+                <colgroup>
+                  <col style={{ width: '45px' }} />
+                  <col style={{ width: '140px' }} />
+                  <col style={{ width: '30px' }} />
+                  <col style={{ width: '110px' }} />
+                  <col style={{ width: '120px' }} />
+                  <col style={{ width: '95px' }} />
+                  <col style={{ width: 'auto' }} />
+                  <col style={{ width: '85px' }} />
+                  <col style={{ width: '85px' }} />
+                  <col style={{ width: '70px' }} />
+                  <col style={{ width: '60px' }} />
+                </colgroup>
                 <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr className="bg-gray-100">
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200">
+                      <select
+                        value={delegationStatusFilter}
+                        onChange={(e) => setDelegationStatusFilter(e.target.value)}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">Status (All)</option>
+                        <option value="pending">Pending</option>
+                        <option value="done">Done</option>
+                        <option value="partial_done">Partial Done</option>
+                        <option value="extend">Extend</option>
+                      </select>
+                    </th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200">
+                      <div className="flex flex-col gap-1">
+                        <select
+                          value={nameFilter}
+                          onChange={(e) => setNameFilter(e.target.value)}
+                          className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                        >
+                          <option value="all">Name (All)</option>
+                          {doerOptions.map(name => (
+                            <option key={name} value={name}>{name}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={givenByFilter}
+                          onChange={(e) => setGivenByFilter(e.target.value)}
+                          className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                        >
+                          <option value="all">Given By (All)</option>
+                          {creatorOptions.map(name => (
+                            <option key={name} value={name}>{name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200">
+                      <select
+                        value={dateShortcut}
+                        onChange={(e) => handleDateShortcutSelect(e.target.value)}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">Date (All)</option>
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="this week">This Week</option>
+                        <option value="last week">Last Week</option>
+                        <option value="this month">This Month</option>
+                        <option value="last month">Last Month</option>
+                      </select>
+                    </th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                  </tr>
                   <tr>
                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Seq No.</th>
                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin Remarks</th>

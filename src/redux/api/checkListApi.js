@@ -5,14 +5,18 @@ const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/checklist`;
 // =======================================================
 // 1️⃣ Fetch Pending Checklist (AWS Backend)
 // =======================================================
-export const fetchChechListDataSortByDate = async (page = 1, search = '') => {
+export const fetchChechListDataSortByDate = async (filters = {}) => {
   const username = localStorage.getItem("user-name");
   const role = localStorage.getItem("role");
 
-  const response = await fetch(
-    `${BASE_URL}/pending?page=${page}&username=${username}&role=${role}&search=${encodeURIComponent(search)}`
-  );
+  // Construct query parameters
+  const params = new URLSearchParams({
+    username: username || "",
+    role: role || "",
+    ...filters
+  });
 
+  const response = await fetch(`${BASE_URL}/pending?${params.toString()}`);
   return await response.json();
 };
 
@@ -20,14 +24,38 @@ export const fetchChechListDataSortByDate = async (page = 1, search = '') => {
 // =======================================================
 // 2️⃣ Fetch Checklist History (AWS Backend)
 // =======================================================
-export const fetchChechListDataForHistory = async (page = 1, search = "", approvalStatus = "all") => {
+export const fetchChechListDataForHistory = async (filters = {}) => {
   const username = localStorage.getItem("user-name");
   const role = localStorage.getItem("role");
 
-  const response = await fetch(
-    `${BASE_URL}/history?page=${page}&username=${username}&role=${role}&search=${encodeURIComponent(search)}&approvalStatus=${encodeURIComponent(approvalStatus)}`
-  );
+  const params = new URLSearchParams({
+    username: username || "",
+    role: role || "",
+    page: filters.page || 1,
+    search: (filters.search || "").trim(),
+    approvalStatus: filters.approvalStatus || "all",
+  });
 
+  if (filters.name) params.append("name", filters.name);
+  if (filters.department) params.append("department", filters.department);
+  if (filters.file) params.append("file", filters.file);
+  if (filters.status) params.append("status", filters.status);
+  if (filters.submission) params.append("submission", filters.submission);
+  if (filters.deadline) params.append("deadline", filters.deadline);
+  if (filters.fromDate) params.append("fromDate", filters.fromDate);
+  if (filters.toDate) params.append("toDate", filters.toDate);
+  if (filters.remarks) params.append("remarks", filters.remarks);
+  if (filters.frequency) params.append("frequency", filters.frequency);
+  if (filters.givenBy) params.append("givenBy", filters.givenBy);
+  if (filters.reminder) params.append("reminder", filters.reminder);
+  if (filters.attachment) params.append("attachment", filters.attachment);
+
+  const response = await fetch(`${BASE_URL}/history?${params.toString()}`);
+  return await response.json();
+};
+
+export const fetchChecklistFilterOptionsAPI = async () => {
+  const response = await fetch(`${BASE_URL}/filter-options`);
   return await response.json();
 };
 

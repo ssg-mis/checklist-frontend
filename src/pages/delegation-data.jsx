@@ -17,8 +17,8 @@ const CONFIG = {
 
 
 
-function DelegationPage({ searchTerm, nameFilter, freqFilter, setNameFilter, setFreqFilter }) {
- const [successMessage, setSuccessMessage] = useState("")
+function DelegationPage({ searchTerm }) {
+  const [successMessage, setSuccessMessage] = useState("")
   const [error, setError] = useState(null)
   const [userRole, setUserRole] = useState("")
   const [username, setUsername] = useState("")
@@ -28,13 +28,117 @@ function DelegationPage({ searchTerm, nameFilter, freqFilter, setNameFilter, set
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 50
 
-  const { delegationTasks, delegationTotal, loading } = useSelector((state) => state.quickTask)
-  const dispatch = useDispatch()
-useEffect(()=>{
-  dispatch(uniqueDelegationTaskData({}))
-},[dispatch])
+  // Filter states
+  const [givenByFilter, setGivenByFilter] = useState("all")
+  const [nameFilterLocal, setNameFilterLocal] = useState("all")
+  const [dateShortcutFilter, setDateShortcutFilter] = useState("all")
+  const [freqFilterLocal, setFreqFilterLocal] = useState("all")
+  const [reminderFilter, setReminderFilter] = useState("all")
+  const [attachmentFilter, setAttachmentFilter] = useState("all")
+  const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" })
 
- // Handle checkbox selection
+  const { delegationTasks, delegationTotal, loading, filterOptions } = useSelector((state) => state.quickTask)
+  const nameOptions = filterOptions?.names || []
+  const givenByOptions = filterOptions?.givenBy || []
+  const frequencyOptions = filterOptions?.frequencies || []
+
+  const dispatch = useDispatch()
+
+  const resolveShortcutRange = (shortcut) => {
+    if (!shortcut || shortcut === "all") {
+      return { startDate: "", endDate: "" };
+    }
+    const now = new Date();
+    const getLocalDateString = (date) => {
+      const offset = date.getTimezoneOffset();
+      const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+      return localDate.toISOString().split("T")[0];
+    };
+
+    switch (shortcut) {
+      case "today": {
+        const d = getLocalDateString(now);
+        return { startDate: d, endDate: d };
+      }
+      case "yesterday": {
+        const prev = new Date();
+        prev.setDate(now.getDate() - 1);
+        const d = getLocalDateString(prev);
+        return { startDate: d, endDate: d };
+      }
+      case "this week": {
+        const currentDay = now.getDay();
+        const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + distanceToMonday);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        return {
+          startDate: getLocalDateString(monday),
+          endDate: getLocalDateString(sunday),
+        };
+      }
+      case "last week": {
+        const currentDay = now.getDay();
+        const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const mondayThisWeek = new Date(now);
+        mondayThisWeek.setDate(now.getDate() + distanceToMonday);
+        const mondayLastWeek = new Date(mondayThisWeek);
+        mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
+        const sundayLastWeek = new Date(mondayLastWeek);
+        sundayLastWeek.setDate(mondayLastWeek.getDate() + 6);
+        return {
+          startDate: getLocalDateString(mondayLastWeek),
+          endDate: getLocalDateString(sundayLastWeek),
+        };
+      }
+      case "this month": {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return {
+          startDate: getLocalDateString(startOfMonth),
+          endDate: getLocalDateString(endOfMonth),
+        };
+      }
+      case "last month": {
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        return {
+          startDate: getLocalDateString(startOfLastMonth),
+          endDate: getLocalDateString(endOfLastMonth),
+        };
+      }
+      default:
+        return { startDate: "", endDate: "" };
+    }
+  };
+
+  const fetchFilteredDelegation = (customFilters = {}) => {
+    const filters = {
+      page: 0,
+      pageSize: ITEMS_PER_PAGE,
+      nameFilter: customFilters.hasOwnProperty('nameFilter') ? customFilters.nameFilter : nameFilterLocal,
+      givenByFilter: customFilters.hasOwnProperty('givenByFilter') ? customFilters.givenByFilter : givenByFilter,
+      frequencyFilter: customFilters.hasOwnProperty('freqFilter') ? customFilters.freqFilter : freqFilterLocal,
+      reminderFilter: customFilters.hasOwnProperty('reminderFilter') ? customFilters.reminderFilter : reminderFilter,
+      attachmentFilter: customFilters.hasOwnProperty('attachmentFilter') ? customFilters.attachmentFilter : attachmentFilter,
+      startDate: customFilters.hasOwnProperty('startDate') ? customFilters.startDate : dateRange.startDate,
+      endDate: customFilters.hasOwnProperty('endDate') ? customFilters.endDate : dateRange.endDate,
+      append: false
+    };
+
+    setCurrentPage(1);
+    dispatch(uniqueDelegationTaskData(filters));
+  };
+
+  const handleDateShortcutSelect = (shortcut) => {
+    setDateShortcutFilter(shortcut);
+    const range = resolveShortcutRange(shortcut);
+    setDateRange(range);
+    fetchFilteredDelegation({ startDate: range.startDate, endDate: range.endDate });
+  };
+
+  // Handle checkbox selection
   const handleCheckboxChange = (taskId) => {
     if (selectedTasks.includes(taskId)) {
       setSelectedTasks(selectedTasks.filter(task_id => task_id !== taskId))
@@ -48,7 +152,7 @@ useEffect(()=>{
     if (selectedTasks.length === filteredTasks.length) {
       setSelectedTasks([])
     } else {
-      setSelectedTasks(filteredTasks.map(task => task_id))
+      setSelectedTasks(filteredTasks.map(task => task.task_id))
     }
   }
 
@@ -65,7 +169,7 @@ useEffect(()=>{
       setSuccessMessage("Tasks deleted successfully")
       // Refresh the task list (back to first page)
       setCurrentPage(1)
-      dispatch(uniqueDelegationTaskData({ page: 0, pageSize: ITEMS_PER_PAGE, nameFilter: nameFilter || '', append: false }))
+      fetchFilteredDelegation()
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(""), 3000)
@@ -99,75 +203,18 @@ useEffect(()=>{
     setIsInitialized(true)
   }, [])
 
-  // const fetchData = useCallback(async () => {
-  //   if (!isInitialized || !username) return
-    
-  //   try {
-  //   //  setLoading(true)
-  //     setError(null)
-
-  //     const tasksRes = await fetch(`${CONFIG.APPS_SCRIPT_URL}?sheet=${CONFIG.SOURCE_SHEET_NAME}&action=fetch`)
-
-  //     if (!tasksRes.ok) throw new Error("Failed to fetch tasks")
-      
-  //     const tasksData = await tasksRes.json()
-
-  //     const currentUsername = username.toLowerCase()
-  //     const processedTasks = tasksData.table.rows.slice(1).map((row, index) => {
-  //       const rowData = {
-  //         _id: `task_${index}_${Math.random().toString(36).substr(2, 9)}`,
-  //         _rowIndex: index + 2,
-  //       }
-
-  //       row.c.forEach((cell, colIndex) => {
-  //         rowData[`col${colIndex}`] = cell?.v || ""
-  //       })
-
-  //       return rowData
-  //     }).filter(task => 
-  //       userRole === "admin" || 
-  //       task.col4?.toLowerCase() === currentUsername
-  //     )
-
-  //     setTasks(processedTasks)
-  //     setLoading(false)
-  //   } catch (err) {
-  //     console.error("Error fetching data:", err)
-  //     setError("Failed to load data: " + err.message)
-  //     setLoading(false)
-  //   }
-  // }, [userRole, username, isInitialized])
-
   useEffect(() => {
     if (isInitialized) {
-     // fetchData()
-     dispatch(uniqueDelegationTaskData({}))
+      dispatch(uniqueDelegationTaskData({ page: 0, pageSize: ITEMS_PER_PAGE }));
     }
   }, [dispatch, isInitialized])
 
   const filteredTasks = useMemo(() => {
-    let filtered = delegationTasks;
-    
-    filtered = filtered.filter(task =>
-  task.task_description?.toLowerCase().includes(searchTerm.toLowerCase())
-);
-
-    
-    if (nameFilter) {
-      filtered = filtered.filter(task => task.name === nameFilter)
-    }
-    
-    if (freqFilter) {
-      filtered = filtered.filter(task => task.frequency === freqFilter)
-    }
-    
-    return filtered
-  }, [delegationTasks, searchTerm, nameFilter, freqFilter])
-
-  // Parent refetches page 0 when the name filter changes — keep our page in sync
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [nameFilter])
+    if (!searchTerm.trim()) return delegationTasks;
+    return delegationTasks.filter(task =>
+      task.task_description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [delegationTasks, searchTerm])
 
   const totalPages = Math.ceil((delegationTotal || 0) / ITEMS_PER_PAGE)
 
@@ -178,7 +225,13 @@ useEffect(()=>{
     dispatch(uniqueDelegationTaskData({
       page: newPage - 1,   // backend pages are 0-based
       pageSize: ITEMS_PER_PAGE,
-      nameFilter: nameFilter || '',
+      nameFilter: nameFilterLocal,
+      givenByFilter: givenByFilter,
+      frequencyFilter: freqFilterLocal,
+      reminderFilter: reminderFilter,
+      attachmentFilter: attachmentFilter,
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
       append: false,
     }))
   }
@@ -219,6 +272,45 @@ useEffect(()=>{
 
   return (
     <>
+      <style>{`
+        .compact-table {
+          table-layout: fixed !important;
+          width: 100% !important;
+          border-collapse: collapse !important;
+        }
+        .compact-table th {
+          padding: 0.35rem 0.2rem !important;
+          font-size: 0.68rem !important;
+          line-height: 1.15 !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+          text-align: center !important;
+          vertical-align: middle !important;
+          border: 1px solid #d1d5db !important;
+        }
+        .compact-table td {
+          padding: 0.3rem 0.2rem !important;
+          font-size: 0.68rem !important;
+          line-height: 1.15 !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+          text-align: center !important;
+          vertical-align: middle !important;
+          border: 1px solid #e5e7eb !important;
+        }
+        .compact-table td > div, .compact-table td > span {
+          font-size: 0.68rem !important;
+          line-height: 1.15 !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+        }
+        .compact-table input[type="text"], .compact-table select, .compact-table textarea {
+          font-size: 0.65rem !important;
+          padding: 0.15rem !important;
+        }
+      `}</style>
       {/* Success Message - Fixed position */}
       {successMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md flex items-center justify-between shadow-lg">
@@ -237,7 +329,7 @@ useEffect(()=>{
         <div className="mt-4 bg-red-50 p-4 rounded-md text-red-800 text-center">
           {error}{" "}
           <button 
-            onClick={fetchData} 
+            onClick={() => fetchFilteredDelegation()} 
             className="underline ml-2 hover:text-red-600"
           >
             Try again
@@ -279,8 +371,118 @@ useEffect(()=>{
 
 
           <div className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-            <table className="min-w-max divide-y divide-gray-200">
+            <table className="w-full divide-y divide-gray-200 compact-table">
+              <colgroup>
+                <col style={{ width: '30px' }} />
+                <col style={{ width: '80px' }} />
+                <col style={{ width: '80px' }} />
+                <col style={{ width: '90px' }} />
+                <col style={{ width: '90px' }} />
+                <col style={{ width: '90px' }} />
+                <col style={{ width: 'auto' }} />
+                <col style={{ width: '80px' }} />
+                <col style={{ width: '80px' }} />
+                <col style={{ width: '60px' }} />
+                <col style={{ width: '80px' }} />
+                <col style={{ width: '90px' }} />
+              </colgroup>
               <thead className="bg-gray-50 sticky top-0 z-20">
+                <tr className="bg-gray-100">
+                  <th className="px-1 py-1 border border-gray-200"></th>
+                  <th className="px-1 py-1 border border-gray-200"></th>
+                  <th className="px-1 py-1 border border-gray-200"></th>
+                  <th className="px-1 py-1 border border-gray-200"></th>
+                  <th className="px-1 py-1 border border-gray-200">
+                    <select
+                      value={givenByFilter}
+                      onChange={(e) => {
+                        setGivenByFilter(e.target.value);
+                        fetchFilteredDelegation({ givenByFilter: e.target.value });
+                      }}
+                      className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                    >
+                      <option value="all">All</option>
+                      {givenByOptions.map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </th>
+                  <th className="px-1 py-1 border border-gray-200">
+                    <select
+                      value={nameFilterLocal}
+                      onChange={(e) => {
+                        setNameFilterLocal(e.target.value);
+                        fetchFilteredDelegation({ nameFilter: e.target.value });
+                      }}
+                      className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                    >
+                      <option value="all">All</option>
+                      {nameOptions.map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </th>
+                  <th className="px-1 py-1 border border-gray-200"></th>
+                  <th className="px-1 py-1 border border-gray-200 bg-yellow-50">
+                    <select
+                      value={dateShortcutFilter}
+                      onChange={(e) => handleDateShortcutSelect(e.target.value)}
+                      className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                    >
+                      <option value="all">All</option>
+                      <option value="today">Today</option>
+                      <option value="yesterday">Yesterday</option>
+                      <option value="this week">This Week</option>
+                      <option value="last week">Last Week</option>
+                      <option value="this month">This Month</option>
+                      <option value="last month">Last Month</option>
+                    </select>
+                  </th>
+                  <th className="px-1 py-1 border border-gray-200 bg-yellow-50"></th>
+                  <th className="px-1 py-1 border border-gray-200">
+                    <select
+                      value={freqFilterLocal}
+                      onChange={(e) => {
+                        setFreqFilterLocal(e.target.value);
+                        fetchFilteredDelegation({ freqFilter: e.target.value });
+                      }}
+                      className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                    >
+                      <option value="all">All</option>
+                      {frequencyOptions.map(freq => (
+                        <option key={freq} value={freq}>{freq}</option>
+                      ))}
+                    </select>
+                  </th>
+                  <th className="px-1 py-1 border border-gray-200">
+                    <select
+                      value={reminderFilter}
+                      onChange={(e) => {
+                        setReminderFilter(e.target.value);
+                        fetchFilteredDelegation({ reminderFilter: e.target.value });
+                      }}
+                      className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                    >
+                      <option value="all">All</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </th>
+                  <th className="px-1 py-1 border border-gray-200">
+                    <select
+                      value={attachmentFilter}
+                      onChange={(e) => {
+                        setAttachmentFilter(e.target.value);
+                        fetchFilteredDelegation({ attachmentFilter: e.target.value });
+                      }}
+                      className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                    >
+                      <option value="all">All</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </th>
+                </tr>
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
                     <input
@@ -305,14 +507,14 @@ useEffect(()=>{
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     NAME
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[300px]">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     TASK DESCRIPTION
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">
-                    TASK END DATE
+                    START DATE
                   </th>
                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">
-                    TASK END DATE
+                    END DATE
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     FREQ
@@ -384,8 +586,8 @@ useEffect(()=>{
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={10} className="px-6 py-4 text-center text-gray-500">
-                      {searchTerm || nameFilter || freqFilter 
+                    <td colSpan={12} className="px-6 py-4 text-center text-gray-500">
+                      {searchTerm.trim() || nameFilterLocal !== "all" || freqFilterLocal !== "all" || givenByFilter !== "all" || reminderFilter !== "all" || attachmentFilter !== "all" || dateShortcutFilter !== "all"
                         ? "No tasks matching your filters" 
                         : "No pending tasks found"}
                     </td>

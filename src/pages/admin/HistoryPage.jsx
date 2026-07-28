@@ -4,11 +4,11 @@ import SearchBar from "../../components/SearchBar"
 import { Search, CheckCircle2, RotateCcw } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
 import { useDispatch, useSelector } from "react-redux"
-import { checklistHistoryData } from "../../redux/slice/checklistSlice"
+import { checklistHistoryData, fetchChecklistFilterOptions } from "../../redux/slice/checklistSlice"
 import { postChecklistAdminDoneAPI, revertChecklistAdminDoneAPI } from "../../redux/api/checkListApi"
 import { postDelegationAdminDoneAPI, revertDelegationTaskAPI } from "../../redux/api/delegationApi"
 import { uniqueDoerNameData } from "../../redux/slice/assignTaskSlice"
-import { delegationDoneData } from "../../redux/slice/delegationSlice"
+import { delegationDoneData, getDelegationFilterOptionsThunk } from "../../redux/slice/delegationSlice"
 
 function HistoryPage() {
   const [activeTab, setActiveTab] = useState("checklist") // 'checklist' or 'delegation'
@@ -38,8 +38,121 @@ function HistoryPage() {
   const [adminReplyData, setAdminReplyData] = useState({}) // New state for admin reply
   const [revertingTaskId, setRevertingTaskId] = useState(null)
 
-  const { history, historyTotalCount } = useSelector((state) => state.checkList)
-  const { delegation_done } = useSelector((state) => state.delegation)
+  // Multi-Filter states
+  const [nameFilter, setNameFilter] = useState("")
+  const [departmentFilter, setDepartmentFilter] = useState("")
+  const [fileFilter, setFileFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [submissionFilter, setSubmissionFilter] = useState("all")
+  const [deadlineFilter, setDeadlineFilter] = useState("all")
+  const [remarksFilter, setRemarksFilter] = useState("all")
+  const [frequencyFilter, setFrequencyFilter] = useState("all")
+  const [givenByFilter, setGivenByFilter] = useState("")
+
+  // Delegation Multi-Filter states
+  const [delegationAdminDoneFilter, setDelegationAdminDoneFilter] = useState("all") // 'all', 'pending', 'completed'
+  const [delegationGivenByFilter, setDelegationGivenByFilter] = useState("all")
+  const [delegationNameFilter, setDelegationNameFilter] = useState("all")
+  const [delegationDateShortcutFilter, setDelegationDateShortcutFilter] = useState("all")
+  const [delegationFreqFilter, setDelegationFreqFilter] = useState("all")
+  const [delegationReminderFilter, setDelegationReminderFilter] = useState("all")
+  const [delegationAttachmentFilter, setDelegationAttachmentFilter] = useState("all")
+  const [delegationDateRange, setDelegationDateRange] = useState({ startDate: "", endDate: "" })
+
+  const resolveShortcutRange = (shortcut) => {
+    if (!shortcut || shortcut === "all") {
+      return { startDate: "", endDate: "" };
+    }
+    const now = new Date();
+    const getLocalDateString = (date) => {
+      const offset = date.getTimezoneOffset();
+      const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+      return localDate.toISOString().split("T")[0];
+    };
+
+    switch (shortcut) {
+      case "today": {
+        const d = getLocalDateString(now);
+        return { startDate: d, endDate: d };
+      }
+      case "yesterday": {
+        const prev = new Date();
+        prev.setDate(now.getDate() - 1);
+        const d = getLocalDateString(prev);
+        return { startDate: d, endDate: d };
+      }
+      case "this week": {
+        const currentDay = now.getDay();
+        const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + distanceToMonday);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        return {
+          startDate: getLocalDateString(monday),
+          endDate: getLocalDateString(sunday),
+        };
+      }
+      case "last week": {
+        const currentDay = now.getDay();
+        const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const mondayThisWeek = new Date(now);
+        mondayThisWeek.setDate(now.getDate() + distanceToMonday);
+        const mondayLastWeek = new Date(mondayThisWeek);
+        mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
+        const sundayLastWeek = new Date(mondayLastWeek);
+        sundayLastWeek.setDate(mondayLastWeek.getDate() + 6);
+        return {
+          startDate: getLocalDateString(mondayLastWeek),
+          endDate: getLocalDateString(sundayLastWeek),
+        };
+      }
+      case "this month": {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return {
+          startDate: getLocalDateString(startOfMonth),
+          endDate: getLocalDateString(endOfMonth),
+        };
+      }
+      case "last month": {
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        return {
+          startDate: getLocalDateString(startOfLastMonth),
+          endDate: getLocalDateString(endOfLastMonth),
+        };
+      }
+      default:
+        return { startDate: "", endDate: "" };
+    }
+  };
+
+  const handleDelegationDateShortcutSelect = (shortcut) => {
+    setDelegationDateShortcutFilter(shortcut);
+    const range = resolveShortcutRange(shortcut);
+    setDelegationDateRange(range);
+  };
+
+  // Multi-Filter handlers
+  const handleNameFilterChange = (e) => setNameFilter(e.target.value)
+  const handleDepartmentFilterChange = (e) => setDepartmentFilter(e.target.value)
+  const handleGivenByFilterChange = (e) => setGivenByFilter(e.target.value)
+  const handleFileFilterChange = (e) => setFileFilter(e.target.value)
+  const handleStatusFilterChange = (e) => setStatusFilter(e.target.value)
+  const handleSubmissionFilterChange = (e) => setSubmissionFilter(e.target.value)
+  const handleDeadlineFilterChange = (e) => setDeadlineFilter(e.target.value)
+  const handleRemarksFilterChange = (e) => setRemarksFilter(e.target.value)
+  const handleFrequencyFilterChange = (e) => setFrequencyFilter(e.target.value)
+
+  const { history, historyTotalCount, dropdowns } = useSelector((state) => state.checkList)
+  const departments = dropdowns?.departments || []
+  const dbNames = dropdowns?.names || []
+  const givenBys = dropdowns?.givenBy || []
+  const { delegation_done, filterOptions } = useSelector((state) => state.delegation)
+  const delegationDoerOptions = filterOptions?.doers || []
+  const delegationCreatorOptions = filterOptions?.creators || []
+
   const { doerName } = useSelector((state) => state.assignTask)
   const dispatch = useDispatch()
 
@@ -47,9 +160,30 @@ function HistoryPage() {
   const delegationTableContainerRef = useRef(null)
 
   useEffect(() => {
-    dispatch(delegationDoneData())
     dispatch(uniqueDoerNameData())
+    dispatch(fetchChecklistFilterOptions())
+    dispatch(getDelegationFilterOptionsThunk())
   }, [dispatch])
+
+  // Helper to compile all history filters for fetching
+  const getHistoryFilters = (pageNumber = 1) => {
+    return {
+      page: pageNumber,
+      search: searchTerm,
+      approvalStatus: approvalStatusFilter,
+      name: nameFilter,
+      department: departmentFilter,
+      file: fileFilter,
+      status: statusFilter,
+      submission: submissionFilter,
+      deadline: deadlineFilter,
+      fromDate: startDate,
+      toDate: endDate,
+      remarks: remarksFilter,
+      frequency: frequencyFilter,
+      givenBy: givenByFilter
+    }
+  }
 
   // Fetch checklist history from the server, searching the WHOLE table
   // (not just the current page). Debounced so typing doesn't spam the API.
@@ -62,10 +196,50 @@ function HistoryPage() {
     }
     const timer = setTimeout(() => {
       setCurrentPageHistory(1)
-      dispatch(checklistHistoryData({ page: 1, search: searchTerm, approvalStatus: approvalStatusFilter }))
+      dispatch(checklistHistoryData(getHistoryFilters(1)))
     }, 400)
     return () => clearTimeout(timer)
-  }, [searchTerm, approvalStatusFilter, dispatch])
+  }, [
+    searchTerm, approvalStatusFilter, nameFilter, departmentFilter, fileFilter,
+    statusFilter, submissionFilter, deadlineFilter, startDate, endDate,
+    remarksFilter, frequencyFilter, givenByFilter, dispatch
+  ])
+
+  const getDelegationFilters = () => {
+    return {
+      name: delegationNameFilter,
+      givenBy: delegationGivenByFilter,
+      frequency: delegationFreqFilter,
+      reminder: delegationReminderFilter,
+      attachment: delegationAttachmentFilter,
+      startDate: delegationDateRange.startDate,
+      endDate: delegationDateRange.endDate,
+      adminDone: delegationAdminDoneFilter,
+      search: searchTerm
+    };
+  };
+
+  useEffect(() => {
+    if (activeTab === "delegation") {
+      const timer = setTimeout(() => {
+        setCurrentPageDelegation(1);
+        const filters = getDelegationFilters();
+        // Convert "all" values to empty string for API call
+        const queryParams = {};
+        Object.entries(filters).forEach(([key, val]) => {
+          if (val !== "all" && val !== undefined) {
+            queryParams[key] = val;
+          }
+        });
+        dispatch(delegationDoneData(queryParams));
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    activeTab, searchTerm, delegationNameFilter, delegationGivenByFilter,
+    delegationDateShortcutFilter, delegationFreqFilter, delegationReminderFilter,
+    delegationAttachmentFilter, delegationDateRange, delegationAdminDoneFilter, dispatch
+  ]);
 
   useEffect(() => {
     const role = localStorage.getItem("role")
@@ -78,7 +252,7 @@ function HistoryPage() {
   // Page change handlers
   const handleHistoryPageChange = (newPage) => {
     setCurrentPageHistory(newPage);
-    dispatch(checklistHistoryData({ page: newPage, search: searchTerm, approvalStatus: approvalStatusFilter }));
+    dispatch(checklistHistoryData(getHistoryFilters(newPage)));
     if (historyTableContainerRef.current) historyTableContainerRef.current.scrollTop = 0;
   };
 
@@ -162,6 +336,15 @@ function HistoryPage() {
     setStartDate("")
     setEndDate("")
     setApprovalStatusFilter("pending")
+    setNameFilter("")
+    setDepartmentFilter("")
+    setFileFilter("all")
+    setStatusFilter("all")
+    setSubmissionFilter("all")
+    setDeadlineFilter("all")
+    setRemarksFilter("all")
+    setFrequencyFilter("all")
+    setGivenByFilter("")
   }
 
   // Handle checkbox selection for checklist admin approval
@@ -249,7 +432,7 @@ function HistoryPage() {
         setAdminRemarks({})
         setAdminReplyData({})
         setCurrentPageHistory(1)
-        dispatch(checklistHistoryData({ page: 1, search: searchTerm, approvalStatus: approvalStatusFilter }))
+        dispatch(checklistHistoryData(getHistoryFilters(1)))
       } else {
         setSelectedDelegationItems([])
         dispatch(delegationDoneData())
@@ -277,7 +460,7 @@ function HistoryPage() {
       setSuccessMessage(`Successfully reverted ${selectedHistoryItems.length} task(s) to checklist!`)
       setSelectedHistoryItems([])
       setCurrentPageHistory(1)
-      dispatch(checklistHistoryData({ page: 1, search: searchTerm, approvalStatus: approvalStatusFilter }))
+      dispatch(checklistHistoryData(getHistoryFilters(1)))
       setTimeout(() => setSuccessMessage(""), 3000)
     } catch (err) {
       setSuccessMessage(`Failed to revert: ${err.message}`)
@@ -308,122 +491,22 @@ function HistoryPage() {
 
   // Filtered checklist data
   const filteredHistoryData = useMemo(() => {
-    if (!Array.isArray(history)) return []
-
-    const filtered = history
-      .filter((item) => {
-        const matchesSearch = searchTerm
-          ? Object.entries(item).some(([key, value]) => {
-            if (['image', 'admin_done'].includes(key)) return false
-            return value && value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-          })
-          : true
-
-        const matchesMember = selectedMembers.length > 0
-          ? selectedMembers.includes(item.name)
-          : true
-
-        let matchesDateRange = true
-        if (startDate || endDate) {
-          const itemDate = parseSupabaseDate(item.task_start_date)
-          if (!itemDate || isNaN(itemDate.getTime())) return false
-
-          const itemDateOnly = new Date(
-            itemDate.getFullYear(),
-            itemDate.getMonth(),
-            itemDate.getDate()
-          )
-
-          const start = startDate ? new Date(startDate) : null
-          if (start) start.setHours(0, 0, 0, 0)
-
-          const end = endDate ? new Date(endDate) : null
-          if (end) end.setHours(23, 59, 59, 999)
-
-          if (start && itemDateOnly < start) matchesDateRange = false
-          if (end && itemDateOnly > end) matchesDateRange = false
-        }
-
-        return matchesSearch && matchesMember && matchesDateRange
-      })
-      .filter((item) => {
-        // Apply approval status filter
-        if (approvalStatusFilter === "pending") {
-          return item.admin_done !== 'Done'
-        } else if (approvalStatusFilter === "completed") {
-          return item.admin_done === 'Done'
-        }
-        return true // 'all'
-      })
-      .sort((a, b) => {
-        const dateA = parseSupabaseDate(a.submission_date)
-        const dateB = parseSupabaseDate(b.submission_date)
-        if (!dateA) return 1
-        if (!dateB) return -1
-        return dateB - dateA
-      })
-
-    return filtered
-  }, [history, searchTerm, selectedMembers, startDate, endDate, approvalStatusFilter])
+    return Array.isArray(history) ? history : []
+  }, [history])
 
   // Filtered delegation data
   const filteredDelegationData = useMemo(() => {
     if (!Array.isArray(delegation_done)) return []
 
-    return delegation_done
-      .filter((item) => {
-        const userMatch =
-          userRole === "admin" ||
-          userRole === "super_admin" ||
-          userRole === "pc role" ||
-          (item.name && item.name.toLowerCase() === username.toLowerCase())
-        if (!userMatch) return false
-
-        const matchesSearch = searchTerm
-          ? Object.entries(item).some(([key, value]) => {
-            if (['image_url', 'admin_done'].includes(key)) return false
-            return value && value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-          })
-          : true
-
-        let matchesDateRange = true
-        if (startDate || endDate) {
-          const itemDate = item.created_at ? new Date(item.created_at) : null
-          if (!itemDate || isNaN(itemDate.getTime())) return false
-
-          if (startDate) {
-            const startDateObj = new Date(startDate)
-            startDateObj.setHours(0, 0, 0, 0)
-            if (itemDate < startDateObj) matchesDateRange = false
-          }
-
-          if (endDate) {
-            const endDateObj = new Date(endDate)
-            endDateObj.setHours(23, 59, 59, 999)
-            if (itemDate > endDateObj) matchesDateRange = false
-          }
-        }
-
-        return matchesSearch && matchesDateRange
-      })
-      .filter((item) => {
-        // Apply approval status filter
-        if (approvalStatusFilter === "pending") {
-          return item.admin_done !== 'Done' && item.status === 'completed'
-        } else if (approvalStatusFilter === "completed") {
-          return item.admin_done === 'Done'
-        }
-        return true // 'all'
-      })
-      .sort((a, b) => {
-        const dateA = a.created_at ? new Date(a.created_at) : null
-        const dateB = b.created_at ? new Date(b.created_at) : null
-        if (!dateA && !dateB) return 0
-        if (!dateA) return 1
-        if (!dateB) return -1
-        return dateB.getTime() - dateA.getTime()
-      })
-  }, [delegation_done, searchTerm, startDate, endDate, userRole, username, approvalStatusFilter])
+    return delegation_done.slice().sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at) : null
+      const dateB = b.created_at ? new Date(b.created_at) : null
+      if (!dateA && !dateB) return 0
+      if (!dateA) return 1
+      if (!dateB) return -1
+      return dateB.getTime() - dateA.getTime()
+    })
+  }, [delegation_done])
 
 
   const getFilteredMembersList = () => {
@@ -578,25 +661,7 @@ function HistoryPage() {
               />
             </div>
 
-            {/* Member Filter Dropdown - Only for Checklist */}
-            {activeTab === "checklist" && userRole === "admin" && doerName && doerName.length > 0 && (
-              <select
-                value={selectedMembers[0] || ""}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setSelectedMembers([e.target.value]);
-                  } else {
-                    setSelectedMembers([]);
-                  }
-                }}
-                className="px-2 py-1 border border-gray-300 rounded text-xs bg-white min-w-[100px]"
-              >
-                <option value="">All Members</option>
-                {getFilteredMembersList().map((member) => (
-                  <option key={member} value={member}>{member}</option>
-                ))}
-              </select>
-            )}
+            {/* Member Filter is placed inside the table headers below */}
 
             {/* Approval Status Filter */}
             <select
@@ -733,37 +798,44 @@ function HistoryPage() {
               }
             }
             
-            /* Desktop: readable columns with horizontal scroll instead of crushing */
+            /* Desktop: fit table into viewport with multiline header & cell wrapping */
             @media (min-width: 769px) {
+              .mobile-card-table {
+                table-layout: fixed !important;
+                width: 100% !important;
+                border-collapse: collapse !important;
+              }
               .mobile-card-table th {
-                padding: 0.4rem 0.6rem !important;
-                font-size: 0.7rem !important;
-                white-space: nowrap !important;   /* keep headers on a single line */
+                padding: 0.35rem 0.2rem !important;
+                font-size: 0.68rem !important;
+                line-height: 1.15 !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                overflow-wrap: anywhere !important;
+                text-align: center !important;
+                vertical-align: middle !important;
+                border: 1px solid #d1d5db !important;
               }
               .mobile-card-table td {
-                padding: 0.4rem 0.6rem !important;
-                font-size: 0.75rem !important;
-                vertical-align: top;
+                padding: 0.3rem 0.2rem !important;
+                font-size: 0.68rem !important;
+                line-height: 1.15 !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                overflow-wrap: anywhere !important;
+                text-align: center !important;
+                vertical-align: middle !important;
+                border: 1px solid #e5e7eb !important;
               }
               .mobile-card-table td > div, .mobile-card-table td > span {
-                font-size: 0.75rem !important;
-              }
-              /* Long free-text columns: cap width and wrap on words */
-              .mobile-card-table th.min-w-\\[150px\\], .mobile-card-table td.min-w-\\[150px\\] {
-                min-width: 170px !important;
-                max-width: 240px !important;
-                white-space: normal !important;
-                overflow-wrap: anywhere;
-              }
-              .mobile-card-table th.min-w-\\[120px\\], .mobile-card-table td.min-w-\\[120px\\] {
-                min-width: 130px !important;
-                max-width: 190px !important;
-                white-space: normal !important;
-                overflow-wrap: anywhere;
+                font-size: 0.68rem !important;
+                line-height: 1.15 !important;
+                word-break: break-word !important;
+                overflow-wrap: anywhere !important;
               }
               .mobile-card-table input[type="text"] {
-                font-size: 0.7rem !important;
-                padding: 0.25rem !important;
+                font-size: 0.65rem !important;
+                padding: 0.15rem !important;
               }
             }
           `}</style>
@@ -771,41 +843,200 @@ function HistoryPage() {
             {activeTab === "checklist" ? (
               /* Checklist Table */
               <>
-                <table className="min-w-max divide-y divide-gray-200 mobile-card-table">
+                <table className="w-full table-fixed border-collapse border border-gray-300 mobile-card-table">
                   <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr className="bg-gray-100">
+                    {isSuperAdmin && userRole !== "pc role" && (
+                      <th style={{ width: '28px' }} className="px-1 py-1 border border-gray-300"></th>
+                    )}
+                    <th style={{ width: '40px' }} className="px-1 py-1 border border-gray-300"></th>
+                    <th style={{ width: '66px' }} className="px-1 py-1 border border-gray-300">
+                      <select
+                        value={approvalStatusFilter}
+                        onChange={(e) => setApprovalStatusFilter(e.target.value)}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Approved</option>
+                      </select>
+                    </th>
+                    {isSuperAdmin && (
+                      <th style={{ width: '85px' }} className="px-1 py-1 border border-gray-300 bg-purple-50"></th>
+                    )}
+                    <th style={{ width: '45px' }} className="px-1 py-1 border border-gray-300"></th>
+                    
+                    {/* Department Filter */}
+                    <th style={{ width: '60px' }} className="px-1 py-1 border border-gray-300">
+                      <select
+                        value={departmentFilter}
+                        onChange={handleDepartmentFilterChange}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        {departments.map((dept) => (
+                          <option key={dept} value={dept}>{dept}</option>
+                        ))}
+                      </select>
+                    </th>
+
+                    {/* Given By Filter */}
+                    <th style={{ width: '60px' }} className="px-1 py-1 border border-gray-300">
+                      <select
+                        value={givenByFilter}
+                        onChange={handleGivenByFilterChange}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="">All</option>
+                        {givenBys.map((gb) => (
+                          <option key={gb} value={gb}>{gb}</option>
+                        ))}
+                      </select>
+                    </th>
+
+                    {/* Name Filter */}
+                    <th style={{ width: '75px' }} className="px-1 py-1 border border-gray-300">
+                      <select
+                        value={nameFilter}
+                        onChange={handleNameFilterChange}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="">All</option>
+                        {dbNames.map((member) => (
+                          <option key={member} value={member}>{member}</option>
+                        ))}
+                      </select>
+                    </th>
+
+                    <th style={{ width: '19.5%' }} className="px-2 py-1 border border-gray-300"></th>
+
+                    {/* Deadline shortcut filter (task_start_date) */}
+                    <th style={{ width: '70px' }} className="px-1 py-1 border border-gray-300 bg-yellow-50">
+                      <select
+                        value={deadlineFilter}
+                        onChange={handleDeadlineFilterChange}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="this week">This Week</option>
+                        <option value="last week">Last Week</option>
+                        <option value="this month">This Month</option>
+                        <option value="last month">Last Month</option>
+                      </select>
+                    </th>
+
+                    {/* Frequency filter */}
+                    <th style={{ width: '45px' }} className="px-1 py-1 border border-gray-300">
+                      <select
+                        value={frequencyFilter}
+                        onChange={handleFrequencyFilterChange}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="fortnightly">Fortnightly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="half-yearly">Half-Yearly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="alternate-day-2">Alt Day 2</option>
+                        <option value="alternate-day-3">Alt Day 3</option>
+                      </select>
+                    </th>
+
+                    {/* Submission Date filter */}
+                    <th style={{ width: '75px' }} className="px-1 py-1 border border-gray-300 bg-green-50">
+                      <select
+                        value={submissionFilter}
+                        onChange={handleSubmissionFilterChange}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="this week">This Week</option>
+                        <option value="last week">Last Week</option>
+                        <option value="this month">This Month</option>
+                        <option value="last month">Last Month</option>
+                      </select>
+                    </th>
+
+                    {/* Status filter */}
+                    <th style={{ width: '42px' }} className="px-1 py-1 border border-gray-300 bg-blue-50">
+                      <select
+                        value={statusFilter}
+                        onChange={handleStatusFilterChange}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        <option value="on-time">On-Time</option>
+                        <option value="delay">Delay</option>
+                      </select>
+                    </th>
+
+                    {/* Remarks filter */}
+                    <th style={{ width: '58px' }} className="px-1 py-1 border border-gray-300 bg-purple-50">
+                      <select
+                        value={remarksFilter}
+                        onChange={handleRemarksFilterChange}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        <option value="with">With Rem.</option>
+                        <option value="without">No Rem.</option>
+                      </select>
+                    </th>
+
+                    <th style={{ width: '58px' }} className="px-1 py-1 border border-gray-300 bg-indigo-50"></th>
+                    <th style={{ width: '58px' }} className="px-1 py-1 border border-gray-300 bg-teal-50"></th>
+
+                    {/* File filter */}
+                    <th style={{ width: '56px' }} className="px-1 py-1 border border-gray-300">
+                      <select
+                        value={fileFilter}
+                        onChange={handleFileFilterChange}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        <option value="view">With File</option>
+                        <option value="no file">No File</option>
+                      </select>
+                    </th>
+                  </tr>
                   <tr>
                     {isSuperAdmin && userRole !== "pc role" && (
-                      <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th style={{ width: '28px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <input
                           type="checkbox"
                           onChange={(e) => handleSelectAll(e.target.checked)}
                           checked={selectedHistoryItems.length > 0 && selectedHistoryItems.length === pendingApprovalCount}
-                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          className="h-3.5 w-3.5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                         />
                       </th>
                     )}
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seq. No.</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Status</th>
+                    <th style={{ width: '40px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Seq. No.</th>
+                    <th style={{ width: '66px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Status</th>
                     {isSuperAdmin && (
-                      <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th>
+                      <th style={{ width: '85px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th>
                     )}
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Given By</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[250px]">Task Description</th>
-                    {/* <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th> */}
-                    {/* <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th> */}
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">Task Start Date</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frequency</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-green-50">Submission Date</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Status</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[160px]">Remarks</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-indigo-50 min-w-[160px]">User Reply</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-teal-50 min-w-[160px]">Admin Reply</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
+                    <th style={{ width: '45px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
+                    <th style={{ width: '60px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                    <th style={{ width: '60px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Given By</th>
+                    <th style={{ width: '75px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th style={{ width: '19.5%' }} className="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Task Description</th>
+                    <th style={{ width: '70px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">Task Start Date</th>
+                    <th style={{ width: '45px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Frequency</th>
+                    <th style={{ width: '75px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-green-50">Submission Date</th>
+                    <th style={{ width: '42px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Status</th>
+                    <th style={{ width: '58px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Remarks</th>
+                    <th style={{ width: '58px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-indigo-50">User Reply</th>
+                    <th style={{ width: '58px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-teal-50">Admin Reply</th>
+                    <th style={{ width: '56px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
                   </tr>
-                </thead>
+                  </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredHistoryData.length > 0 ? (
                     filteredHistoryData.map((historyItem, index) => (
@@ -889,7 +1120,7 @@ function HistoryPage() {
                         <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Name">
                           <div className="text-xs sm:text-sm text-gray-900">{historyItem.name || "—"}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[250px]" data-label="Task Description">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Task Description">
                           <div className="text-xs sm:text-sm text-gray-900" title={historyItem.task_description}>
                             {historyItem.task_description || "—"}
                           </div>
@@ -939,38 +1170,38 @@ function HistoryPage() {
                             {historyItem.status || "—"}
                           </span>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[160px]" data-label="Remarks">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50" data-label="Remarks">
                           <div className="text-xs sm:text-sm text-gray-900" title={historyItem.remark}>
                             {historyItem.remark || "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-indigo-50 min-w-[160px]" data-label="User Reply">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-indigo-50" data-label="User Reply">
                           <div className="text-xs sm:text-sm text-gray-900">
                             {historyItem.user_reply || "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-teal-50 min-w-[160px]" data-label="Admin Reply">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-teal-50" data-label="Admin Reply">
                           <div className="text-xs sm:text-sm text-gray-900">
                             {historyItem.admin_reply || "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="File">
+                        <td className="px-1 py-1" data-label="File">
                           {historyItem.image ? (
                             <a
                               href={historyItem.image}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline flex items-center text-xs sm:text-sm"
+                              className="text-blue-600 hover:text-blue-800 underline inline-flex items-center justify-center gap-1 text-[10px] whitespace-nowrap"
                             >
                               <img
                                 src={historyItem.image}
                                 alt="Attachment"
-                                className="h-6 w-6 sm:h-8 sm:w-8 object-cover rounded-md mr-2"
+                                className="h-4 w-4 object-cover rounded shrink-0"
                               />
-                              View
+                              <span>View</span>
                             </a>
                           ) : (
-                            <span className="text-gray-400 text-xs sm:text-sm">No file</span>
+                            <span className="text-gray-400 text-[10px] whitespace-nowrap">No file</span>
                           )}
                         </td>
                       </tr>
@@ -995,33 +1226,98 @@ function HistoryPage() {
             ) : (
               /* Delegation Table */
               <>
-                <table className="min-w-max divide-y divide-gray-200 mobile-card-table">
+                <table className="w-full table-fixed border-collapse border border-gray-300 mobile-card-table">
                   <thead className="bg-gray-50 sticky top-0 z-10">
-                  <tr>
+                    <tr className="bg-gray-100">
+                      {isSuperAdmin && userRole !== "pc role" && (
+                        <th className="px-1 py-1 border border-gray-200"></th>
+                      )}
+                      <th className="px-1 py-1 border border-gray-200"></th>
+                      <th className="px-1 py-1 border border-gray-200">
+                        <select
+                          value={delegationAdminDoneFilter}
+                          onChange={(e) => setDelegationAdminDoneFilter(e.target.value)}
+                          className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                        >
+                          <option value="all">All</option>
+                          <option value="pending">Pending</option>
+                          <option value="completed">Done</option>
+                        </select>
+                      </th>
+                      {isSuperAdmin && (
+                        <th className="px-1 py-1 border border-gray-200"></th>
+                      )}
+                      <th className="px-1 py-1 border border-gray-200"></th>
+                      <th className="px-1 py-1 border border-gray-200">
+                        <select
+                          value={delegationGivenByFilter}
+                          onChange={(e) => setDelegationGivenByFilter(e.target.value)}
+                          className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                        >
+                          <option value="all">All</option>
+                          {delegationCreatorOptions.map(name => (
+                            <option key={name} value={name}>{name}</option>
+                          ))}
+                        </select>
+                      </th>
+                      <th className="px-1 py-1 border border-gray-200">
+                        <select
+                          value={delegationNameFilter}
+                          onChange={(e) => setDelegationNameFilter(e.target.value)}
+                          className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                        >
+                          <option value="all">All</option>
+                          {delegationDoerOptions.map(name => (
+                            <option key={name} value={name}>{name}</option>
+                          ))}
+                        </select>
+                      </th>
+                      <th className="px-1 py-1 border border-gray-200"></th>
+                      <th className="px-1 py-1 border border-gray-200 bg-yellow-50">
+                        <select
+                          value={delegationDateShortcutFilter}
+                          onChange={(e) => handleDelegationDateShortcutSelect(e.target.value)}
+                          className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                        >
+                          <option value="all">All</option>
+                          <option value="today">Today</option>
+                          <option value="yesterday">Yesterday</option>
+                          <option value="this week">This Week</option>
+                          <option value="last week">Last Week</option>
+                          <option value="this month">This Month</option>
+                          <option value="last month">Last Month</option>
+                        </select>
+                      </th>
+                      <th className="px-1 py-1 border border-gray-200"></th>
+                      <th className="px-1 py-1 border border-gray-200"></th>
+                      <th className="px-1 py-1 border border-gray-200"></th>
+                      <th className="px-1 py-1 border border-gray-200"></th>
+                    </tr>
+                    <tr>
                     {isSuperAdmin && userRole !== "pc role" && (
-                      <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th style={{ width: '28px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <input
                           type="checkbox"
                           onChange={(e) => handleSelectAllDelegation(e.target.checked)}
                           checked={selectedDelegationItems.length > 0 && selectedDelegationItems.length === pendingDelegationApprovalCount}
-                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          className="h-3.5 w-3.5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                         />
                       </th>
                     )}
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seq. No.</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Status</th>
+                    <th style={{ width: '40px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Seq. No.</th>
+                    <th style={{ width: '66px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Status</th>
                     {isSuperAdmin && (
-                      <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th>
+                      <th style={{ width: '90px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Admin Remarks</th>
                     )}
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Given By</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[250px]">Task Description</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">Created At</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Status</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Extend Date</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[160px]">Reason</th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
+                    <th style={{ width: '45px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
+                    <th style={{ width: '65px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Given By</th>
+                    <th style={{ width: '80px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th style={{ width: '24.5%' }} className="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Task Description</th>
+                    <th style={{ width: '80px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">Created At</th>
+                    <th style={{ width: '58px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Status</th>
+                    <th style={{ width: '70px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Next Extend Date</th>
+                    <th style={{ width: '75px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Reason</th>
+                    <th style={{ width: '56px' }} className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -1089,7 +1385,7 @@ function HistoryPage() {
                         <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Name">
                           <div className="text-xs sm:text-sm text-gray-900">{item.name || "—"}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[250px]" data-label="Task Description">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="Task Description">
                           <div className="text-xs sm:text-sm text-gray-900" title={item.task_description}>
                             {item.task_description || "—"}
                           </div>
@@ -1101,7 +1397,7 @@ function HistoryPage() {
                           </div>
                         </td>
                         <td className="px-2 sm:px-3 py-2 sm:py-4 bg-blue-50" data-label="Status">
-                          <span className={`inline-flex px-1.5 py-0.5 text-[9px] leading-none whitespace-nowrap font-bold uppercase rounded-full ${
+                          <span className={`inline-flex px-0.5 py-0.5 text-[6.5px] leading-none whitespace-nowrap font-bold uppercase rounded-full ${
                             item.status === "completed"
                               ? "bg-green-100 text-green-800"
                               : item.status === "extend"
@@ -1116,28 +1412,28 @@ function HistoryPage() {
                             {item.next_extend_date ? formatDateForDisplay(item.next_extend_date) : "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[160px]" data-label="Reason">
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50" data-label="Reason">
                           <div className="text-xs sm:text-sm text-gray-900" title={item.reason}>
                             {item.reason || "—"}
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2 sm:py-4" data-label="File">
+                        <td className="px-1 py-1" data-label="File">
                           {item.image_url ? (
                             <a
                               href={item.image_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline flex items-center text-xs sm:text-sm"
+                              className="text-blue-600 hover:text-blue-800 underline inline-flex items-center justify-center gap-1 text-[10px] whitespace-nowrap"
                             >
                               <img
                                 src={item.image_url}
                                 alt="Attachment"
-                                className="h-6 w-6 sm:h-8 sm:w-8 object-cover rounded-md mr-2"
+                                className="h-4 w-4 object-cover rounded shrink-0"
                               />
-                              View
+                              <span>View</span>
                             </a>
                           ) : (
-                            <span className="text-gray-400 text-xs sm:text-sm">No file</span>
+                            <span className="text-gray-400 text-[10px] whitespace-nowrap">No file</span>
                           )}
                         </td>
                       </tr>

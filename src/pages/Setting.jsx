@@ -1046,7 +1046,7 @@ const resetUserForm = () => {
             {/* Users List for Leave Selection - Updated with filter */}
             {/* Users List for Leave Selection */}
 <div className="h-[calc(100vh-400px)] overflow-auto">
-  <table className="min-w-max divide-y divide-gray-200">
+  <table className="w-full divide-y divide-gray-200 compact-table">
     <thead className="bg-gray-50">
       <tr>
         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1246,7 +1246,17 @@ const resetUserForm = () => {
       </div>
 
       {/* Desktop Table View */}
-      <table className="min-w-max divide-y divide-gray-200 hidden sm:table">
+      <table className="w-full divide-y divide-gray-200 hidden sm:table compact-table">
+        <colgroup>
+          <col style={{ width: '12%' }} />
+          <col style={{ width: '15%' }} />
+          <col style={{ width: '15%' }} />
+          <col style={{ width: '12%' }} />
+          <col style={{ width: '22%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '8%' }} />
+        </colgroup>
         <thead className="bg-gray-50">
           <tr>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1283,10 +1293,8 @@ const resetUserForm = () => {
             )
             .map((user, index) => (
               <tr key={index} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="text-sm font-medium text-gray-900">{user?.user_name}</div>
-                  </div>
+                <td className="px-6 py-4 whitespace-nowrap text-center">
+                  <div className="text-sm font-medium text-gray-900 text-center w-full">{user?.user_name}</div>
                 </td>
                <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
@@ -1416,7 +1424,7 @@ const resetUserForm = () => {
     {/* Departments Sub-tab - Show only department names */}
     {activeDeptSubTab === 'departments' && !loading && (
       <div className="h-[calc(100vh-275px)] overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-        <table className="min-w-max divide-y divide-gray-200">
+        <table className="w-full divide-y divide-gray-200 compact-table">
           <thead className="bg-gray-50">
             <tr>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1468,7 +1476,7 @@ const resetUserForm = () => {
     {/* Given By Sub-tab - Show only given_by values */}
     {activeDeptSubTab === 'givenBy' && !loading && (
       <div className="h-[calc(100vh-275px)] overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-        <table className="min-w-max divide-y divide-gray-200">
+        <table className="w-full divide-y divide-gray-200 compact-table">
           <thead className="bg-gray-50">
             <tr>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1562,7 +1570,7 @@ const resetUserForm = () => {
 
             {/* Users List for Extend Task Selection */}
             <div className="h-[calc(100vh-400px)] overflow-auto">
-              <table className="min-w-max divide-y divide-gray-200">
+              <table className="w-full divide-y divide-gray-200 compact-table">
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1651,7 +1659,7 @@ const resetUserForm = () => {
                   ) : extendUserTasks.length === 0 ? (
                     <div className="text-center py-4 text-gray-500">No tasks found for selected date range.</div>
                   ) : (
-                    <table className="min-w-max divide-y divide-gray-200">
+                    <table className="w-full divide-y divide-gray-200 compact-table">
                       <thead className="bg-gray-50 sticky top-0">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>

@@ -6,7 +6,7 @@ import { Search, ChevronDown, Filter, Trash2, Edit, Save, X } from "lucide-react
 import AdminLayout from "../components/layout/AdminLayout";
 import DelegationPage from "./delegation-data";
 import { useDispatch, useSelector } from "react-redux";
-import { deleteChecklistTask, uniqueChecklistTaskData, uniqueDelegationTaskData, updateChecklistTask, fetchUsers, resetChecklistPagination, resetDelegationPagination  } from "../redux/slice/quickTaskSlice";
+import { deleteChecklistTask, uniqueChecklistTaskData, uniqueDelegationTaskData, updateChecklistTask, fetchUsers, resetChecklistPagination, resetDelegationPagination, fetchQuickTaskFilterOptions } from "../redux/slice/quickTaskSlice";
 
 
 export default function QuickTask() {
@@ -18,7 +18,13 @@ export default function QuickTask() {
   const [activeTab, setActiveTab] = useState('checklist');
   const [nameFilter, setNameFilter] = useState('');
   const [freqFilter, setFreqFilter] = useState('');
-    const tableContainerRef = useRef(null);
+  const [givenByFilter, setGivenByFilter] = useState('');
+  const [dateShortcutFilter, setDateShortcutFilter] = useState('all');
+  const [reminderFilter, setReminderFilter] = useState('all');
+  const [attachmentFilter, setAttachmentFilter] = useState('all');
+  const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
+  
+  const tableContainerRef = useRef(null);
   const [dropdownOpen, setDropdownOpen] = useState({
     name: false,
     frequency: false
@@ -33,22 +39,116 @@ export default function QuickTask() {
   const [checklistPageNum, setChecklistPageNum] = useState(1);
   const PAGE_SIZE = 50;
 
-  // const { quickTask, loading, delegationTasks, users } = useSelector((state) => state.quickTask);
   const { 
     quickTask,
     loading,
     delegationTasks,
-    users,                    // Add this
-    checklistPage,            // Add this
-    checklistTotal,           // total count for numbered pagination
-    checklistHasMore,         // Add this
-    delegationPage,           // Add this
-    delegationHasMore         // Add this
+    users,
+    checklistPage,
+    checklistTotal,
+    checklistHasMore,
+    delegationPage,
+    delegationHasMore,
+    filterOptions
   } = useSelector((state) => state.quickTask);
+  
+  const givenByOptions = filterOptions?.givenBy || [];
+  const nameOptions = filterOptions?.names || [];
+  const frequencyOptions = filterOptions?.frequencies || [];
+  
   const dispatch = useDispatch();
+
+  const resolveShortcutRange = (shortcut) => {
+    if (!shortcut || shortcut === "all") {
+      return { startDate: "", endDate: "" };
+    }
+    const now = new Date();
+    const getLocalDateString = (date) => {
+      const offset = date.getTimezoneOffset();
+      const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+      return localDate.toISOString().split("T")[0];
+    };
+
+    switch (shortcut) {
+      case "today": {
+        const d = getLocalDateString(now);
+        return { startDate: d, endDate: d };
+      }
+      case "yesterday": {
+        const prev = new Date();
+        prev.setDate(now.getDate() - 1);
+        const d = getLocalDateString(prev);
+        return { startDate: d, endDate: d };
+      }
+      case "this week": {
+        const currentDay = now.getDay();
+        const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + distanceToMonday);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        return {
+          startDate: getLocalDateString(monday),
+          endDate: getLocalDateString(sunday),
+        };
+      }
+      case "last week": {
+        const currentDay = now.getDay();
+        const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const mondayThisWeek = new Date(now);
+        mondayThisWeek.setDate(now.getDate() + distanceToMonday);
+        const mondayLastWeek = new Date(mondayThisWeek);
+        mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
+        const sundayLastWeek = new Date(mondayLastWeek);
+        sundayLastWeek.setDate(mondayLastWeek.getDate() + 6);
+        return {
+          startDate: getLocalDateString(mondayLastWeek),
+          endDate: getLocalDateString(sundayLastWeek),
+        };
+      }
+      case "this month": {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return {
+          startDate: getLocalDateString(startOfMonth),
+          endDate: getLocalDateString(endOfMonth),
+        };
+      }
+      case "last month": {
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        return {
+          startDate: getLocalDateString(startOfLastMonth),
+          endDate: getLocalDateString(endOfLastMonth),
+        };
+      }
+      default:
+        return { startDate: "", endDate: "" };
+    }
+  };
+
+  const fetchFilteredChecklist = (customFilters = {}) => {
+    const filters = {
+      page: 0,
+      pageSize: 50,
+      nameFilter: customFilters.hasOwnProperty('nameFilter') ? customFilters.nameFilter : nameFilter,
+      givenByFilter: customFilters.hasOwnProperty('givenByFilter') ? customFilters.givenByFilter : givenByFilter,
+      frequencyFilter: customFilters.hasOwnProperty('freqFilter') ? customFilters.freqFilter : freqFilter,
+      reminderFilter: customFilters.hasOwnProperty('reminderFilter') ? customFilters.reminderFilter : reminderFilter,
+      attachmentFilter: customFilters.hasOwnProperty('attachmentFilter') ? customFilters.attachmentFilter : attachmentFilter,
+      startDate: customFilters.hasOwnProperty('startDate') ? customFilters.startDate : dateRange.startDate,
+      endDate: customFilters.hasOwnProperty('endDate') ? customFilters.endDate : dateRange.endDate,
+      append: false
+    };
+
+    setChecklistPageNum(1);
+    dispatch(resetChecklistPagination());
+    dispatch(uniqueChecklistTaskData(filters));
+  };
 
 useEffect(() => {
   dispatch(fetchUsers());
+  dispatch(fetchQuickTaskFilterOptions());
   dispatch(resetChecklistPagination());
   dispatch(uniqueChecklistTaskData({ page: 0, pageSize: 50, nameFilter: '' }));
 }, [dispatch]);
@@ -59,13 +159,19 @@ const handleChecklistPageChange = useCallback((newPage) => {
   setChecklistPageNum(newPage);
   setSelectedTasks([]);
   dispatch(uniqueChecklistTaskData({
-    page: newPage - 1,   // backend pages are 0-based
+    page: newPage - 1,
     pageSize: PAGE_SIZE,
     nameFilter,
+    givenByFilter,
+    frequencyFilter: freqFilter,
+    reminderFilter,
+    attachmentFilter,
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
     append: false,
   }));
   if (tableContainerRef.current) tableContainerRef.current.scrollTop = 0;
-}, [nameFilter, dispatch]);
+}, [nameFilter, givenByFilter, freqFilter, reminderFilter, attachmentFilter, dateRange, dispatch]);
 
   const userRole = localStorage.getItem("role");
 
@@ -113,7 +219,18 @@ const handleChecklistPageChange = useCallback((newPage) => {
       setEditFormData({});
 
       // Refresh the current page to show updated rows
-      dispatch(uniqueChecklistTaskData({ page: checklistPageNum - 1, pageSize: PAGE_SIZE, nameFilter, append: false }));
+      dispatch(uniqueChecklistTaskData({
+        page: checklistPageNum - 1,
+        pageSize: PAGE_SIZE,
+        nameFilter,
+        givenByFilter,
+        frequencyFilter: freqFilter,
+        reminderFilter,
+        attachmentFilter,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        append: false
+      }));
 
     } catch (error) {
       console.error("Failed to update task:", error);
@@ -170,7 +287,18 @@ const handleChecklistPageChange = useCallback((newPage) => {
       })).unwrap();
       dispatch(resetChecklistPagination());
       setChecklistPageNum(1);
-      dispatch(uniqueChecklistTaskData({ page: 0, pageSize: PAGE_SIZE, nameFilter, append: false }));
+      dispatch(uniqueChecklistTaskData({
+        page: 0,
+        pageSize: PAGE_SIZE,
+        nameFilter,
+        givenByFilter,
+        frequencyFilter: freqFilter,
+        reminderFilter,
+        attachmentFilter,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        append: false
+      }));
       setSelectedTasks([]);
       setDeleteDialogOpen(false);
     } catch (error) {
@@ -219,17 +347,10 @@ const handleChecklistPageChange = useCallback((newPage) => {
 
 const handleNameFilterSelect = (name) => {
   setNameFilter(name);
-  setChecklistPageNum(1);
-
   if (activeTab === 'checklist') {
-    dispatch(resetChecklistPagination());
-    dispatch(uniqueChecklistTaskData({ 
-      page: 0, 
-      pageSize: 50, 
-      nameFilter: name,
-      append: false 
-    }));
+    fetchFilteredChecklist({ nameFilter: name });
   } else {
+    setChecklistPageNum(1);
     dispatch(resetDelegationPagination());
     dispatch(uniqueDelegationTaskData({ 
       page: 0, 
@@ -238,28 +359,23 @@ const handleNameFilterSelect = (name) => {
       append: false 
     }));
   }
-  
   setDropdownOpen({ ...dropdownOpen, name: false });
 };
 
-  const handleFrequencyFilterSelect = (freq) => {
-    setFreqFilter(freq);
-    setDropdownOpen({ ...dropdownOpen, frequency: false });
-  };
+const handleFrequencyFilterSelect = (freq) => {
+  setFreqFilter(freq);
+  if (activeTab === 'checklist') {
+    fetchFilteredChecklist({ freqFilter: freq });
+  }
+  setDropdownOpen({ ...dropdownOpen, frequency: false });
+};
 
 const clearNameFilter = () => {
   setNameFilter('');
-  setChecklistPageNum(1);
-
   if (activeTab === 'checklist') {
-    dispatch(resetChecklistPagination());
-    dispatch(uniqueChecklistTaskData({ 
-      page: 0, 
-      pageSize: 50, 
-      nameFilter: '',
-      append: false 
-    }));
+    fetchFilteredChecklist({ nameFilter: '' });
   } else {
+    setChecklistPageNum(1);
     dispatch(resetDelegationPagination());
     dispatch(uniqueDelegationTaskData({ 
       page: 0, 
@@ -268,14 +384,23 @@ const clearNameFilter = () => {
       append: false 
     }));
   }
-  
   setDropdownOpen({ ...dropdownOpen, name: false });
 };
 
-  const clearFrequencyFilter = () => {
-    setFreqFilter('');
-    setDropdownOpen({ ...dropdownOpen, frequency: false });
-  };
+const clearFrequencyFilter = () => {
+  setFreqFilter('');
+  if (activeTab === 'checklist') {
+    fetchFilteredChecklist({ freqFilter: '' });
+  }
+  setDropdownOpen({ ...dropdownOpen, frequency: false });
+};
+
+const handleDateShortcutSelect = (shortcut) => {
+  setDateShortcutFilter(shortcut);
+  const range = resolveShortcutRange(shortcut);
+  setDateRange(range);
+  fetchFilteredChecklist({ startDate: range.startDate, endDate: range.endDate });
+};
 
   // FIXED: Added proper null/undefined checks and string validation
 const allNames = [
@@ -297,11 +422,10 @@ const allDepartments = [
 
 
 const filteredChecklistTasks = quickTask.filter(task => {
-  const freqFilterPass = !freqFilter || task.frequency === freqFilter;
   const searchTermPass = !searchTerm || task.task_description
     ?.toLowerCase()
     .includes(searchTerm.toLowerCase());
-  return freqFilterPass && searchTermPass;  // Only these two filters
+  return searchTermPass;
 }).sort((a, b) => {
   if (!sortConfig.key) return 0;
   if (a[sortConfig.key] < b[sortConfig.key]) {
@@ -428,10 +552,49 @@ const filteredChecklistTasks = quickTask.filter(task => {
     );
   };
 
-  const checklistTotalPages = Math.ceil((checklistTotal || 0) / PAGE_SIZE);
+  const checklistTotalPages = Math.ceil(((searchTerm.trim() || freqFilter) ? filteredChecklistTasks.length : (checklistTotal || 0)) / PAGE_SIZE);
 
   return (
     <AdminLayout>
+      <style>{`
+        .compact-table {
+          table-layout: fixed !important;
+          width: 100% !important;
+          border-collapse: collapse !important;
+        }
+        .compact-table th {
+          padding: 0.35rem 0.2rem !important;
+          font-size: 0.68rem !important;
+          line-height: 1.15 !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+          text-align: center !important;
+          vertical-align: middle !important;
+          border: 1px solid #d1d5db !important;
+        }
+        .compact-table td {
+          padding: 0.3rem 0.2rem !important;
+          font-size: 0.68rem !important;
+          line-height: 1.15 !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+          text-align: center !important;
+          vertical-align: middle !important;
+          border: 1px solid #e5e7eb !important;
+        }
+        .compact-table td > div, .compact-table td > span {
+          font-size: 0.68rem !important;
+          line-height: 1.15 !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+        }
+        .compact-table input[type="text"], .compact-table select, .compact-table textarea {
+          font-size: 0.65rem !important;
+          padding: 0.15rem !important;
+        }
+      `}</style>
       {deleteDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-lg bg-white shadow-xl border border-gray-200">
@@ -539,7 +702,17 @@ const filteredChecklistTasks = quickTask.filter(task => {
   onClick={() => {
     setActiveTab('checklist');
     dispatch(resetChecklistPagination());
-    dispatch(uniqueChecklistTaskData({ page: 0, pageSize: 50, nameFilter }));
+    dispatch(uniqueChecklistTaskData({
+      page: 0,
+      pageSize: 50,
+      nameFilter,
+      givenByFilter,
+      frequencyFilter: freqFilter,
+      reminderFilter,
+      attachmentFilter,
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate
+    }));
   }}
 >
                 Checklist
@@ -939,9 +1112,116 @@ const filteredChecklistTasks = quickTask.filter(task => {
                   )}
                 </div>
 
-                {/* Desktop Table View */}
-                <table className="min-w-max divide-y divide-gray-200 hidden sm:table">
+                <table className="w-full divide-y divide-gray-200 hidden sm:table compact-table">
+                  <colgroup>
+                    <col style={{ width: '30px' }} />
+                    <col style={{ width: '85px' }} />
+                    <col style={{ width: '85px' }} />
+                    <col style={{ width: '90px' }} />
+                    <col style={{ width: 'auto' }} />
+                    <col style={{ width: '105px' }} />
+                    <col style={{ width: '75px' }} />
+                    <col style={{ width: '75px' }} />
+                    <col style={{ width: '75px' }} />
+                    <col style={{ width: '75px' }} />
+                    <col style={{ width: '85px' }} />
+                  </colgroup>
                   <thead className="bg-gray-50 sticky top-0 z-20">
+                    <tr className="bg-gray-100">
+                      <th className="px-1 py-1 border border-gray-200"></th>
+                      <th className="px-1 py-1 border border-gray-200"></th>
+                      <th className="px-1 py-1 border border-gray-200">
+                        <select
+                          value={givenByFilter}
+                          onChange={(e) => {
+                            setGivenByFilter(e.target.value);
+                            fetchFilteredChecklist({ givenByFilter: e.target.value });
+                          }}
+                          className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                        >
+                          <option value="all">All</option>
+                          {givenByOptions.map(name => (
+                            <option key={name} value={name}>{name}</option>
+                          ))}
+                        </select>
+                      </th>
+                      <th className="px-1 py-1 border border-gray-200">
+                        <select
+                          value={nameFilter}
+                          onChange={(e) => {
+                            setNameFilter(e.target.value);
+                            fetchFilteredChecklist({ nameFilter: e.target.value });
+                          }}
+                          className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                        >
+                          <option value="">All</option>
+                          {nameOptions.map(name => (
+                            <option key={name} value={name}>{name}</option>
+                          ))}
+                        </select>
+                      </th>
+                      <th className="px-1 py-1 border border-gray-200"></th>
+                      <th className="px-1 py-1 border border-gray-200 bg-yellow-50">
+                        <select
+                          value={dateShortcutFilter}
+                          onChange={(e) => handleDateShortcutSelect(e.target.value)}
+                          className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                        >
+                          <option value="all">All</option>
+                          <option value="today">Today</option>
+                          <option value="yesterday">Yesterday</option>
+                          <option value="this week">This Week</option>
+                          <option value="last week">Last Week</option>
+                          <option value="this month">This Month</option>
+                          <option value="last month">Last Month</option>
+                        </select>
+                      </th>
+                      <th className="px-1 py-1 border border-gray-200 bg-yellow-50"></th>
+                      <th className="px-1 py-1 border border-gray-200">
+                        <select
+                          value={freqFilter}
+                          onChange={(e) => {
+                            setFreqFilter(e.target.value);
+                            fetchFilteredChecklist({ freqFilter: e.target.value });
+                          }}
+                          className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                        >
+                          <option value="all">All</option>
+                          {frequencyOptions.map(freq => (
+                            <option key={freq} value={freq}>{freq}</option>
+                          ))}
+                        </select>
+                      </th>
+                      <th className="px-1 py-1 border border-gray-200">
+                        <select
+                          value={reminderFilter}
+                          onChange={(e) => {
+                            setReminderFilter(e.target.value);
+                            fetchFilteredChecklist({ reminderFilter: e.target.value });
+                          }}
+                          className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                        >
+                          <option value="all">All</option>
+                          <option value="yes">Yes</option>
+                          <option value="no">No</option>
+                        </select>
+                      </th>
+                      <th className="px-1 py-1 border border-gray-200">
+                        <select
+                          value={attachmentFilter}
+                          onChange={(e) => {
+                            setAttachmentFilter(e.target.value);
+                            fetchFilteredChecklist({ attachmentFilter: e.target.value });
+                          }}
+                          className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                        >
+                          <option value="all">All</option>
+                          <option value="yes">Yes</option>
+                          <option value="no">No</option>
+                        </select>
+                      </th>
+                      <th className="px-1 py-1 border border-gray-200"></th>
+                    </tr>
                     <tr>
                       <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
                         <input

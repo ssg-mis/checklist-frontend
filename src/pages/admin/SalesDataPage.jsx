@@ -4,7 +4,7 @@ import { CheckCircle2, Upload, X, Search, History, ArrowLeft, FileText } from "l
 import AdminLayout from "../../components/layout/AdminLayout"
 import SearchBar from "../../components/SearchBar"
 import { useDispatch, useSelector } from "react-redux"
-import { checklistData, fetchAllChecklistData, checklistHistoryData, updateChecklist } from "../../redux/slice/checklistSlice"
+import { checklistData, fetchAllChecklistData, checklistHistoryData, updateChecklist, fetchChecklistFilterOptions } from "../../redux/slice/checklistSlice"
 import { postChecklistAdminDoneAPI, sendChecklistWhatsAppAPI } from "../../redux/api/checkListApi"
 import { uniqueDoerNameData } from "../../redux/slice/assignTaskSlice";
 import { useNavigate } from "react-router-dom"
@@ -46,7 +46,7 @@ function AccountDataPage() {
 
   const ITEMS_PER_PAGE = 50;
 
-  const { checklist, loading, history, hasMore, currentPage, totalCount, historyTotalCount } = useSelector((state) => state.checkList);
+  const { checklist, loading, history, hasMore, currentPage, totalCount, historyTotalCount, dropdowns } = useSelector((state) => state.checkList);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -58,14 +58,164 @@ function AccountDataPage() {
   // Track search for API calls
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
-  // Initial data load - fetch all data at once
+  // Filter options
+  const givenByOptions = dropdowns?.givenBy || [];
+  const nameOptions = dropdowns?.names || [];
+  const frequencyOptions = ["daily", "weekly", "fortnightly", "monthly", "quarterly", "yearly", "one-time"];
+
+  // Pending filter states
+  const [pendingGivenByFilter, setPendingGivenByFilter] = useState("all")
+  const [pendingNameFilter, setPendingNameFilter] = useState("all")
+  const [pendingDateShortcutFilter, setPendingDateShortcutFilter] = useState("all")
+  const [pendingFreqFilter, setPendingFreqFilter] = useState("all")
+  const [pendingReminderFilter, setPendingReminderFilter] = useState("all")
+  const [pendingAttachmentFilter, setPendingAttachmentFilter] = useState("all")
+  const [pendingDateRange, setPendingDateRange] = useState({ startDate: "", endDate: "" })
+
+  // History filter states
+  const [historyGivenByFilter, setHistoryGivenByFilter] = useState("all")
+  const [historyNameFilter, setHistoryNameFilter] = useState("all")
+  const [historyDateShortcutFilter, setHistoryDateShortcutFilter] = useState("all")
+  const [historyFreqFilter, setHistoryFreqFilter] = useState("all")
+  const [historyReminderFilter, setHistoryReminderFilter] = useState("all")
+  const [historyAttachmentFilter, setHistoryAttachmentFilter] = useState("all")
+  const [historyDateRange, setHistoryDateRange] = useState({ startDate: "", endDate: "" })
+
+  const resolveShortcutRange = (shortcut) => {
+    if (!shortcut || shortcut === "all") {
+      return { startDate: "", endDate: "" };
+    }
+    const now = new Date();
+    const getLocalDateString = (date) => {
+      const offset = date.getTimezoneOffset();
+      const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+      return localDate.toISOString().split("T")[0];
+    };
+
+    switch (shortcut) {
+      case "today": {
+        const d = getLocalDateString(now);
+        return { startDate: d, endDate: d };
+      }
+      case "yesterday": {
+        const prev = new Date();
+        prev.setDate(now.getDate() - 1);
+        const d = getLocalDateString(prev);
+        return { startDate: d, endDate: d };
+      }
+      case "this week": {
+        const currentDay = now.getDay();
+        const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + distanceToMonday);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        return {
+          startDate: getLocalDateString(monday),
+          endDate: getLocalDateString(sunday),
+        };
+      }
+      case "last week": {
+        const currentDay = now.getDay();
+        const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const mondayThisWeek = new Date(now);
+        mondayThisWeek.setDate(now.getDate() + distanceToMonday);
+        const mondayLastWeek = new Date(mondayThisWeek);
+        mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
+        const sundayLastWeek = new Date(mondayLastWeek);
+        sundayLastWeek.setDate(mondayLastWeek.getDate() + 6);
+        return {
+          startDate: getLocalDateString(mondayLastWeek),
+          endDate: getLocalDateString(sundayLastWeek),
+        };
+      }
+      case "this month": {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return {
+          startDate: getLocalDateString(startOfMonth),
+          endDate: getLocalDateString(endOfMonth),
+        };
+      }
+      case "last month": {
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        return {
+          startDate: getLocalDateString(startOfLastMonth),
+          endDate: getLocalDateString(endOfLastMonth),
+        };
+      }
+      default:
+        return { startDate: "", endDate: "" };
+    }
+  };
+
+  const fetchFilteredPending = (customFilters = {}) => {
+    const filters = {
+      search: debouncedSearch,
+      givenBy: customFilters.hasOwnProperty('givenBy') ? customFilters.givenBy : pendingGivenByFilter,
+      name: customFilters.hasOwnProperty('name') ? customFilters.name : pendingNameFilter,
+      frequency: customFilters.hasOwnProperty('frequency') ? customFilters.frequency : pendingFreqFilter,
+      reminder: customFilters.hasOwnProperty('reminder') ? customFilters.reminder : pendingReminderFilter,
+      attachment: customFilters.hasOwnProperty('attachment') ? customFilters.attachment : pendingAttachmentFilter,
+      startDate: customFilters.hasOwnProperty('startDate') ? customFilters.startDate : pendingDateRange.startDate,
+      endDate: customFilters.hasOwnProperty('endDate') ? customFilters.endDate : pendingDateRange.endDate,
+    };
+
+    const queryParams = {};
+    Object.entries(filters).forEach(([key, val]) => {
+      if (val !== "all" && val !== undefined) {
+        queryParams[key] = val;
+      }
+    });
+
+    dispatch(fetchAllChecklistData(queryParams));
+  };
+
+  const fetchFilteredHistory = (customFilters = {}) => {
+    const filters = {
+      page: currentPageHistory,
+      search: debouncedSearch,
+      givenBy: customFilters.hasOwnProperty('givenBy') ? customFilters.givenBy : historyGivenByFilter,
+      name: customFilters.hasOwnProperty('name') ? customFilters.name : historyNameFilter,
+      frequency: customFilters.hasOwnProperty('frequency') ? customFilters.frequency : historyFreqFilter,
+      reminder: customFilters.hasOwnProperty('reminder') ? customFilters.reminder : historyReminderFilter,
+      attachment: customFilters.hasOwnProperty('attachment') ? customFilters.attachment : historyAttachmentFilter,
+      fromDate: customFilters.hasOwnProperty('startDate') ? customFilters.startDate : historyDateRange.startDate,
+      toDate: customFilters.hasOwnProperty('endDate') ? customFilters.endDate : historyDateRange.endDate,
+    };
+
+    const queryParams = {};
+    Object.entries(filters).forEach(([key, val]) => {
+      if (val !== "all" && val !== undefined) {
+        queryParams[key] = val;
+      }
+    });
+
+    dispatch(checklistHistoryData(queryParams));
+  };
+
+  const handlePendingDateShortcutSelect = (shortcut) => {
+    setPendingDateShortcutFilter(shortcut);
+    const range = resolveShortcutRange(shortcut);
+    setPendingDateRange(range);
+    fetchFilteredPending({ startDate: range.startDate, endDate: range.endDate });
+  };
+
+  const handleHistoryDateShortcutSelect = (shortcut) => {
+    setHistoryDateShortcutFilter(shortcut);
+    const range = resolveShortcutRange(shortcut);
+    setHistoryDateRange(range);
+    fetchFilteredHistory({ startDate: range.startDate, endDate: range.endDate });
+  };
+
+  // Initial data load
   useEffect(() => {
-    dispatch(fetchAllChecklistData({ search: '' }))
-    dispatch(checklistHistoryData(1))
+    dispatch(fetchChecklistFilterOptions());
     dispatch(uniqueDoerNameData());
   }, [dispatch])
 
-  // Debounce search term and re-fetch data
+  // Debounce search term
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearch(searchTerm);
@@ -74,11 +224,20 @@ function AccountDataPage() {
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
 
-  // Re-fetch data when debounced search changes
+  // Re-fetch pending data when debounced search or filters change
   useEffect(() => {
-    dispatch(fetchAllChecklistData({ search: debouncedSearch }));
-    setCurrentPagePending(1);
-  }, [debouncedSearch, dispatch]);
+    if (!showHistory) {
+      fetchFilteredPending();
+      setCurrentPagePending(1);
+    }
+  }, [debouncedSearch, pendingGivenByFilter, pendingNameFilter, pendingDateShortcutFilter, pendingFreqFilter, pendingReminderFilter, pendingAttachmentFilter, showHistory]);
+
+  // Re-fetch history data when debounced search or filters change
+  useEffect(() => {
+    if (showHistory) {
+      fetchFilteredHistory();
+    }
+  }, [debouncedSearch, currentPageHistory, historyGivenByFilter, historyNameFilter, historyDateShortcutFilter, historyFreqFilter, historyReminderFilter, historyAttachmentFilter, showHistory]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -530,62 +689,14 @@ function AccountDataPage() {
   const filteredHistoryData = useMemo(() => {
     if (!Array.isArray(history)) return []
 
-    const filtered = history
-      .filter((item) => {
-        // Search filter
-        const matchesSearch = searchTerm
-          ? Object.entries(item).some(([key, value]) => {
-            if (['image', 'admin_done'].includes(key)) return false
-            return value && value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-          })
-          : true
-
-        // Member filter
-        const matchesMember = selectedMembers.length > 0
-          ? selectedMembers.includes(item.name)
-          : true
-
-        // Date range filter
-        let matchesDateRange = true
-
-        if (startDate || endDate) {
-          const itemDate = parseSupabaseDate(item.task_start_date)
-          if (!itemDate || isNaN(itemDate.getTime())) return false
-
-          // Normalize to start of day for comparison
-          const itemDateOnly = new Date(
-            itemDate.getFullYear(),
-            itemDate.getMonth(),
-            itemDate.getDate()
-          )
-
-          // Create comparison dates
-          const start = startDate ? new Date(startDate) : null
-          if (start) start.setHours(0, 0, 0, 0)
-
-          const end = endDate ? new Date(endDate) : null
-          if (end) {
-            end.setHours(23, 59, 59, 999) // End of day
-          }
-
-          // Compare dates
-          if (start && itemDateOnly < start) matchesDateRange = false
-          if (end && itemDateOnly > end) matchesDateRange = false
-        }
-
-        return matchesSearch && matchesMember && matchesDateRange
-      })
-      .sort((a, b) => {
-        const dateA = parseSupabaseDate(a.task_start_date)
-        const dateB = parseSupabaseDate(b.task_start_date)
-        if (!dateA) return 1
-        if (!dateB) return -1
-        return dateB - dateA // Sort newest first
-      })
-
-    // Return all filtered items (pagination handled by Pagination component)
-    return filtered;
-  }, [history, searchTerm, selectedMembers, startDate, endDate])
+    return history.slice().sort((a, b) => {
+      const dateA = parseSupabaseDate(a.task_start_date)
+      const dateB = parseSupabaseDate(b.task_start_date)
+      if (!dateA) return 1
+      if (!dateB) return -1
+      return dateB.getTime() - dateA.getTime();
+    });
+  }, [history])
 
 
   const getTaskStatistics = () => {
@@ -1285,8 +1396,104 @@ const handleSubmit = async () => {
                   </div>
                 ) : (
                   <>
-                    <table className="min-w-max divide-y divide-gray-200">
+                    <table className="w-full divide-y divide-gray-200 compact-table">
                       <thead className="bg-gray-50 sticky top-0 z-10">
+                        <tr className="bg-gray-100">
+                          <th className="px-1 py-1 border border-gray-200"></th>
+                          <th className="px-1 py-1 border border-gray-200"></th>
+                          <th className="px-1 py-1 border border-gray-200">
+                            <select
+                              value={historyGivenByFilter}
+                              onChange={(e) => {
+                                setHistoryGivenByFilter(e.target.value);
+                              }}
+                              className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                            >
+                              <option value="all">All</option>
+                              {givenByOptions.map(name => (
+                                <option key={name} value={name}>{name}</option>
+                              ))}
+                            </select>
+                          </th>
+                          <th className="px-1 py-1 border border-gray-200">
+                            <select
+                              value={historyNameFilter}
+                              onChange={(e) => {
+                                setHistoryNameFilter(e.target.value);
+                              }}
+                              className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                            >
+                              <option value="all">All</option>
+                              {nameOptions.map(name => (
+                                <option key={name} value={name}>{name}</option>
+                              ))}
+                            </select>
+                          </th>
+                          <th className="px-1 py-1 border border-gray-200"></th>
+                          {userRole === "admin" && (
+                            <th className="px-1 py-1 border border-gray-200"></th>
+                          )}
+                          <th className="px-1 py-1 border border-gray-200 bg-yellow-50">
+                            <select
+                              value={historyDateShortcutFilter}
+                              onChange={(e) => handleHistoryDateShortcutSelect(e.target.value)}
+                              className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                            >
+                              <option value="all">All</option>
+                              <option value="today">Today</option>
+                              <option value="yesterday">Yesterday</option>
+                              <option value="this week">This Week</option>
+                              <option value="last week">Last Week</option>
+                              <option value="this month">This Month</option>
+                              <option value="last month">Last Month</option>
+                            </select>
+                          </th>
+                          <th className="px-1 py-1 border border-gray-200">
+                            <select
+                              value={historyFreqFilter}
+                              onChange={(e) => {
+                                setHistoryFreqFilter(e.target.value);
+                              }}
+                              className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                            >
+                              <option value="all">All</option>
+                              {frequencyOptions.map(freq => (
+                                <option key={freq} value={freq}>{freq}</option>
+                              ))}
+                            </select>
+                          </th>
+                          <th className="px-1 py-1 border border-gray-200">
+                            <select
+                              value={historyReminderFilter}
+                              onChange={(e) => {
+                                setHistoryReminderFilter(e.target.value);
+                              }}
+                              className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                            >
+                              <option value="all">All</option>
+                              <option value="yes">Yes</option>
+                              <option value="no">No</option>
+                            </select>
+                          </th>
+                          <th className="px-1 py-1 border border-gray-200">
+                            <select
+                              value={historyAttachmentFilter}
+                              onChange={(e) => {
+                                setHistoryAttachmentFilter(e.target.value);
+                              }}
+                              className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                            >
+                              <option value="all">All</option>
+                              <option value="yes">Yes</option>
+                              <option value="no">No</option>
+                            </select>
+                          </th>
+                          <th className="px-1 py-1 border border-gray-200 bg-green-50"></th>
+                          <th className="px-1 py-1 border border-gray-200"></th>
+                          <th className="px-1 py-1 border border-gray-200"></th>
+                          <th className="px-1 py-1 border border-gray-200"></th>
+                          <th className="px-1 py-1 border border-gray-200"></th>
+                        </tr>
                         <tr>
                           <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             Task ID
@@ -1479,7 +1686,7 @@ const handleSubmit = async () => {
 
                     <Pagination
                       currentPage={currentPageHistory}
-                      totalPages={Math.ceil((historyTotalCount || 0) / ITEMS_PER_PAGE)}
+                      totalPages={Math.ceil(((searchTerm || selectedMembers.length > 0 || startDate || endDate ? filteredHistoryData.length : historyTotalCount) || 0) / ITEMS_PER_PAGE)}
                       onPageChange={handleHistoryPageChange}
                     />
                   </>
@@ -1659,8 +1866,105 @@ const handleSubmit = async () => {
               </div>
 
               {/* Desktop Table View */}
-              <table className="min-w-max divide-y divide-gray-200 hidden sm:table">
+              <table className="w-full divide-y divide-gray-200 hidden sm:table compact-table">
                 <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr className="bg-gray-100">
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    {(userRole === "user" || userRole === "admin" || userRole === "super_admin") && (
+                      <th className="px-1 py-1 border border-gray-200"></th>
+                    )}
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200">
+                      <select
+                        value={pendingGivenByFilter}
+                        onChange={(e) => {
+                          setPendingGivenByFilter(e.target.value);
+                        }}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        {givenByOptions.map(name => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                    </th>
+                    <th className="px-1 py-1 border border-gray-200">
+                      <select
+                        value={pendingNameFilter}
+                        onChange={(e) => {
+                          setPendingNameFilter(e.target.value);
+                        }}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        {nameOptions.map(name => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                    </th>
+                    <th className="px-1 py-1 border border-gray-200"></th>
+                    <th className="px-1 py-1 border border-gray-200 bg-yellow-50">
+                      <select
+                        value={pendingDateShortcutFilter}
+                        onChange={(e) => handlePendingDateShortcutSelect(e.target.value)}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="this week">This Week</option>
+                        <option value="last week">Last Week</option>
+                        <option value="this month">This Month</option>
+                        <option value="last month">Last Month</option>
+                      </select>
+                    </th>
+                    <th className="px-1 py-1 border border-gray-200">
+                      <select
+                        value={pendingFreqFilter}
+                        onChange={(e) => {
+                          setPendingFreqFilter(e.target.value);
+                        }}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        {frequencyOptions.map(freq => (
+                          <option key={freq} value={freq}>{freq}</option>
+                        ))}
+                      </select>
+                    </th>
+                    <th className="px-1 py-1 border border-gray-200">
+                      <select
+                        value={pendingReminderFilter}
+                        onChange={(e) => {
+                          setPendingReminderFilter(e.target.value);
+                        }}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                      </select>
+                    </th>
+                    <th className="px-1 py-1 border border-gray-200">
+                      <select
+                        value={pendingAttachmentFilter}
+                        onChange={(e) => {
+                          setPendingAttachmentFilter(e.target.value);
+                        }}
+                        className="w-full text-[10px] p-0.5 border border-gray-300 rounded font-normal bg-white text-center"
+                      >
+                        <option value="all">All</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                      </select>
+                    </th>
+                  </tr>
                   <tr>
                     <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-16">
                       Seq. No.

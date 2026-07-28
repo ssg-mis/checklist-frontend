@@ -3,7 +3,8 @@ import {
   fetchChechListDataForHistory, 
   fetchChechListDataSortByDate, 
   postChecklistAdminDoneAPI, 
-  updateChecklistData 
+  updateChecklistData,
+  fetchChecklistFilterOptionsAPI
 } from "../api/checkListApi";
 
 
@@ -12,17 +13,17 @@ import {
 // ============================================================
 export const checklistData = createAsyncThunk(
   "fetch/checklist",
-  async ({ page = 1, search = '' } = {}) => {
-    const { data, totalCount } = await fetchChechListDataSortByDate(page, search);
-    return { data, totalCount, page, search };
+  async (filters = {}) => {
+    const { data, totalCount } = await fetchChechListDataSortByDate(filters);
+    return { data, totalCount, page: filters.page || 1, search: filters.search || "" };
   }
 );
 
 export const fetchAllChecklistData = createAsyncThunk(
   "fetch/allChecklist",
-  async ({ search = '' } = {}) => {
+  async (filters = {}) => {
     // Fetch first page to get totalCount
-    const firstPage = await fetchChechListDataSortByDate(1, search);
+    const firstPage = await fetchChechListDataSortByDate({ page: 1, ...filters });
     let allData = [...firstPage.data];
     const totalCount = firstPage.totalCount;
     const totalPages = Math.ceil(totalCount / 50); // Assuming 50 is page size
@@ -31,7 +32,7 @@ export const fetchAllChecklistData = createAsyncThunk(
     if (totalPages > 1) {
       const promises = [];
       for (let i = 2; i <= totalPages; i++) {
-        promises.push(fetchChechListDataSortByDate(i, search));
+        promises.push(fetchChechListDataSortByDate({ page: i, ...filters }));
       }
       const results = await Promise.all(promises);
       results.forEach(res => {
@@ -39,7 +40,7 @@ export const fetchAllChecklistData = createAsyncThunk(
       });
     }
     
-    return { data: allData, totalCount, search };
+    return { data: allData, totalCount, search: filters.search || "" };
   }
 );
 
@@ -50,12 +51,17 @@ export const fetchAllChecklistData = createAsyncThunk(
 export const checklistHistoryData = createAsyncThunk(
   "fetch/history",
   async (arg = 1) => {
-    // Backward compatible: accepts a page number or { page, search, approvalStatus }
-    const page = typeof arg === "object" ? arg.page ?? 1 : arg;
-    const search = typeof arg === "object" ? arg.search ?? "" : "";
-    const approvalStatus = typeof arg === "object" ? arg.approvalStatus ?? "all" : "all";
-    const { data, totalCount } = await fetchChechListDataForHistory(page, search, approvalStatus);
-    return { data, totalCount, page };
+    // Backward compatible: accepts a page number or a full filter object
+    const filters = typeof arg === "object" ? arg : { page: arg };
+    const { data, totalCount } = await fetchChechListDataForHistory(filters);
+    return { data, totalCount, page: filters.page || 1 };
+  }
+);
+
+export const fetchChecklistFilterOptions = createAsyncThunk(
+  "fetch/filterOptions",
+  async () => {
+    return await fetchChecklistFilterOptionsAPI();
   }
 );
 
@@ -98,6 +104,11 @@ const checkListSlice = createSlice({
     currentPage: 1,
     totalCount: 0,
     historyTotalCount: 0,
+    dropdowns: {
+      names: [],
+      departments: [],
+      givenBy: []
+    }
   },
 
   reducers: {},
@@ -162,6 +173,14 @@ const checkListSlice = createSlice({
       .addCase(checklistHistoryData.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error?.message || "Failed fetching history";
+      })
+
+      .addCase(fetchChecklistFilterOptions.fulfilled, (state, action) => {
+        state.dropdowns = {
+          names: action.payload.doers || [],
+          departments: action.payload.departments || [],
+          givenBy: action.payload.givenBy || []
+        };
       })
 
 
