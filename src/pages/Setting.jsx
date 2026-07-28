@@ -607,15 +607,51 @@ const handleConfirmDelegation = async () => {
 
   // Form states
   // Change this in your form state initialization:
+// All available page keys — must match keys in DB, AdminLayout, and App.jsx
+const ALL_PAGE_KEYS = [
+  { key: 'dashboard',       label: 'Dashboard' },
+  { key: 'quick_task',      label: 'Quick Task' },
+  { key: 'assign_task',     label: 'Assign Task' },
+  { key: 'delegation',      label: 'Delegation' },
+  { key: 'delegation_task', label: 'Delegation Task' },
+  { key: 'checklist',       label: 'Checklist' },
+  { key: 'admin_approval',  label: 'Admin Approval' },
+  { key: 'calendar',        label: 'Calendar' },
+  { key: 'holiday_list',    label: 'Holiday List' },
+  { key: 'settings',        label: 'Settings' },
+  { key: 'training_video',  label: 'Training Video' },
+];
+
+// Default pages each role can access (used to pre-tick when editing)
+const ROLE_PAGE_DEFAULTS = {
+  super_admin: ALL_PAGE_KEYS.map(p => p.key),
+  admin:       ALL_PAGE_KEYS.map(p => p.key),
+  'pc role':   ALL_PAGE_KEYS.map(p => p.key),
+  user:        ['dashboard', 'delegation', 'checklist', 'admin_approval', 'calendar', 'training_video'],
+};
+
+// Helper: convert pageAccess array -> JSONB object { dashboard: true, ... }
+const pageAccessArrayToObj = (arr) => {
+  if (!arr || arr.length === 0) return null;
+  return arr.reduce((acc, key) => ({ ...acc, [key]: true }), {});
+};
+
+// Helper: parse page_access from DB (JSONB obj or null) -> array of keys
+const pageAccessObjToArray = (obj) => {
+  if (!obj || typeof obj !== 'object') return [];
+  return Object.keys(obj).filter(k => obj[k] === true);
+};
+
 const [userForm, setUserForm] = useState({
   username: '',
   email: '',
   password: '',
   phone: '',
-  departments: [], // Change from single department to array
+  departments: [],
   givenBy: '',
   role: 'user',
-  status: 'active'
+  status: 'active',
+  pageAccess: ROLE_PAGE_DEFAULTS['user'], // pre-tick user role defaults
 });
 
   const [deptForm, setDeptForm] = useState({
@@ -634,14 +670,17 @@ const handleAddUser = async (e) => {
   e.preventDefault();
   const newUser = {
     ...userForm,
-    user_access: userForm.departments.join(','), // Join array into comma-separated string
+    user_access: userForm.departments.join(','),
+    // Save as JSONB object: { dashboard: true, delegation: true, ... }
+    page_access: pageAccessArrayToObj(userForm.pageAccess),
   };
 
   try {
     await dispatch(createUser(newUser)).unwrap();
     resetUserForm();
     setShowUserModal(false);
-    setTimeout(() => window.location.reload(), 1000);
+    // Refresh user list via Redux — no page reload needed
+    dispatch(userDetails());
   } catch (error) {
     console.error('Error adding user:', error);
   }
@@ -651,14 +690,16 @@ const handleAddUser = async (e) => {
 const handleUpdateUser = async (e) => {
   e.preventDefault();
   
-  // Prepare updated user data
+  const pageAccessObj = pageAccessArrayToObj(userForm.pageAccess);
   const updatedUser = {
     user_name: userForm.username,
     email_id: userForm.email,
     number: userForm.phone,
     role: userForm.role,
     status: userForm.status,
-    user_access: userForm.departments.join(',') // Join array into comma-separated string
+    user_access: userForm.departments.join(','),
+    // Save as JSONB object: { dashboard: true, delegation: true, ... }
+    page_access: pageAccessObj,
   };
 
   // Only include password if it's not empty
@@ -668,9 +709,23 @@ const handleUpdateUser = async (e) => {
 
   try {
     await dispatch(updateUser({ id: currentUserId, updatedUser })).unwrap();
+
+    // If the updated user is the currently logged-in user, sync localStorage immediately
+    const loggedInUsername = localStorage.getItem('user-name');
+    if (loggedInUsername && loggedInUsername === userForm.username) {
+      if (pageAccessObj) {
+        localStorage.setItem('page_access', JSON.stringify(pageAccessObj));
+      } else {
+        localStorage.removeItem('page_access');
+      }
+      // Fire storage event so AdminLayout sidebar re-renders
+      window.dispatchEvent(new Event('page_access_updated'));
+    }
+
     resetUserForm();
     setShowUserModal(false);
-    setTimeout(() => window.location.reload(), 1000);
+    // Refresh user list via Redux
+    dispatch(userDetails());
   } catch (error) {
     console.error('Error updating user:', error);
   }
@@ -685,7 +740,8 @@ const handleUpdateUser = async (e) => {
       await dispatch(createDepartment(newDept)).unwrap();
       resetDeptForm();
       setShowDeptModal(false);
-      setTimeout(() => window.location.reload(), 1000);
+      // Refresh departments list via Redux
+      dispatch(departmentDetails());
     } catch (error) {
       console.error('Error adding department:', error);
     }
@@ -703,7 +759,8 @@ const handleUpdateUser = async (e) => {
       await dispatch(updateDepartment({ id: currentDeptId, updatedDept })).unwrap();
       resetDeptForm();
       setShowDeptModal(false);
-      setTimeout(() => window.location.reload(), 1000);
+      // Refresh departments list via Redux
+      dispatch(departmentDetails());
     } catch (error) {
       console.error('Error updating department:', error);
     }
@@ -713,7 +770,7 @@ const handleUpdateUser = async (e) => {
   const handleDeleteUser = async (userId) => {
     try {
       await dispatch(deleteUser(userId)).unwrap();
-      setTimeout(() => window.location.reload(), 1000);
+      // No reload — Redux slice filters out deleted user from state
     } catch (error) {
       console.error('Error deleting user:', error);
     }
@@ -729,8 +786,11 @@ const handleUserInputChange = (e) => {
     const selectedValues = Array.from(options)
       .filter(option => option.selected)
       .map(option => option.value);
-    
     setUserForm(prev => ({ ...prev, [name]: selectedValues }));
+  } else if (name === 'role') {
+    // Auto-tick page access defaults when role changes
+    const defaults = ROLE_PAGE_DEFAULTS[value] || [];
+    setUserForm(prev => ({ ...prev, role: value, pageAccess: defaults }));
   } else {
     setUserForm(prev => ({ ...prev, [name]: value }));
   }
@@ -772,14 +832,31 @@ useEffect(() => {
   // };
 const handleEditUser = (userId) => {
   const user = userData.find(u => u.id === userId);
+  const role = user.role || 'user';
+
+  // Parse JSONB page_access from DB; fall back to role defaults if null/empty
+  const rawPageAccess = user.page_access;
+  let parsedPageAccess;
+  if (rawPageAccess && typeof rawPageAccess === 'object' && Object.keys(rawPageAccess).length > 0) {
+    // JSONB object from DB: { dashboard: true, delegation: true }
+    parsedPageAccess = pageAccessObjToArray(rawPageAccess);
+  } else if (typeof rawPageAccess === 'string' && rawPageAccess.trim()) {
+    // Legacy CSV fallback (if any old string data exists)
+    parsedPageAccess = rawPageAccess.split(',').map(k => k.trim());
+  } else {
+    // Not set — use role-based defaults so checkboxes are pre-ticked correctly
+    parsedPageAccess = ROLE_PAGE_DEFAULTS[role] || [];
+  }
+
   setUserForm({
     username: user.user_name,
     email: user.email_id,
-    password: user.password || '', // Pre-fill with existing password
+    password: user.password || '',
     phone: user.number,
-    departments: user.user_access ? user.user_access.split(',').map(d => d.trim()) : [], // Split comma-separated string into array
-    role: user.role,
-    status: user.status
+    departments: user.user_access ? user.user_access.split(',').map(d => d.trim()) : [],
+    role,
+    status: user.status,
+    pageAccess: parsedPageAccess,
   });
   setCurrentUserId(userId);
   setIsEditing(true);
@@ -812,10 +889,11 @@ const resetUserForm = () => {
     email: '',
     password: '',
     phone: '',
-    departments: [], // Reset to empty array
+    departments: [],
     givenBy: '',
     role: 'user',
-    status: 'active'
+    status: 'active',
+    pageAccess: ROLE_PAGE_DEFAULTS['user'], // pre-tick user defaults on reset
   });
   setIsEditing(false);
   setCurrentUserId(null);
@@ -1979,6 +2057,87 @@ const resetUserForm = () => {
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                           </select>
+                        </div>
+
+                        {/* ── Page Access Section ── */}
+                        <div className="sm:col-span-6">
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Page Access
+                            </label>
+                            <span className="text-xs text-gray-400">
+                              {userForm.role === 'super_admin'
+                                ? 'Super admin always has full access'
+                                : 'Leave all unchecked to use default role-based access'}
+                            </span>
+                          </div>
+
+                          {userForm.role === 'super_admin' ? (
+                            <div className="p-3 rounded-md bg-yellow-50 border border-yellow-200 text-xs text-yellow-800">
+                              ⚡ Super Admin bypasses all page restrictions and sees everything.
+                            </div>
+                          ) : (
+                            <div className="border border-gray-200 rounded-md p-3 bg-gray-50">
+                              {/* Select All */}
+                              <div className="flex items-center gap-2 pb-2 mb-2 border-b border-gray-200">
+                                <input
+                                  type="checkbox"
+                                  id="pageAccess_all"
+                                  checked={userForm.pageAccess.length === ALL_PAGE_KEYS.length}
+                                  onChange={(e) => {
+                                    setUserForm(prev => ({
+                                      ...prev,
+                                      pageAccess: e.target.checked ? ALL_PAGE_KEYS.map(p => p.key) : []
+                                    }));
+                                  }}
+                                  className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                />
+                                <label htmlFor="pageAccess_all" className="text-sm font-semibold text-gray-700 cursor-pointer select-none">
+                                  Select All Pages
+                                </label>
+                              </div>
+
+                              {/* Individual page checkboxes — 2-column grid */}
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                {ALL_PAGE_KEYS.map(({ key, label }) => (
+                                  <div key={key} className="flex items-center gap-2">
+                                    <input
+                                      type="checkbox"
+                                      id={`pageAccess_${key}`}
+                                      checked={userForm.pageAccess.includes(key)}
+                                      onChange={(e) => {
+                                        setUserForm(prev => ({
+                                          ...prev,
+                                          pageAccess: e.target.checked
+                                            ? [...prev.pageAccess, key]
+                                            : prev.pageAccess.filter(k => k !== key)
+                                        }));
+                                      }}
+                                      className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                    />
+                                    <label
+                                      htmlFor={`pageAccess_${key}`}
+                                      className="text-sm text-gray-700 cursor-pointer select-none"
+                                    >
+                                      {label}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Info hint */}
+                              {userForm.pageAccess.length === 0 && (
+                                <p className="mt-2 text-xs text-gray-400 italic">
+                                  No pages selected — user will see pages based on their role only.
+                                </p>
+                              )}
+                              {userForm.pageAccess.length > 0 && (
+                                <p className="mt-2 text-xs text-purple-600 font-medium">
+                                  ✓ {userForm.pageAccess.length} page(s) explicitly granted.
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 

@@ -180,8 +180,13 @@ const settingsSlice = createSlice({
       })
       .addCase(updateUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.userData=action.payload;
-       
+        // Merge updated user into array (API returns single user, not full list)
+        const updated = action.payload;
+        if (updated && updated.id) {
+          state.userData = state.userData.map((user) =>
+            user.id === updated.id ? updated : user
+          );
+        }
       })
       .addCase(updateUser.rejected, (state, action) => {
         state.loading = false;
@@ -208,8 +213,13 @@ const settingsSlice = createSlice({
       })
       .addCase(updateDepartment.fulfilled, (state, action) => {
         state.loading = false;
-        state.department=action.payload;
-       
+        // Merge updated department into array (API returns single dept, not full list)
+        const updated = action.payload;
+        if (updated && updated.id) {
+          state.department = state.department.map((dept) =>
+            dept.id === updated.id ? updated : dept
+          );
+        }
       })
       .addCase(updateDepartment.rejected, (state, action) => {
         state.loading = false;

@@ -33,17 +33,18 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
   const [userRole, setUserRole] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  // Store page_access in state so sidebar re-renders reactively
+  const [pageAccessObj, setPageAccessObj] = useState(null);
 
   const [isUserPopupOpen, setIsUserPopupOpen] = useState(false);
 
-  // Check authentication on component mount
+  // Check authentication and load fresh page_access from DB on every mount/reload
   useEffect(() => {
     const storedUsername = localStorage.getItem("user-name");
     const storedRole = localStorage.getItem("role");
     const storedEmail = localStorage.getItem("email_id");
 
     if (!storedUsername) {
-      // Redirect to login if not authenticated
       navigate("/login");
       return;
     }
@@ -51,17 +52,65 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
     setUsername(storedUsername);
     setUserRole(storedRole || "user");
     setUserEmail(storedEmail);
-
-    // Check if this is the super admin (username = 'admin')
     setIsSuperAdmin(storedUsername === "admin");
+
+    // Fetch fresh page_access from DB (not just localStorage)
+    // so admin-side changes take effect on user's next reload
+    const fetchPageAccess = async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/settings/users/${encodeURIComponent(storedUsername)}/page-access`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.page_access && typeof data.page_access === "object") {
+            localStorage.setItem("page_access", JSON.stringify(data.page_access));
+            setPageAccessObj(data.page_access);
+          } else {
+            localStorage.removeItem("page_access");
+            setPageAccessObj(null);
+          }
+        }
+      } catch (err) {
+        // On network error, fall back to cached localStorage value
+        const raw = localStorage.getItem("page_access");
+        if (raw) {
+          try { setPageAccessObj(JSON.parse(raw)); } catch (_) { setPageAccessObj(null); }
+        }
+      }
+    };
+
+    fetchPageAccess();
   }, [navigate]);
 
-  // Handle logout
+  // Re-read page_access when Settings updates the current user's permissions
+  useEffect(() => {
+    const handlePageAccessUpdate = () => {
+      const raw = localStorage.getItem("page_access");
+      if (raw) {
+        try {
+          setPageAccessObj(JSON.parse(raw));
+        } catch (_) {
+          setPageAccessObj(null);
+        }
+      } else {
+        setPageAccessObj(null);
+      }
+    };
+
+    window.addEventListener("page_access_updated", handlePageAccessUpdate);
+    return () => {
+      window.removeEventListener("page_access_updated", handlePageAccessUpdate);
+    };
+  }, []);
+
+  // Handle logout — clear all auth data including page_access
   const handleLogout = () => {
     localStorage.removeItem("user-name");
     localStorage.removeItem("role");
     localStorage.removeItem("email_id");
     localStorage.removeItem("token");
+    localStorage.removeItem("page_access");
     window.location.href = "/login";
   };
 
@@ -70,7 +119,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
     { id: "sales", name: "Checklist", link: "/dashboard/data/sales" },
   ];
 
-  // Update the routes array based on user role and super admin status
+  // All navigable pages — pageKey must match keys used in page_access DB column
   const routes = [
     {
       href: "/dashboard/admin",
@@ -78,14 +127,15 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: Database,
       active: location.pathname === "/dashboard/admin",
       showFor: ["admin", "user", "super_admin", "pc role"],
+      pageKey: "dashboard",
     },
     {
       href: "/dashboard/quick-task",
       label: "Quick Task",
       icon: Zap,
       active: location.pathname === "/dashboard/quick-task",
-      // Show for all admins
       showFor: ["admin", "super_admin", "pc role"],
+      pageKey: "quick_task",
     },
     {
       href: "/dashboard/assign-task",
@@ -93,6 +143,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: CheckSquare,
       active: location.pathname === "/dashboard/assign-task",
       showFor: ["admin", "super_admin", "pc role"],
+      pageKey: "assign_task",
     },
     {
       href: "/dashboard/delegation",
@@ -100,6 +151,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: ClipboardList,
       active: location.pathname === "/dashboard/delegation",
       showFor: ["admin", "user", "super_admin", "pc role"],
+      pageKey: "delegation",
     },
     {
       href: "/dashboard/data/sales",
@@ -107,6 +159,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: CalendarCheck,
       active: location.pathname === "/dashboard/data/sales",
       showFor: ["admin", "user", "super_admin", "pc role"],
+      pageKey: "checklist",
     },
     {
       href: "/dashboard/history",
@@ -114,6 +167,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: History,
       active: location.pathname === "/dashboard/history",
       showFor: ["admin", "user", "super_admin", "pc role"],
+      pageKey: "admin_approval",
     },
     {
       href: "/dashboard/calendar",
@@ -121,6 +175,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: Calendar,
       active: location.pathname === "/dashboard/calendar",
       showFor: ["admin", "user", "super_admin", "pc role"],
+      pageKey: "calendar",
     },
     {
       href: "/dashboard/holidays",
@@ -128,22 +183,15 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: CalendarCheck,
       active: location.pathname === "/dashboard/holidays",
       showFor: ["admin", "super_admin", "pc role"],
+      pageKey: "holiday_list",
     },
-    // {
-    //   href: "/dashboard/mis-report",
-    //   label: "MIS Report",
-    //   icon: CheckSquare,
-    //   active: location.pathname.includes("/dashboard/mis-report"),
-    //   // Only show for super admin (username = 'admin')
-    //   showFor: isSuperAdmin ? ["admin"] : [],
-    // },
     {
       href: "/dashboard/setting",
       label: "Settings",
       icon: Settings,
       active: location.pathname.includes("/dashboard/setting"),
-      // Show for all admins
       showFor: ["admin", "super_admin", "pc role"],
+      pageKey: "settings",
     },
     {
       href: "/dashboard/training-video",
@@ -151,19 +199,42 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: Video,
       active: location.pathname === "/dashboard/training-video",
       showFor: ["admin", "user", "super_admin", "pc role"],
+      pageKey: "training_video",
+    },
+    {
+      href: "/dashboard/delegation-task",
+      label: "Delegation Task",
+      icon: ClipboardList,
+      active: location.pathname === "/dashboard/delegation-task",
+      showFor: ["admin", "super_admin", "pc role"],
+      pageKey: "delegation_task",
     },
   ];
 
   const getAccessibleDepartments = () => {
-    const userRole = localStorage.getItem("role") || "user";
     return dataCategories.filter(
       (cat) => !cat.showFor || cat.showFor.includes(userRole)
     );
   };
 
-  // Filter routes based on user role and super admin status
+  // Derive accessible routes from React state (not localStorage) so sidebar re-renders reactively
   const getAccessibleRoutes = () => {
-    const userRole = localStorage.getItem("role") || "user";
+    // super_admin sees everything
+    if (userRole === "super_admin") {
+      return routes;
+    }
+
+    // If page_access JSONB is set, it is the authority — show exactly those pages
+    // (page_access overrides showFor so admins can grant any page to any user)
+    if (pageAccessObj && Object.keys(pageAccessObj).length > 0) {
+      return routes.filter(
+        (route) =>
+          // Dashboard always visible as minimum
+          route.pageKey === "dashboard" || pageAccessObj[route.pageKey] === true
+      );
+    }
+
+    // Fallback: role-based showFor (backward-compatible for users with no page_access set)
     return routes.filter((route) => route.showFor.includes(userRole));
   };
 

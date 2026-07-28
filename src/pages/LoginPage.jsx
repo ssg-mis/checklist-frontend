@@ -38,6 +38,12 @@ const LoginPage = () => {
       localStorage.setItem('user-name', userData.user_name || userData.username || "");
       localStorage.setItem('role', userData.role || "");
       localStorage.setItem('email_id', userData.email_id || userData.email || "");
+      // Store page_access as JSON string (it's a JSONB object from DB)
+      if (userData.page_access && typeof userData.page_access === 'object') {
+        localStorage.setItem('page_access', JSON.stringify(userData.page_access));
+      } else {
+        localStorage.removeItem('page_access'); // clear stale value if none set
+      }
 
       console.log("Stored email:", userData.email_id || userData.email);
 

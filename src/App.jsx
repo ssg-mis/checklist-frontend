@@ -20,17 +20,55 @@ import CalendarPage from "./pages/admin/CalendarPage"
 import HolidayManagementPage from "./pages/admin/HolidayManagementPage"
 import RealtimeLogoutListener from "./components/RealtimeLogoutListener"   // ✅ Added listener
 
+// Map from route path to pageKey (must match keys stored in page_access DB column)
+const ROUTE_PAGE_KEYS = {
+  "/dashboard/admin": "dashboard",
+  "/dashboard/quick-task": "quick_task",
+  "/dashboard/assign-task": "assign_task",
+  "/dashboard/delegation": "delegation",
+  "/dashboard/data/sales": "checklist",
+  "/dashboard/history": "admin_approval",
+  "/dashboard/calendar": "calendar",
+  "/dashboard/holidays": "holiday_list",
+  "/dashboard/setting": "settings",
+  "/dashboard/training-video": "training_video",
+  "/dashboard/delegation-task": "delegation_task",
+};
+
 // Auth wrapper component to protect routes
-const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+const ProtectedRoute = ({ children, allowedRoles = [], pageKey = null }) => {
   const username = localStorage.getItem("user-name")
   const userRole = localStorage.getItem("role")
 
-  // If no user is logged in, redirect to login
+  // Not logged in → redirect to login
   if (!username) {
     return <Navigate to="/login" replace />
   }
 
-  // If this is an admin-only route and user is not admin, redirect to tasks
+  // super_admin bypasses everything
+  if (userRole === "super_admin") {
+    return children
+  }
+
+  // Parse page_access JSONB: { dashboard: true, delegation: true, ... }
+  let pageAccessObj = null
+  try {
+    const raw = localStorage.getItem("page_access")
+    if (raw) pageAccessObj = JSON.parse(raw)
+  } catch (_) {
+    pageAccessObj = null
+  }
+
+  // If page_access is set, it is the SOLE authority for this route
+  if (pageKey && pageAccessObj && Object.keys(pageAccessObj).length > 0) {
+    // Dashboard is always accessible as minimum landing page
+    if (pageKey !== "dashboard" && pageAccessObj[pageKey] !== true) {
+      return <Navigate to="/dashboard/admin" replace />
+    }
+    return children
+  }
+
+  // No page_access set → fall back to role-based allowedRoles guard
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
     return <Navigate to="/dashboard/admin" replace />
   }
@@ -59,7 +97,7 @@ function App() {
         <Route
           path="/dashboard/admin"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute pageKey="dashboard">
               <AdminDashboard />
             </ProtectedRoute>
           }
@@ -67,7 +105,7 @@ function App() {
         <Route
           path="/dashboard/quick-task"
           element={
-            <ProtectedRoute allowedRoles={["admin", "super_admin", "pc role"]}>
+            <ProtectedRoute allowedRoles={["admin", "super_admin", "pc role"]} pageKey="quick_task">
               <QuickTask />
             </ProtectedRoute>
           }
@@ -77,7 +115,7 @@ function App() {
         <Route
           path="/dashboard/assign-task"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute pageKey="assign_task">
               <AdminAssignTask />
             </ProtectedRoute>
           }
@@ -85,7 +123,7 @@ function App() {
         <Route
           path="/dashboard/delegation-task"
           element={
-            <ProtectedRoute allowedRoles={["admin", "super_admin", "pc role"]}>
+            <ProtectedRoute allowedRoles={["admin", "super_admin", "pc role"]} pageKey="delegation_task">
               <AdminDelegationTask />
             </ProtectedRoute>
           }
@@ -95,7 +133,7 @@ function App() {
         <Route
           path="/dashboard/delegation"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute pageKey="delegation">
               <AccountDataPage />
             </ProtectedRoute>
           }
@@ -104,7 +142,7 @@ function App() {
         <Route
           path="/dashboard/setting"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute pageKey="settings">
               <Setting />
             </ProtectedRoute>
           }
@@ -123,7 +161,7 @@ function App() {
         <Route
           path="/dashboard/training-video"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute pageKey="training_video">
               <TrainingVideoPage />
             </ProtectedRoute>
           }
@@ -133,7 +171,7 @@ function App() {
         <Route
           path="/dashboard/history"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute pageKey="admin_approval">
               <HistoryPage />
             </ProtectedRoute>
           }
@@ -143,7 +181,7 @@ function App() {
         <Route
           path="/dashboard/calendar"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute pageKey="calendar">
               <CalendarPage />
             </ProtectedRoute>
           }
@@ -153,7 +191,7 @@ function App() {
         <Route
           path="/dashboard/holidays"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute pageKey="holiday_list">
               <HolidayManagementPage />
             </ProtectedRoute>
           }
@@ -163,7 +201,7 @@ function App() {
         <Route
           path="/dashboard/data/:category"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute pageKey="checklist">
               <DataPage />
             </ProtectedRoute>
           }
