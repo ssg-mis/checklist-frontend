@@ -767,7 +767,13 @@ const handleUpdateUser = async (e) => {
   };
 
   // Modified handleDeleteUser
-  const handleDeleteUser = async (userId) => {
+  const handleDeleteUser = async (userId, username) => {
+    const confirmMessage = username 
+      ? `Are you sure you want to delete user "${username}"?` 
+      : 'Are you sure you want to delete this user?';
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
     try {
       await dispatch(deleteUser(userId)).unwrap();
       // No reload — Redux slice filters out deleted user from state
@@ -1440,7 +1446,7 @@ const resetUserForm = () => {
                         <Edit size={18} />
                       </button>
                       <button
-                        onClick={() => handleDeleteUser(user?.id)}
+                        onClick={() => handleDeleteUser(user?.id, user?.user_name)}
                         className="text-red-600 hover:text-red-900"
                         title="Delete User"
                       >
