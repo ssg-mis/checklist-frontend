@@ -627,7 +627,7 @@ const ROLE_PAGE_DEFAULTS = {
   super_admin: ALL_PAGE_KEYS.map(p => p.key),
   admin:       ALL_PAGE_KEYS.map(p => p.key),
   'pc role':   ALL_PAGE_KEYS.map(p => p.key),
-  user:        ['dashboard', 'delegation', 'checklist', 'admin_approval', 'calendar', 'training_video'],
+  user:        ['dashboard', 'delegation', 'checklist', 'calendar', 'training_video'],
 };
 
 // Helper: convert pageAccess array -> JSONB object { dashboard: true, ... }

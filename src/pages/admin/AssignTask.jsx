@@ -45,7 +45,7 @@ const CalendarComponent = ({ date, onChange, onClose }) => {
       currentMonth.getFullYear(),
       currentMonth.getMonth()
     );
-    
+
     // Get today's date for comparison (without time)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -63,13 +63,13 @@ const CalendarComponent = ({ date, onChange, onClose }) => {
         day
       );
       currentDate.setHours(0, 0, 0, 0);
-      
+
       const isSelected =
         date &&
         date.getDate() === day &&
         date.getMonth() === currentMonth.getMonth() &&
         date.getFullYear() === currentMonth.getFullYear();
-      
+
       // Check if date is in the past (before today)
       const isPastDate = currentDate < today;
 
@@ -79,13 +79,12 @@ const CalendarComponent = ({ date, onChange, onClose }) => {
           type="button"
           onClick={() => !isPastDate && handleDateClick(day)}
           disabled={isPastDate}
-          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm ${
-            isPastDate
+          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm ${isPastDate
               ? "text-gray-300 cursor-not-allowed"
               : isSelected
                 ? "bg-purple-600 text-white"
                 : "hover:bg-purple-100 text-gray-700"
-          }`}
+            }`}
         >
           {day}
         </button>
@@ -251,27 +250,27 @@ export default function AssignTask() {
 
 
   // Fetch working days from Supabase on component mount
-useEffect(() => {
-  const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/assign-task`;
-  const fetchWorkingDays = async () => {
-    try {
-      // const res = await fetch("http://localhost:5050/api/assign-task/working-days");
-      const res = await fetch(`${BASE_URL}/working-days`);
-      const data = await res.json();
+  useEffect(() => {
+    const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/assign-task`;
+    const fetchWorkingDays = async () => {
+      try {
+        // const res = await fetch("http://localhost:5050/api/assign-task/working-days");
+        const res = await fetch(`${BASE_URL}/working-days`);
+        const data = await res.json();
 
-      const formattedDays = data.map((day) => {
-        const date = new Date(day.working_date);
-        return formatDateToDDMMYYYY(date);
-      });
+        const formattedDays = data.map((day) => {
+          const date = new Date(day.working_date);
+          return formatDateToDDMMYYYY(date);
+        });
 
-      setWorkingDays(formattedDays);
-    } catch (error) {
-      console.error("Error fetching working days:", error);
-    }
-  };
+        setWorkingDays(formattedDays);
+      } catch (error) {
+        console.error("Error fetching working days:", error);
+      }
+    };
 
-  fetchWorkingDays();
-}, []);
+    fetchWorkingDays();
+  }, []);
 
 
   const handleChange = (e) => {
@@ -507,9 +506,9 @@ useEffect(() => {
     } else {
       // For recurring tasks
       let currentDate = new Date(selectedDate);
-      const endDate = addYears(currentDate, 2); // Generate up to 2 years ahead
+      const endDate = addYears(currentDate, 1); // Generate up to 1 year ahead
       let taskCount = 0;
-      const maxTasks = 365; // Safety limit
+      const maxTasks = 1000; // Safety limit to prevent infinite loops
       const anchorDay = selectedDate.getDate();
 
       while (currentDate <= endDate && taskCount < maxTasks) {
@@ -663,9 +662,9 @@ useEffect(() => {
       } else {
         // For recurring tasks
         let currentDate = new Date(selectedDate);
-        const endDate = addYears(currentDate, 2);
+        const endDate = addYears(currentDate, 1);
         let taskCount = 0;
-        const maxTasks = 365;
+        const maxTasks = 1000;
         const anchorDay = selectedDate.getDate();
 
         while (currentDate <= endDate && taskCount < maxTasks) {
@@ -761,7 +760,7 @@ useEffect(() => {
           taskCount++;
         }
       }
-      
+
       const tasksToSubmit = tasks;
 
       if (tasksToSubmit.length === 0) {
@@ -831,7 +830,7 @@ useEffect(() => {
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-2xl font-bold tracking-tight text-purple-500 flex items-center gap-2">
             {taskType && (
-              <button 
+              <button
                 onClick={() => setTaskType(null)}
                 className="p-1 hover:bg-purple-100 rounded-full transition-colors"
                 title="Back to selection"
@@ -876,7 +875,7 @@ useEffect(() => {
         {!taskType ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-8">
             {/* Checklist Card */}
-            <div 
+            <div
               onClick={() => {
                 setTaskType('checklist');
                 setFormData(prev => ({ ...prev, frequency: 'daily' }));
@@ -893,7 +892,7 @@ useEffect(() => {
             </div>
 
             {/* Delegation Card */}
-            <div 
+            <div
               onClick={() => {
                 setTaskType('delegation');
                 setFormData(prev => ({ ...prev, frequency: 'one-time' }));
@@ -1353,7 +1352,7 @@ useEffect(() => {
           </div>
         )}
       </div>
-      
+
       {/* CSV Import Modal */}
       <CSVImportModal
         isOpen={showImportModal}

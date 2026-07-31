@@ -166,7 +166,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       label: "Admin Approval",
       icon: History,
       active: location.pathname === "/dashboard/history",
-      showFor: ["admin", "user", "super_admin", "pc role"],
+      showFor: ["admin", "super_admin", "pc role"],
       pageKey: "admin_approval",
     },
     {
