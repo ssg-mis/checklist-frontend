@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import { CheckCircle2, Upload, X, Search, History, ArrowLeft, FileText } from "lucide-react"
+import { CheckCircle2, Upload, X, Search, History, ArrowLeft, FileText, AlertCircle } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
 import SearchBar from "../../components/SearchBar"
 import { useDispatch, useSelector } from "react-redux"
@@ -26,6 +26,7 @@ function AccountDataPage() {
   const [selectedItems, setSelectedItems] = useState(new Set())
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
+  const [errorMessage, setErrorMessage] = useState("")
   const [additionalData, setAdditionalData] = useState({})
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all") // Filter for Today/Overdue/Upcoming
@@ -1026,7 +1027,16 @@ const handleSubmit = async () => {
 
   console.log("Submission Data:", submissionData);
 
-  await dispatch(updateChecklist(submissionData));
+  try {
+    await dispatch(updateChecklist(submissionData)).unwrap();
+  } catch (error) {
+    console.error("❌ Submit failed:", error);
+    setIsSubmitting(false);
+    setErrorMessage(
+      "Submit failed. If you attached a large file, try a smaller one, or check your connection and try again."
+    );
+    return;
+  }
 
   setTimeout(() => {
     setIsSubmitting(false);
@@ -1250,6 +1260,18 @@ const handleSubmit = async () => {
               <span className="break-words">{successMessage}</span>
             </div>
             <button onClick={() => setSuccessMessage("")} className="text-green-500 hover:text-green-700 ml-2 flex-shrink-0">
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
+            </button>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-3 rounded-md flex items-center justify-between text-sm sm:text-base">
+            <div className="flex items-center">
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-red-500 flex-shrink-0" />
+              <span className="break-words">{errorMessage}</span>
+            </div>
+            <button onClick={() => setErrorMessage("")} className="text-red-500 hover:text-red-700 ml-2 flex-shrink-0">
               <X className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </div>
