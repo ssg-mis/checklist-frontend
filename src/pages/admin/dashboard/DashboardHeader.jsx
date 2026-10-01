@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { getTotalUsersCountApi } from "../../../redux/api/dashboardApi"
+import { exportDateRangeReport } from "../../../utils/exportReportPdf"
 
 export default function DashboardHeader({
   dashboardType,
@@ -21,6 +22,12 @@ export default function DashboardHeader({
   const [showDateRangePicker, setShowDateRangePicker] = useState(false)
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
+
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportStartDate, setExportStartDate] = useState("")
+  const [exportEndDate, setExportEndDate] = useState("")
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportError, setExportError] = useState("")
 
   // Fetch total users count
   useEffect(() => {
@@ -59,17 +66,46 @@ export default function DashboardHeader({
     return new Date().toISOString().split('T')[0]
   }
 
+  const handleExportSubmit = async () => {
+    if (!exportStartDate || !exportEndDate) return
+    setIsExporting(true)
+    setExportError("")
+    try {
+      await exportDateRangeReport({
+        type: dashboardType,
+        startDate: exportStartDate,
+        endDate: exportEndDate,
+      })
+      setShowExportModal(false)
+      setExportStartDate("")
+      setExportEndDate("")
+    } catch (error) {
+      console.error("❌ Export report failed:", error)
+      setExportError("Export failed. Please try again.")
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (
     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
       <div className="flex items-center gap-4">
         <h1 className="text-2xl font-bold tracking-tight text-purple-500">Dashboard</h1>
         { (userRole === "admin" || userRole === "super_admin") && (
-          <div className="flex items-center gap-2 ml-auto mr-5">
-            <div className="text-sm text-gray-600">Total Users</div>
-            <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">
-                {totalUsersCount}
-              </span>
+          <div className="flex items-center gap-3 ml-auto mr-5">
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors"
+            >
+              Export Report
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="text-sm text-gray-600">Total Users</div>
+              <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-sm">
+                  {totalUsersCount}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -302,6 +338,68 @@ export default function DashboardHeader({
           className="fixed inset-0 z-0"
           onClick={() => setShowDateRangePicker(false)}
         />
+      )}
+
+      {/* Export Report Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-gray-800">
+              Export {dashboardType === "checklist" ? "Checklist" : "Delegation"} Report
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Select a date range to export the user-wise summary and task-wise detail report (same format as the monthly reports).
+            </p>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">From Date</label>
+                <input
+                  type="date"
+                  value={exportStartDate}
+                  onChange={(e) => setExportStartDate(e.target.value)}
+                  max={exportEndDate || getTodayDate()}
+                  className="w-full rounded border border-gray-300 p-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">To Date</label>
+                <input
+                  type="date"
+                  value={exportEndDate}
+                  onChange={(e) => setExportEndDate(e.target.value)}
+                  min={exportStartDate}
+                  max={getTodayDate()}
+                  className="w-full rounded border border-gray-300 p-2 text-sm"
+                />
+              </div>
+            </div>
+
+            {exportError && (
+              <p className="mt-3 text-xs text-red-600">{exportError}</p>
+            )}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => {
+                  setShowExportModal(false)
+                  setExportError("")
+                }}
+                disabled={isExporting}
+                className="flex-1 rounded border border-gray-300 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExportSubmit}
+                disabled={!exportStartDate || !exportEndDate || isExporting}
+                className="flex-1 rounded bg-purple-600 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {isExporting ? "Exporting..." : "Export PDF"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

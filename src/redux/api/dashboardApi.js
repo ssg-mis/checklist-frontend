@@ -323,3 +323,20 @@ export const countNotDoneTaskApi = async (dashboardType, staffFilter = "all", de
   const res = await fetch(url);
   return res.json();
 };
+
+// ============================================================
+// EXPORT REPORT (date-range PDF export from the Dashboard)
+// ============================================================
+export const getReportSummaryApi = async (type, startDate, endDate) => {
+  const url = `${BASE_URL}/report/summary?type=${type}&startDate=${startDate}&endDate=${endDate}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch report summary");
+  return res.json();
+};
+
+export const getReportDetailApi = async (type, startDate, endDate) => {
+  const url = `${BASE_URL}/report/detail?type=${type}&startDate=${startDate}&endDate=${endDate}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch report detail");
+  return res.json();
+};
