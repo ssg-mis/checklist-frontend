@@ -116,7 +116,7 @@ export default function DashboardHeader({
             >
               Export Report
             </button>
-            {userRole === "super_admin" && dashboardType === "delegation" && (
+            {(userRole === "admin" || userRole === "super_admin") && dashboardType === "delegation" && (
               <div className="flex flex-col items-start">
                 <button
                   onClick={handleExportPendingDelegation}
