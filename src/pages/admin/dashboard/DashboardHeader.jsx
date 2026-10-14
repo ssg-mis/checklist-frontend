@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { getTotalUsersCountApi } from "../../../redux/api/dashboardApi"
 import { exportDateRangeReport } from "../../../utils/exportReportPdf"
+import { exportPendingDelegationReport } from "../../../utils/exportPendingDelegationReportPdf"
 
 export default function DashboardHeader({
   dashboardType,
@@ -28,6 +29,9 @@ export default function DashboardHeader({
   const [exportEndDate, setExportEndDate] = useState("")
   const [isExporting, setIsExporting] = useState(false)
   const [exportError, setExportError] = useState("")
+
+  const [isExportingPendingDelegation, setIsExportingPendingDelegation] = useState(false)
+  const [pendingDelegationExportError, setPendingDelegationExportError] = useState("")
 
   // Fetch total users count
   useEffect(() => {
@@ -66,6 +70,19 @@ export default function DashboardHeader({
     return new Date().toISOString().split('T')[0]
   }
 
+  const handleExportPendingDelegation = async () => {
+    setIsExportingPendingDelegation(true)
+    setPendingDelegationExportError("")
+    try {
+      await exportPendingDelegationReport()
+    } catch (error) {
+      console.error("❌ Export pending delegation report failed:", error)
+      setPendingDelegationExportError("Export failed. Please try again.")
+    } finally {
+      setIsExportingPendingDelegation(false)
+    }
+  }
+
   const handleExportSubmit = async () => {
     if (!exportStartDate || !exportEndDate) return
     setIsExporting(true)
@@ -99,6 +116,20 @@ export default function DashboardHeader({
             >
               Export Report
             </button>
+            {userRole === "super_admin" && dashboardType === "delegation" && (
+              <div className="flex flex-col items-start">
+                <button
+                  onClick={handleExportPendingDelegation}
+                  disabled={isExportingPendingDelegation}
+                  className="rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700 transition-colors disabled:opacity-50"
+                >
+                  {isExportingPendingDelegation ? "Exporting..." : "Export Pending Delegation Report"}
+                </button>
+                {pendingDelegationExportError && (
+                  <span className="text-xs text-red-600 mt-1">{pendingDelegationExportError}</span>
+                )}
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <div className="text-sm text-gray-600">Total Users</div>
               <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">

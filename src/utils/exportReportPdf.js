@@ -155,13 +155,23 @@ export async function exportDateRangeReport({ type, startDate, endDate }) {
   doc.setFontSize(7);
   doc.setFont(undefined, "normal");
   doc.setTextColor(...COLORS.gray);
-  const legendLine1 = `On-Time % = completed tasks submitted on/before their start date, as a share of completed tasks in ${rangeLabel}. Avg Delay = average days late, for tasks completed after their start date.`;
-  const legendLine2 = `Total Pending Till Date = all-time pending tasks for that person (not limited to ${rangeLabel}), as of report generation.`;
-  doc.text(legendLine1, marginX, cursorY, { maxWidth: pageWidth - marginX * 2 });
-  doc.text(legendLine2, marginX, cursorY + 3.5, { maxWidth: pageWidth - marginX * 2 });
+  const legendWidth = pageWidth - marginX * 2;
+  const legendLineHeight = 3.2;
+  const legendLine1 = doc.splitTextToSize(
+    `On-Time % = completed tasks submitted on/before their start date, as a share of completed tasks in ${rangeLabel}. Avg Delay = average days late, for tasks completed after their start date.`,
+    legendWidth
+  );
+  const legendLine2 = doc.splitTextToSize(
+    `Total Pending Till Date = all-time pending tasks for that person (not limited to ${rangeLabel}), as of report generation.`,
+    legendWidth
+  );
+  doc.text(legendLine1, marginX, cursorY);
+  cursorY += legendLine1.length * legendLineHeight;
+  doc.text(legendLine2, marginX, cursorY);
+  cursorY += legendLine2.length * legendLineHeight;
 
   // ---- Task-Wise Detail ----
-  cursorY += 12;
+  cursorY += 9;
   doc.setFontSize(12);
   doc.setFont(undefined, "bold");
   doc.setTextColor(30, 41, 59);

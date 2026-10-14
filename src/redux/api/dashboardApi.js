@@ -340,3 +340,10 @@ export const getReportDetailApi = async (type, startDate, endDate) => {
   if (!res.ok) throw new Error("Failed to fetch report detail");
   return res.json();
 };
+
+export const getPendingDelegationReportApi = async () => {
+  const url = `${BASE_URL}/report/pending-delegation`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch pending delegation report");
+  return res.json();
+};
